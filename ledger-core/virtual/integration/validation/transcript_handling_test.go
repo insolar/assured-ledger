@@ -100,6 +100,7 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 		pl.ObjectTranscript.Entries[1].Set(
 			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
 				ObjectState: rms.NewReference(stateRef),
+				Reason:      callRequest.CallOutgoing,
 			},
 		)
 
@@ -204,6 +205,7 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 		pl.ObjectTranscript.Entries[1].Set(
 			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
 				ObjectState: rms.NewReference(newStateRef),
+				Reason:      callRequest.CallOutgoing,
 			},
 		)
 
@@ -300,6 +302,7 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 		pl.ObjectTranscript.Entries[1].Set(
 			&rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest{
 				Request: rms.NewReference(outgoingRefFromConstructor),
+				Reason:  callRequest.CallOutgoing,
 			},
 		)
 		pl.ObjectTranscript.Entries[2].Set(
@@ -312,11 +315,13 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 					CallOutgoing:    rms.NewReference(outgoingRefFromConstructor),
 					ReturnArguments: rms.NewBytes([]byte("finish B.Bar")),
 				},
+				Reason: callRequest.CallOutgoing,
 			},
 		)
 		pl.ObjectTranscript.Entries[3].Set(
 			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
 				ObjectState: rms.NewReference(stateRef),
+				Reason:      callRequest.CallOutgoing,
 			},
 		)
 
@@ -441,24 +446,26 @@ func TestValidation_ObjectTranscriptReport_AfterTwoInterleaving(t *testing.T) {
 		pl.ObjectTranscript.Entries[1].Set(
 			&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
 				ObjectMemory: rms.NewReference(stateRef),
-				Request:      *callRequest1,
+				Request:      *callRequest2,
 			},
 		)
 		pl.ObjectTranscript.Entries[2].Set(
 			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
 				ObjectState: rms.NewReference(newStateRef),
+				Reason:      callRequest1.CallOutgoing,
 			},
 		)
 		pl.ObjectTranscript.Entries[3].Set(
 			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
 				ObjectState: rms.NewReference(stateRef),
+				Reason:      callRequest2.CallOutgoing,
 			},
 		)
 
 		done := server.Journal.WaitStopOf(&handlers.SMVObjectTranscriptReport{}, 1)
 		server.SendPayload(ctx, &pl)
-		commontestutils.WaitSignalsTimed(t, 10*time.Second, done)
-		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+		commontestutils.WaitSignalsTimed(t, 60*time.Second, done)
+		commontestutils.WaitSignalsTimed(t, 60*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 		assert.Equal(t, 1, typedChecker.VCachedMemoryRequest.Count())
 		assert.Equal(t, 1, typedChecker.VObjectValidationReport.Count())

@@ -35,17 +35,20 @@ func (t *Transcript) GetRMSTranscript() (rms.VObjectTranscriptReport_Transcript,
 			rmsEntry.Set(&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
 				IncomingResult: rms.NewReference(typedEntry.IncomingResult),
 				ObjectState:    rms.NewReference(typedEntry.ObjectMemory),
+				Reason:         rms.NewReference(typedEntry.Reason),
 			})
 
 		case TranscriptEntryOutgoingRequest:
 			rmsEntry.Set(
 				&rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest{
 					Request: rms.NewReference(typedEntry.Request),
+					Reason:  rms.NewReference(typedEntry.Reason),
 				})
 		case TranscriptEntryOutgoingResult:
 			rmsEntry.Set(&rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult{
 				OutgoingResult: rms.NewReference(typedEntry.OutgoingResult),
 				CallResult:     typedEntry.CallResult,
+				Reason:         rms.NewReference(typedEntry.Reason),
 			})
 		}
 

@@ -52,7 +52,10 @@ type SMVObjectTranscriptReport struct {
 
 	objState        reference.Global
 	objDesc         descriptor.Object
+	reasonRef       rms.Reference
 	entryIndex      int
+	startIndex      int
+	counter         int
 	incomingRequest *rms.VCallRequest
 	outgoingRequest *rms.VCallRequest
 	outgoingResult  *rms.VCallResult
@@ -109,12 +112,18 @@ func (s *SMVObjectTranscriptReport) Init(ctx smachine.InitializationContext) sma
 }
 
 func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	entry := s.peekCurrentEntry()
+	entry := s.peekStartEntry()
+	if entry == nil {
+		return ctx.Jump(s.stepValidationFailed)
+	}
+	s.entryIndex = s.startIndex
+	s.counter++
 
 	switch tEntry := entry.(type) {
 	case *rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest:
 		s.incomingRequest = &tEntry.Request
 		s.objState = tEntry.ObjectMemory.GetValue()
+		s.reasonRef = s.incomingRequest.CallOutgoing
 		if s.objState.IsEmpty() {
 			return ctx.Jump(s.stepIncomingRequest)
 		}
@@ -147,6 +156,7 @@ func (s *SMVObjectTranscriptReport) stepIncomingRequest(ctx smachine.ExecutionCo
 
 func (s *SMVObjectTranscriptReport) stepExecuteStart(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.run = nil
+	s.executionNewState = nil
 	return s.runner.PrepareExecutionStart(ctx, s.execution, func(state runner.RunState) {
 		if state == nil {
 			panic(throw.IllegalValue())
@@ -230,34 +240,44 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 	}
 
 	entry := s.peekNextEntry()
+	if entry == nil {
+		return ctx.Jump(s.stepValidationFailed)
+	}
+	s.counter++
 	expectedRequest, ok := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest)
 	if !ok {
-		panic(throw.NotImplemented())
+		return ctx.Jump(s.stepValidationFailed)
 	}
 	equal := s.outgoingRequest.CallOutgoing.Equal(&expectedRequest.Request)
 	if !equal {
 		// todo: fixme: validation failed, CallOutgoing is random for now
 		//panic(throw.NotImplemented())
 	}
-	s.entryIndex++
 
 	entry = s.peekNextEntry()
+	if entry == nil {
+		return ctx.Jump(s.stepValidationFailed)
+	}
+	s.counter++
 	outgoingResult, ok := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult)
 	if !ok {
-		panic(throw.NotImplemented())
+		return ctx.Jump(s.stepValidationFailed)
 	}
 	s.outgoingResult = &outgoingResult.CallResult
-	s.entryIndex++
 
 	return ctx.Jump(s.stepExecuteContinue)
 }
 
 func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var newDesc descriptor.Object
+	var (
+		newDesc      descriptor.Object
+		noSideEffect bool
+	)
 	pulse := s.pulseSlot.PulseData().GetPulseNumber()
 
 	switch s.executionNewState.Result.Type() {
 	case requestresult.SideEffectNone:
+		noSideEffect = true
 	case requestresult.SideEffectActivate:
 		class, memory := s.executionNewState.Result.Activate()
 		newDesc = s.makeNewDescriptor(class, memory, false, pulse)
@@ -272,16 +292,26 @@ func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionCont
 	}
 
 	entry := s.peekNextEntry()
-	expected := entry.(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
-
-	// fixme: stateid vs stateref
-	stateRef := reference.NewRecordOf(newDesc.HeadRef(), newDesc.StateID())
-	equal := stateRef.Equal(expected.ObjectState.GetValue())
-	if !equal {
+	if entry == nil {
+		return ctx.Jump(s.stepValidationFailed)
+	}
+	s.counter++
+	expected, ok := entry.(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+	if !ok {
 		return ctx.Jump(s.stepValidationFailed)
 	}
 
-	s.validatedState = stateRef
+	if !noSideEffect {
+		// fixme: stateid vs stateref
+		stateRef := reference.NewRecordOf(newDesc.HeadRef(), newDesc.StateID())
+		equal := stateRef.Equal(expected.ObjectState.GetValue())
+		if !equal {
+			return ctx.Jump(s.stepValidationFailed)
+		}
+
+		s.validatedState = stateRef
+	}
+
 	return ctx.Jump(s.stepAdvanceToNextRequest)
 }
 
@@ -291,15 +321,17 @@ func (s *SMVObjectTranscriptReport) stepValidationFailed(ctx smachine.ExecutionC
 }
 
 func (s *SMVObjectTranscriptReport) stepAdvanceToNextRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	s.entryIndex++
-	if s.entryIndex >= len(s.entries)-1 {
-		if !s.validatedState.IsEmpty() {
-			return ctx.Jump(s.stepSendValidationReport)
-		} else {
-			panic(throw.NotImplemented())
-		}
+	if s.counter != len(s.entries) {
+		s.startIndex++
+		s.entryIndex = 0
+		return ctx.Jump(s.stepProcess)
 	}
-	return ctx.Stop()
+
+	if s.validatedState.IsEmpty() {
+		panic(throw.NotImplemented())
+	}
+
+	return ctx.Jump(s.stepSendValidationReport)
 }
 
 func (s *SMVObjectTranscriptReport) stepSendValidationReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -324,12 +356,47 @@ func (s *SMVObjectTranscriptReport) peekEntry(index int) rmsreg.GoGoSerializable
 	return s.entries[index].Get()
 }
 
-func (s *SMVObjectTranscriptReport) peekCurrentEntry() rmsreg.GoGoSerializable {
-	return s.peekEntry(s.entryIndex)
+func (s *SMVObjectTranscriptReport) peekStartEntry() rmsreg.GoGoSerializable {
+	for ind := s.startIndex; ind < len(s.entries); ind++ {
+		entry := s.peekEntry(ind)
+		switch entry.(type) {
+		case *rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest:
+			s.startIndex = ind
+			return entry
+		default:
+			// do nothing
+		}
+	}
+	return nil
 }
 
 func (s *SMVObjectTranscriptReport) peekNextEntry() rmsreg.GoGoSerializable {
-	return s.peekEntry(s.entryIndex + 1)
+	for ind := s.entryIndex + 1; ind < len(s.entries); ind++ {
+		entry := s.peekEntry(ind)
+		switch entry.(type) {
+		case *rms.VObjectTranscriptReport_TranscriptEntryIncomingResult:
+			expected := entry.(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+			if expected.Reason.Equal(&s.reasonRef) {
+				s.entryIndex = ind
+				return entry
+			}
+		case *rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest:
+			expected := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest)
+			if expected.Reason.Equal(&s.reasonRef) {
+				s.entryIndex = ind
+				return entry
+			}
+		case *rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult:
+			expected := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult)
+			if expected.Reason.Equal(&s.reasonRef) {
+				s.entryIndex = ind
+				return entry
+			}
+		default:
+			// do nothing
+		}
+	}
+	return nil
 }
 
 // FIXME: copy&paste from execute.go, also many things around c&p, we should re-use code
