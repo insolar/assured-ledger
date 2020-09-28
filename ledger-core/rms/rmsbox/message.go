@@ -14,26 +14,42 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func MarshalMessageWithPayloadsToBytes(m BasicMessage) ([]byte, error) {
-	ms := m.(rmsreg.GoGoSerializable)
+func MessagePayloadHolder(m BasicMessage) (PayloadHolder, error) {
+	if ph, ok := m.(PayloadHolder); ok {
+		return ph, nil
+	}
 
 	ctx := &msgMarshalContext{m: m}
 	if err := m.Visit(ctx); err != nil {
 		return nil, err
 	}
 
+	return ctx.record, nil
+}
+
+func ProtoSizeMessageWithPayloads(m BasicMessage) (sz int) {
+	switch ph, err := MessagePayloadHolder(m); {
+	case err != nil:
+		panic(err)
+	case ph != nil:
+		if payloads := ph.GetRecordPayloads(); !payloads.IsEmpty() {
+			sz = payloads.ProtoSize()
+		}
+	}
+	sz += m.(rmsreg.GoGoSerializable).ProtoSize()
+	return sz
+}
+
+func MarshalMessageWithPayloadsToBytes(m BasicMessage) ([]byte, error) {
 	payloads := RecordPayloads{}
-	switch {
-	case ctx.id == 0:
-		panic(throw.IllegalValue())
-	case ctx.record == nil:
-		//
-	default:
-		payloads = ctx.record.GetRecordPayloads()
+	switch ph, err := MessagePayloadHolder(m); {
+	case err != nil:
+		panic(err)
+	case ph != nil:
+		payloads = ph.GetRecordPayloads()
 	}
 
-	polySize := protokit.GetPolymorphFieldSize(ctx.id)
-
+	ms := m.(rmsreg.GoGoSerializable)
 	mSize := ms.ProtoSize()
 	pSize := 0
 	if !payloads.IsEmpty() {
@@ -51,15 +67,6 @@ func MarshalMessageWithPayloadsToBytes(m BasicMessage) ([]byte, error) {
 
 	b := make([]byte, mSize+pSize)
 
-	switch n, err := payloads.MarshalTo(b[polySize : polySize+pSize]); {
-	case err != nil:
-		return nil, err
-	case n != pSize:
-		panic(throw.IllegalState())
-	}
-
-	copy(b[:polySize], b[pSize:])
-
 	switch n, err := ms.MarshalTo(b[pSize:]); {
 	case err != nil:
 		return nil, err
@@ -67,41 +74,56 @@ func MarshalMessageWithPayloadsToBytes(m BasicMessage) ([]byte, error) {
 		panic(throw.IllegalState())
 	}
 
-	switch pt, id, err := protokit.PeekContentTypeAndPolymorphIDFromBytes(b[pSize : pSize+polySize]); {
+	switch _, polySize, err := protokit.DecodePolymorphFromBytes(b[pSize:], false); {
 	case err != nil:
-		panic(throw.W(err, "impossible"))
-	case pt != protokit.ContentPolymorph:
-		panic(throw.Impossible())
-	case id != ctx.id:
-		panic(throw.Impossible())
-	}
+		return nil, throw.W(err, "missing message type")
+	default:
+		// move first field to the beginning
+		copy(b[:polySize], b[pSize:pSize + polySize])
 
-	for i := polySize - 1; i >= 0; i-- {
-		b[i], b[pSize+i] = b[pSize+i], b[i]
+		// insert payload(s) right after the first field
+		switch n, err := payloads.MarshalTo(b[polySize:pSize + polySize]); {
+		case err != nil:
+			return nil, err
+		case n != pSize:
+			panic(throw.IllegalState())
+		}
+		return b, nil
 	}
-
-	return b, nil
 }
 
-func UnmarshalMessageWithPayloadsFromBytes(b []byte, digester cryptkit.DataDigester) (uint64, BasicMessage, error) {
+func UnmarshalMessageWithPayloadsFromBytes(b []byte, digester cryptkit.DataDigester, typeFn rmsreg.UnmarshalTypeFunc) (uint64, BasicMessage, error) {
 	payloads := RecordPayloads{}
-	id, um, err := rmsreg.UnmarshalCustom(b, rmsreg.GetRegistry().Get, payloads.TryUnmarshalPayloadFromBytes)
+	id, um, err := rmsreg.UnmarshalCustom(b, typeFn, payloads.TryUnmarshalPayloadFromBytes)
 	if err != nil {
 		return id, nil, err
 	}
 
-	if m, ok := um.(BasicMessage); ok {
-		ctx := &msgMarshalContext{m: m}
-		if err := m.Visit(ctx); err != nil {
-			return id, nil, err
-		}
-
-		if err := payloads.ApplyPayloadsTo(ctx.record, digester); err != nil {
-			return id, nil, err
-		}
-		return id, m, err
+	switch m, err := UnmarshalMessageApplyPayloads(id, um, digester, payloads); {
+	case err != nil:
+		return id, nil, err
+	default:
+		return id, m, nil
 	}
-	return id, nil, throw.E("expected BasicMessage", struct{ ID uint64 }{id})
+}
+
+func UnmarshalMessageApplyPayloads(id uint64, um interface{}, digester cryptkit.DataDigester, payloads RecordPayloads) (BasicMessage, error) {
+	m, ok := um.(BasicMessage)
+	if !ok {
+		return nil, throw.E("expected BasicMessage", struct{ ID uint64 }{id})
+	}
+
+	switch ph, err := MessagePayloadHolder(m); {
+	case err != nil:
+		panic(err)
+	case ph != nil:
+		err := payloads.ApplyPayloadsTo(ph, digester)
+		return m, err
+	case payloads.IsEmpty():
+		return m, nil
+	default:
+		return m, throw.E("message doesn't support payloads", struct{ ID uint64 }{id})
+	}
 }
 
 func MarshalMessageWithPayloads(m BasicMessage, w io.Writer) error {
@@ -120,7 +142,6 @@ func UnmarshalMessageWithPayloads(m BasicMessage, r io.Reader) (BasicMessage, er
 
 type msgMarshalContext struct {
 	m      BasicMessage
-	id     uint64
 	record BasicRecord
 }
 
@@ -131,7 +152,6 @@ func (p *msgMarshalContext) Message(m BasicMessage, id uint64) error {
 	case id == 0:
 		panic(throw.IllegalValue())
 	}
-	p.id = id
 	return nil
 }
 

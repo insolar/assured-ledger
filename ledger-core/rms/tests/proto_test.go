@@ -326,7 +326,7 @@ func TestExampleMessageWithEmbeddedPayloads(t *testing.T) {
 	// so it has to be set explicitly to equal with a deserialized form
 	m.RecordExample.Polymorph = uint32(m.RecordExample.GetDefaultPolymorphID())
 
-	id, m2, err := rmsbox.UnmarshalMessageWithPayloadsFromBytes(b, TestDigester{})
+	id, m2, err := rmsbox.UnmarshalMessageWithPayloadsFromBytes(b, TestDigester{}, rmsreg.GetRegistry().Get)
 	require.NoError(t, err)
 
 	require.Equal(t, m.GetDefaultPolymorphID(), id)

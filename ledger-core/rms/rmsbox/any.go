@@ -11,6 +11,7 @@ import (
 	"reflect"
 
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -29,32 +30,77 @@ func (p *Any) Set(v rmsreg.GoGoSerializable) {
 }
 
 func (p *Any) ProtoSize() int {
-	if p.value != nil {
+	switch vv := p.value.(type) {
+	case nil:
+		return 0
+	case BasicMessage:
+		return ProtoSizeMessageWithPayloads(vv)
+	default:
 		return p.value.ProtoSize()
 	}
-	return 0
 }
 
 func (p *Any) Unmarshal(b []byte) error {
-	return p.UnmarshalCustom(b, rmsreg.GetRegistry().Get, nil)
+	return p.UnmarshalWithRegistry(b, rmsreg.GetRegistry(), nil)
 }
 
-func (p *Any) UnmarshalCustom(b []byte, typeFn func(uint64) reflect.Type, skipFn rmsreg.UnknownCallbackFunc) error {
+func (p *Any) UnmarshalWithRegistry(b []byte, registry *rmsreg.TypeRegistry, skipFn rmsreg.UnknownCallbackFunc) error {
+	if registry == nil {
+		panic(throw.IllegalValue())
+	}
+	return p.UnmarshalCustom(b, registry.Get, registry.GetPayloadDigester, skipFn)
+}
+
+func (p *Any) UnmarshalCustom(b []byte, typeFn rmsreg.UnmarshalTypeFunc, digesterFn rmsreg.PayloadDigesterFunc, skipFn rmsreg.UnknownCallbackFunc) error {
 	if len(b) == 0 {
 		p.value = nil
 		return nil
 	}
 
-	_, v, err := rmsreg.UnmarshalCustom(b, typeFn, skipFn)
+	payloads := RecordPayloads{}
+	if skipFn == nil {
+		skipFn = payloads.TryUnmarshalPayloadFromBytes
+	} else {
+		skipFnArg := skipFn
+		skipFn = func(b []byte) (int, error) {
+			if n, err := skipFnArg(b); n != 0 || err != nil {
+				return n, err
+			}
+			return payloads.TryUnmarshalPayloadFromBytes(b)
+		}
+	}
+
+	id, v, err := rmsreg.UnmarshalCustom(b, typeFn, skipFn)
+
+	var digester cryptkit.DataDigester
+	if digesterFn != nil {
+		digester = digesterFn(id)
+	}
+
+	switch {
+	case err != nil:
+	case !payloads.IsEmpty():
+		_, err = UnmarshalMessageApplyPayloads(id, v, digester, payloads)
+	case digester != nil:
+		// when digester is provided then we have to set it explicitly if possible
+		if m, ok := v.(BasicMessage); ok {
+			ph, err := MessagePayloadHolder(m)
+			if err == nil {
+				err = payloads.ApplyPayloadsTo(ph, digester)
+			}
+		}
+	}
+
 	if err != nil {
 		p.value = nil
 		return err
 	}
+
 	if vv, ok := v.(rmsreg.GoGoSerializable); ok {
 		p.value = vv
 		return nil
 	}
-	return throw.IllegalValue()
+	return throw.Impossible()
 }
 
 var dummyType = reflect.TypeOf(1)

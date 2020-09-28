@@ -132,7 +132,7 @@ func (p *RecordPayloads) TryUnmarshalPayloadFromBytes(b []byte) (int, error) {
 	return endPos, nil
 }
 
-func (p *RecordPayloads) ApplyPayloadsTo(record BasicRecord, digester cryptkit.DataDigester) error {
+func (p *RecordPayloads) ApplyPayloadsTo(record PayloadHolder, digester cryptkit.DataDigester) error {
 	switch {
 	case len(p.payloads) == 0:
 		if record == nil {
