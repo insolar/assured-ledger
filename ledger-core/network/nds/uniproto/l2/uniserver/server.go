@@ -203,7 +203,7 @@ func (p *UnifiedServer) StartListen() {
 	}
 
 	if err := p.ptf.Listen(); err != nil {
-		c := exec.Command("netstat", "-a")
+		c := exec.Command("netstat", "-a", "-n", "-o")
 		out, err := c.Output()
 
 		if err != nil {
