@@ -217,6 +217,7 @@ jobs:
           docker push localhost/assured-ledger:$INSOLAR_TAG
       - name: build tools
         run: make install-build-tools
+        working-directory: ${{env.V2_PATH}}
       - name: build pulsewatcher
         run: make pulsewatcher
         working-directory: ${{env.V2_PATH}}
