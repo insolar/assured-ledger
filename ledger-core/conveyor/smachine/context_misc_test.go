@@ -19,6 +19,7 @@ import (
 )
 
 type TestFunc func(*testSMFinalize, smachine.ExecutionContext) smachine.StateUpdate
+type TestFuncSR func(*testSMFinalizeSR, smachine.ExecutionContext) smachine.StateUpdate
 
 type testSMFinalize struct {
 	smachine.StateMachineDeclTemplate
@@ -26,6 +27,7 @@ type testSMFinalize struct {
 	nFinalizeCalls    int
 	nSRFinalizeCalls  int
 	executionFunc TestFunc
+	executionFuncSR TestFuncSR
 }
 
 func (s *testSMFinalize) GetInitStateFor(_ smachine.StateMachine) smachine.InitFunc {
@@ -57,7 +59,7 @@ func (s *testSMFinalize) stepExecutionStop(ctx smachine.ExecutionContext) smachi
 }
 
 func (s *testSMFinalize) stepExecutionWithSubroutine(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	subroutineSM := &StateMachine3{count: 0}
+	subroutineSM := &testSMFinalizeSR{executionFunc: s.executionFuncSR}
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		s.nSRFinalizeCalls = subroutineSM.nFinalizeCalls
 		return ctx.Jump(s.stepDone)
@@ -70,10 +72,6 @@ func (s *testSMFinalize) stepDone(ctx smachine.ExecutionContext) smachine.StateU
 
 func (s *testSMFinalize) finalize(ctx smachine.FinalizationContext) {
 	s.nFinalizeCalls ++
-	sp := &s
-	if sp == nil {
-		panic(throw.IllegalState())
-	}
 	return
 }
 
@@ -82,28 +80,45 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 	table := []struct {
 		name   string
 		execFunc TestFunc
+		execFuncSR TestFuncSR
 		nExpectedFinalizeRuns int
 		nExpectedSRFinalizeRuns int
 	}{
 		{
 			name:   "Call from Panic",
 			execFunc: (*testSMFinalize).stepExecutionPanic,
+			execFuncSR: nil,
 			nExpectedFinalizeRuns: 1,
 			nExpectedSRFinalizeRuns: 0,
 
 		}, {
 			name:   "Call from Error",
 			execFunc: (*testSMFinalize).stepExecutionError,
+			execFuncSR: nil,
 			nExpectedFinalizeRuns: 1,
 			nExpectedSRFinalizeRuns: 0,
 		}, {
 			name: "No Call from Stop",
 			execFunc: (*testSMFinalize).stepExecutionStop,
+			execFuncSR: nil,
 			nExpectedFinalizeRuns: 0,
 			nExpectedSRFinalizeRuns: 0,
 		}, {
-			name: "Call from Subroutine",
+			name: "Call from Subroutine with Stop",
 			execFunc: (*testSMFinalize).stepExecutionWithSubroutine,
+			execFuncSR: (*testSMFinalizeSR).StateStop,
+			nExpectedFinalizeRuns: 0,
+			nExpectedSRFinalizeRuns: 1,
+		}, {
+			name: "Call from Subroutine with Error",
+			execFunc: (*testSMFinalize).stepExecutionWithSubroutine,
+			execFuncSR: (*testSMFinalizeSR).StateError,
+			nExpectedFinalizeRuns: 0,
+			nExpectedSRFinalizeRuns: 1,
+		}, {
+			name: "Call from Subroutine with Panic",
+			execFunc: (*testSMFinalize).stepExecutionWithSubroutine,
+			execFuncSR: (*testSMFinalizeSR).StatePanic,
 			nExpectedFinalizeRuns: 0,
 			nExpectedSRFinalizeRuns: 1,
 		},
@@ -128,6 +143,7 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 
 			s := &testSMFinalize{}
 			s.executionFunc = test.execFunc
+			s.executionFuncSR = test.execFuncSR
 			m.AddNew(ctx, s, smachine.CreateDefaultValues{})
 			if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {
 				callContext.Migrate(nil)
@@ -159,46 +175,51 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 }
 
 
-type StateMachine3 struct {
+type testSMFinalizeSR struct {
 	smachine.StateMachineDeclTemplate
-	count int
 	nFinalizeCalls int
+	executionFunc TestFuncSR
 }
 
-func (StateMachine3) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
-	return sm.(*StateMachine3).Init
+func (testSMFinalizeSR) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
+	return sm.(*testSMFinalizeSR).Init
 }
 
 /* -------- Instance ------------- */
 
-func (s *StateMachine3) GetSubroutineInitState(smachine.SubroutineStartContext) smachine.InitFunc {
+func (s *testSMFinalizeSR) GetSubroutineInitState(smachine.SubroutineStartContext) smachine.InitFunc {
 	return s.Init
 }
 
-func (s *StateMachine3) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
+func (s *testSMFinalizeSR) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 	return s
 }
 
-func (s *StateMachine3) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+func (s *testSMFinalizeSR) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	ctx.SetFinalizer(s.finalize)
 	return ctx.Jump(s.State0)
 }
 
-func (s *StateMachine3) State0(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	s.count++
-	return ctx.Jump(s.State1)
+func (s *testSMFinalizeSR) State0(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
+		return s.executionFunc(s, ctx)
+	})
 }
 
-func (s *StateMachine3) State1(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.count&1 == 1 {
-		ctx.SetTerminationResult(s.count)
-		return ctx.Stop()
-	}
-	// return ctx.Stop()
-	panic("stop by panic")
+func (s *testSMFinalizeSR) StateError(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.Error(throw.New("Test error"))
 }
 
-func (s *StateMachine3) finalize(ctx smachine.FinalizationContext) {
+func (s *testSMFinalizeSR) StatePanic(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	panic(throw.IllegalState())
+	return ctx.Jump(s.StateStop)
+}
+
+func (s *testSMFinalizeSR) StateStop(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.Stop()
+}
+
+func (s *testSMFinalizeSR) finalize(ctx smachine.FinalizationContext) {
 	s.nFinalizeCalls ++
 	return
 }
