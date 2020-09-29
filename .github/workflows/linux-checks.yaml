@@ -223,6 +223,8 @@ jobs:
           docker push localhost/assured-ledger:$INSOLAR_TAG
       - name: build tools
         run: make install-build-tools
+      - name: build pulsewatcher
+        run: make pulsewatcher
         working-directory: ${{env.V2_PATH}}
       - name: Deploy network
         run: kubectl kustomize ledger-core/scripts/deploy/kube/gitops/"$INSOLAR_NETWORK_SIZE" | envsubst '${INSOLAR_NAMESPACE} ${INSOLAR_TAG}' | kubectl -n $INSOLAR_NAMESPACE apply -f -
