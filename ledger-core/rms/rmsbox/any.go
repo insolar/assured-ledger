@@ -35,32 +35,52 @@ func (p *Any) Set(v rmsreg.GoGoSerializable) {
 }
 
 func (p *Any) ProtoSize() int {
-	if p.value != nil {
+	switch vv := p.value.(type) {
+	case nil:
+		return 0
+	case BasicMessage:
+		return ProtoSizeMessageWithPayloads(vv)
+	default:
 		return p.value.ProtoSize()
 	}
-	return 0
 }
 
 func (p *Any) Unmarshal(b []byte) error {
-	return p.UnmarshalCustom(b, rmsreg.GetRegistry().Get, nil)
+	return p.UnmarshalCustom(b, rmsreg.GetRegistry(), nil)
 }
 
-func (p *Any) UnmarshalCustom(b []byte, typeFn func(uint64) reflect.Type, skipFn rmsreg.UnknownCallbackFunc) error {
+func (p *Any) UnmarshalCustom(b []byte, registry *rmsreg.TypeRegistry, skipFn rmsreg.UnknownCallbackFunc) error {
+	if registry == nil {
+		panic(throw.IllegalValue())
+	}
+
 	if len(b) == 0 {
 		p.value = nil
 		return nil
 	}
 
-	_, v, err := rmsreg.UnmarshalCustom(b, typeFn, skipFn)
+	payloads := RecordPayloads{}
+	skipFn = payloads.WrapSkipFunc(skipFn)
+
+	id, v, err := rmsreg.UnmarshalCustom(b, registry.Get, skipFn)
+
+	switch {
+	case err != nil:
+	case !payloads.IsEmpty():
+		digester := registry.GetPayloadDigester(id)
+		_, err = UnmarshalMessageApplyPayloads(v, digester, payloads)
+	}
+
 	if err != nil {
 		p.value = nil
-		return err
+		return throw.WithDetails(err, struct{ ID uint64 }{id})
 	}
+
 	if vv, ok := v.(rmsreg.GoGoSerializable); ok {
 		p.value = vv
 		return nil
 	}
-	return throw.IllegalValue()
+	return throw.Impossible()
 }
 
 var dummyType = reflect.TypeOf(1)
@@ -69,24 +89,32 @@ func dummyResolveType(uint64) reflect.Type {
 	return dummyType
 }
 
-func (p *Any) MarshalTo(b []byte) (int, error) {
-	if p.value == nil {
+func (p *Any) MarshalTo(b []byte) (n int, err error) {
+	switch m := p.value.(type) {
+	case nil:
 		return 0, nil
+	case BasicMessage:
+		n, err = MarshalMessageWithPayloadsTo(m, b)
+	default:
+		n, err = p.value.MarshalTo(b)
 	}
 
-	n, err := p.value.MarshalTo(b)
 	if err == nil {
 		_, _, err = rmsreg.UnmarshalType(b, dummyResolveType)
 	}
 	return n, err
 }
 
-func (p *Any) MarshalToSizedBuffer(b []byte) (int, error) {
-	if p.value == nil {
+func (p *Any) MarshalToSizedBuffer(b []byte) (n int, err error) {
+	switch m := p.value.(type) {
+	case nil:
 		return 0, nil
+	case BasicMessage:
+		n, err = MarshalMessageWithPayloadsToSizedBuffer(m, b)
+	default:
+		n, err = p.value.MarshalToSizedBuffer(b)
 	}
 
-	n, err := p.value.MarshalToSizedBuffer(b)
 	if err == nil {
 		_, _, err = rmsreg.UnmarshalType(b[len(b)-n:], dummyResolveType)
 	}
