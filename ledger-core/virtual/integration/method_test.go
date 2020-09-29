@@ -65,16 +65,21 @@ func Method_PrepareObject(
 	switch state {
 	case rms.StateStatusMissing:
 	case rms.StateStatusReady:
+		state := rms.NewBytes(bytes)
 		p.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &rms.ObjectState{
-				Reference: rms.NewReferenceLocal(dirtyStateID),
-				Class:     rms.NewReference(testwalletProxy.GetClass()),
-				State:     rms.NewBytes(bytes),
+				Reference:     rms.NewReferenceLocal(dirtyStateID),
+				Class:         rms.NewReference(testwalletProxy.GetClass()),
+				State:         state,
+				PreviousState: state,
+				Deactivated:   false,
 			},
 			LatestValidatedState: &rms.ObjectState{
-				Reference: rms.NewReferenceLocal(dirtyStateID),
-				Class:     rms.NewReference(testwalletProxy.GetClass()),
-				State:     rms.NewBytes(bytes),
+				Reference:     rms.NewReferenceLocal(dirtyStateID),
+				Class:         rms.NewReference(testwalletProxy.GetClass()),
+				State:         state,
+				PreviousState: state,
+				Deactivated:   false,
 			},
 		}
 		p.LatestDirtyState = rms.NewReferenceLocal(dirtyStateID)
