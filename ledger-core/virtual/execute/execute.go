@@ -828,25 +828,10 @@ func (s *SMExecute) addIncomingToTranscriptOnce(state *object.SharedState) {
 		return
 	}
 
-	var objectMemory reference.Global
-
-	switch s.Payload.CallType {
-	case rms.CallTypeConstructor:
-		objectMemory = reference.Global{}
-	default:
-		if s.execution.ObjectDescriptor == nil {
-			panic(throw.Impossible())
-		}
-		objectMemory = reference.NewRecordOf(
-			s.execution.ObjectDescriptor.HeadRef(),
-			s.execution.ObjectDescriptor.StateID(),
-		)
-	}
-
 	state.Transcript.Add(
 		validation.TranscriptEntry{
 			Custom: validation.TranscriptEntryIncomingRequest{
-				ObjectMemory: objectMemory,
+				ObjectMemory: s.objectMemoryRef(),
 				Incoming:     reference.Global{},
 				CallRequest:  *s.Payload,
 			},
@@ -948,41 +933,52 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		panic(throw.IllegalValue())
 	}
 
-	if s.migrationHappened || s.newObjectDescriptor == nil {
+	if s.migrationHappened {
 		return ctx.Jump(s.stepSendCallResult)
 	}
 
-	s.updateMemoryCache(ctx, s.newObjectDescriptor)
-
 	action := func(state *object.SharedState) {
-		state.SetDescriptorDirty(s.newObjectDescriptor)
-		s.addIncomingToTranscriptOnce(state)
+		if s.newObjectDescriptor != nil {
+			state.SetDescriptorDirty(s.newObjectDescriptor)
 
+			switch state.GetState() {
+			case object.HasState:
+				// ok
+			case object.Empty, object.Missing:
+				state.SetState(object.HasState)
+			default:
+				panic(throw.IllegalState())
+			}
+		}
+
+		s.addIncomingToTranscriptOnce(state)
+		var memoryRef reference.Global
+		if s.newObjectDescriptor != nil {
+			memoryRef = reference.NewRecordOf(
+				s.newObjectDescriptor.HeadRef(),
+				s.newObjectDescriptor.StateID(),
+			)
+		} else {
+			memoryRef = s.objectMemoryRef()
+		}
 		state.Transcript.Add(
 			validation.TranscriptEntry{
 				Custom: validation.TranscriptEntryIncomingResult{
 					IncomingResult: reference.Global{},
-					ObjectMemory: reference.NewRecordOf(
-						s.newObjectDescriptor.HeadRef(),
-						s.newObjectDescriptor.StateID(),
-					),
-					Reason: s.execution.Outgoing,
+					ObjectMemory:   memoryRef,
+					Reason:         s.execution.Outgoing,
 				},
 			},
 		)
 
-		switch state.GetState() {
-		case object.HasState:
-			// ok
-		case object.Empty, object.Missing:
-			state.SetState(object.HasState)
-		default:
-			panic(throw.IllegalState())
-		}
 	}
 
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
+	}
+
+	if s.newObjectDescriptor != nil {
+		s.updateMemoryCache(ctx, s.newObjectDescriptor)
 	}
 
 	return ctx.Jump(s.stepSendCallResult)
@@ -1251,4 +1247,17 @@ func (s *SMExecute) deduplicate(state *object.SharedState) (DeduplicationAction,
 	}
 
 	return ContinueExecute, nil, nil
+}
+
+func (s *SMExecute) objectMemoryRef() reference.Global {
+	switch s.Payload.CallType {
+	case rms.CallTypeConstructor:
+		return reference.Global{}
+	default:
+		desc := s.execution.ObjectDescriptor
+		if desc == nil {
+			panic(throw.Impossible())
+		}
+		return reference.NewRecordOf(desc.HeadRef(), desc.StateID())
+	}
 }
