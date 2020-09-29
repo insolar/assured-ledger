@@ -6,15 +6,17 @@
 package smachine_test
 
 import (
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/sworker"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 type TestFuncSR func(*testSMFinalize, smachine.ExecutionContext) smachine.StateUpdate
@@ -58,9 +60,8 @@ func (s *testSMFinalize) StateError(ctx smachine.ExecutionContext) smachine.Stat
 	return ctx.Error(throw.New("Test error"))
 }
 
-func (s *testSMFinalize) StatePanic(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *testSMFinalize) StatePanic(smachine.ExecutionContext) smachine.StateUpdate {
 	panic(throw.IllegalState())
-	return ctx.Jump(s.StateStop)
 }
 
 func (s *testSMFinalize) StateStop(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -72,12 +73,12 @@ func (s *testSMFinalize) StateGoDeeper(ctx smachine.ExecutionContext) smachine.S
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		s.nFinalizeCallsLevel2 = subroutineSM.nFinalizeCallsLevel1
 		s.nFinalizeCallsLevel1 = subroutineSM.nFinalizeCallsLevel0
-		return ctx.Jump(s.StateStop)
+		return ctx.Stop()
 	})
 }
 
-func (s *testSMFinalize) finalize(ctx smachine.FinalizationContext) {
-	s.nFinalizeCallsLevel0 ++
+func (s *testSMFinalize) finalize(smachine.FinalizationContext) {
+	s.nFinalizeCallsLevel0++
 	return
 }
 
@@ -93,16 +94,15 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 		nExpectedFinalizeRunsLevel2 int
 	}{
 		{
-			name:   "Call from Panic",
-			execFunc: (*testSMFinalize).StatePanic,
+			name: "Stop",
+			execFunc: (*testSMFinalize).StateStop,
 			execFuncSR: nil,
 			execFuncSRSR: nil,
 			nExpectedFinalizeRunsLevel0: 1,
 			nExpectedFinalizeRunsLevel1: 0,
 			nExpectedFinalizeRunsLevel2: 0,
-
 		}, {
-			name:   "Call from Error",
+			name:   "Error",
 			execFunc: (*testSMFinalize).StateError,
 			execFuncSR: nil,
 			execFuncSRSR: nil,
@@ -110,59 +110,59 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 			nExpectedFinalizeRunsLevel1: 0,
 			nExpectedFinalizeRunsLevel2: 0,
 		}, {
-			name: "No Call from Stop",
-			execFunc: (*testSMFinalize).StateStop,
+			name:   "Panic",
+			execFunc: (*testSMFinalize).StatePanic,
 			execFuncSR: nil,
 			execFuncSRSR: nil,
-			nExpectedFinalizeRunsLevel0: 0,
+			nExpectedFinalizeRunsLevel0: 1,
 			nExpectedFinalizeRunsLevel1: 0,
 			nExpectedFinalizeRunsLevel2: 0,
 		}, {
-			name: "Call from Subroutine with Stop",
+			name: "Subroutine+Stop",
 			execFunc: (*testSMFinalize).StateGoDeeper,
 			execFuncSR: (*testSMFinalize).StateStop,
 			execFuncSRSR: nil,
-			nExpectedFinalizeRunsLevel0: 0,
+			nExpectedFinalizeRunsLevel0: 1,
 			nExpectedFinalizeRunsLevel1: 1,
 			nExpectedFinalizeRunsLevel2: 0,
 		}, {
-			name: "Call from Subroutine with Error",
+			name: "Subroutine+Error",
 			execFunc: (*testSMFinalize).StateGoDeeper,
 			execFuncSR: (*testSMFinalize).StateError,
 			execFuncSRSR: nil,
-			nExpectedFinalizeRunsLevel0: 0,
+			nExpectedFinalizeRunsLevel0: 1,
 			nExpectedFinalizeRunsLevel1: 1,
 			nExpectedFinalizeRunsLevel2: 0,
 		}, {
-			name: "Call from Subroutine with Panic",
+			name: "Subroutine+Panic",
 			execFunc: (*testSMFinalize).StateGoDeeper,
 			execFuncSR: (*testSMFinalize).StatePanic,
 			execFuncSRSR: nil,
-			nExpectedFinalizeRunsLevel0: 0,
+			nExpectedFinalizeRunsLevel0: 1,
 			nExpectedFinalizeRunsLevel1: 1,
 			nExpectedFinalizeRunsLevel2: 0,
 		}, {
-			name: "Call from Subroutine from Subroutine with Stop",
+			name: "Subroutine+Subroutine+Stop",
 			execFunc: (*testSMFinalize).StateGoDeeper,
 			execFuncSR: (*testSMFinalize).StateGoDeeper,
 			execFuncSRSR: (*testSMFinalize).StateStop,
-			nExpectedFinalizeRunsLevel0: 0,
+			nExpectedFinalizeRunsLevel0: 1,
 			nExpectedFinalizeRunsLevel1: 1,
 			nExpectedFinalizeRunsLevel2: 1,
 		}, {
-			name: "Call from Subroutine from Subroutine with Error",
+			name: "Subroutine+Subroutine+Error",
 			execFunc: (*testSMFinalize).StateGoDeeper,
 			execFuncSR: (*testSMFinalize).StateGoDeeper,
 			execFuncSRSR: (*testSMFinalize).StateError,
-			nExpectedFinalizeRunsLevel0: 0,
+			nExpectedFinalizeRunsLevel0: 1,
 			nExpectedFinalizeRunsLevel1: 1,
 			nExpectedFinalizeRunsLevel2: 1,
 		}, {
-			name: "Call from Subroutine from Subroutine with Panic",
+			name: "Subroutine+Subroutine+Panic",
 			execFunc: (*testSMFinalize).StateGoDeeper,
 			execFuncSR: (*testSMFinalize).StateGoDeeper,
 			execFuncSRSR: (*testSMFinalize).StatePanic,
-			nExpectedFinalizeRunsLevel0: 0,
+			nExpectedFinalizeRunsLevel0: 1,
 			nExpectedFinalizeRunsLevel1: 1,
 			nExpectedFinalizeRunsLevel2: 1,
 		},
