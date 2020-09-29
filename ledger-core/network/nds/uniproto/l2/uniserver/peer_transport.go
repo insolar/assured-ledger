@@ -105,7 +105,7 @@ type PeerTransport struct {
 
 	// LOCK: WARNING! connMutex can be acquired under PeerManager.peerMutex
 	// connMutex controls aliases, connections etc
-	connMutex  sync.RWMutex
+	connMutex sync.RWMutex
 
 	aliases []nwapi.Address
 
@@ -388,13 +388,17 @@ type transportGetterFunc = func() (l1.OneWayTransport, error)
 func (p *PeerTransport) useTransport(getTransportFn transportGetterFunc, sessionfulTransport bool, applyFn uniproto.OutFunc) error {
 	var delay time.Duration
 
-	repeatedNoAddress := false
+	var (
+		t                 l1.OneWayTransport
+		err               error
+		repeatedNoAddress bool
+	)
 	for i := int(p.central.retryLimit) + 1; i >= 0; i-- {
-		if err := p.checkActive(); err != nil {
+		if err = p.checkActive(); err != nil {
 			return err
 		}
 
-		t, err := getTransportFn()
+		t, err = getTransportFn()
 		switch {
 		case err != nil:
 			return err
@@ -436,10 +440,14 @@ func (p *PeerTransport) useTransport(getTransportFn transportGetterFunc, session
 				lastDelay = delay
 			}
 			time.Sleep(lastDelay)
-
 		}
 	}
-	return throw.FailHere("retry limit exceeded")
+
+	if err != nil {
+		return throw.W(err, "retry limit exceeded")
+	}
+
+	return throw.E("retry limit exceeded")
 }
 
 func (p *PeerTransport) EnsureConnect() error {
