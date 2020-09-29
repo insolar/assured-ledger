@@ -234,5 +234,8 @@ jobs:
       - name: Rollout check (IF THIS STEP FAILED - CALL DEV, CHECK LOGS, YELLOW ALERT)
         run: kubectl -n $INSOLAR_NAMESPACE rollout status sts/virtual --timeout=5m
       - name: run tests
-        run: make test_func_kubernetes_ci
+        run: |
+          mkdir -p /tmp/insolar
+          kubectl -n $INSOLAR_NAMESPACE get cm bootstrap-yaml -o 'go-template={{index .data "bootstrap.yaml"}}' | tee /tmp/insolar/bootstrap.yaml
+          make test_func_kubernetes_ci
         working-directory: ${{env.V2_PATH}}
