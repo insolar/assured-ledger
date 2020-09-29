@@ -6,6 +6,7 @@
 package smachine_test
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 
@@ -66,6 +67,10 @@ func (s *testSMFinalize) StatePanic(smachine.ExecutionContext) smachine.StateUpd
 
 func (s *testSMFinalize) StateStop(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Stop()
+}
+
+func (s *testSMFinalize) StateSleep(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.Sleep().ThenRepeat()
 }
 
 func (s *testSMFinalize) StateGoDeeper(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -217,4 +222,96 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 			assert.Equal(t, test.nExpectedFinalizeRunsLevel2, s.nFinalizeCallsLevel2)
 		})
 	}
+}
+
+
+type smMigrateAndFinalize struct {
+	smachine.StateMachineDeclTemplate
+	nFinalizeCalls int
+	wasContinued bool
+}
+
+func (s *smMigrateAndFinalize) GetInitStateFor(_ smachine.StateMachine) smachine.InitFunc {
+	return s.stepInit
+}
+
+func (s *smMigrateAndFinalize) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
+	return s
+}
+
+func (s *smMigrateAndFinalize) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(s.migrate)
+	ctx.SetFinalizer(s.finalize)
+	return ctx.Jump(s.stepWaitInfinity)
+}
+
+func (s *smMigrateAndFinalize) stepWaitInfinity(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.wasContinued = true
+	subroutineSM := &testSMFinalize{executionFunc: (*testSMFinalize).StateSleep, executionFuncSR: nil}
+	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		return ctx.Stop()
+	})
+}
+
+func (s *smMigrateAndFinalize) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
+	s.wasContinued = false
+	return ctx.Stop()
+}
+
+func (s *smMigrateAndFinalize) finalize(smachine.FinalizationContext) {
+	s.nFinalizeCalls++
+	return
+}
+
+func TestSlotMachine_MigrateAndFinalize(t *testing.T) {
+	ctx := instestlogger.TestContext(t)
+
+	scanCountLimit := 1000
+
+	signal := synckit.NewVersionedSignal()
+	m := smachine.NewSlotMachine(smachine.SlotMachineConfig{
+		SlotPageSize:    1000,
+		PollingPeriod:   10 * time.Millisecond,
+		PollingTruncate: 1 * time.Microsecond,
+		ScanCountLimit:  scanCountLimit,
+	}, signal.NextBroadcast, signal.NextBroadcast, nil)
+
+	workerFactory := sworker.NewAttachableSimpleSlotWorker()
+	neverSignal := synckit.NewNeverSignal()
+
+	s := smMigrateAndFinalize{}
+	m.AddNew(ctx, &s, smachine.CreateDefaultValues{})
+
+	require.False(t, s.wasContinued)
+
+	if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {}, true) {
+		panic(throw.IllegalState())
+	}
+
+	iterFn := func() {
+		for {
+			var repeatNow bool
+			workerFactory.AttachTo(m, neverSignal, uint32(scanCountLimit), func(worker smachine.AttachedSlotWorker) {
+				repeatNow, _ = m.ScanOnce(0, worker)
+			})
+			if repeatNow {
+				continue
+			}
+			break
+		}
+	}
+
+	// make 1 iteration
+	iterFn()
+
+	require.True(t, s.wasContinued)
+
+	if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {
+		callContext.Migrate(nil)
+	}, true) {
+		panic(throw.IllegalState())
+	}
+	iterFn()
+	require.False(t, s.wasContinued)
+	assert.Equal(t, 1, s.nFinalizeCalls)
 }
