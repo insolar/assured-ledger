@@ -89,6 +89,7 @@ type SMExecute struct {
 
 	incomingAddedToTranscript bool
 	outgoingAddedToTranscript bool
+	transcript                validation.Transcript
 }
 
 /* -------- Declaration ------------- */
@@ -151,6 +152,7 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 	if s.Payload.CallType == rms.CallTypeConstructor {
 		s.isConstructor = true
 	}
+	s.transcript = validation.NewTranscript()
 }
 
 func (s *SMExecute) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
@@ -797,48 +799,51 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 
 	s.outgoingSentCounter++
 
-	action := func(state *object.SharedState) {
-		s.addIncomingToTranscriptOnce(state)
+	// someone else can process other requests while we  waiting for outgoing results
+	ctx.Release(s.globalSemaphore.PartialLink())
 
-		state.Transcript.Add(
-			validation.TranscriptEntry{
-				Custom: validation.TranscriptEntryOutgoingRequest{
-					Request: s.outgoing.CallOutgoing.GetValue(),
-					Reason:  s.execution.Outgoing,
-				},
-			},
-		)
-		s.outgoingAddedToTranscript = true
+	// FIXME: result can be processed faster than request
+	return ctx.Jump(s.stepTranscribeOutgoingRequest)
+}
+
+func (s *SMExecute) stepTranscribeOutgoingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+
+	entries := []validation.TranscriptEntry{}
+	if !s.incomingAddedToTranscript {
+		entries = append(entries, s.incomingTranscriptEntry())
 	}
 
-	// FIXME: bug here, repeat of the step will result in resending
+	entries = append(entries, validation.TranscriptEntry{
+		Custom: validation.TranscriptEntryOutgoingRequest{
+			Request: s.outgoing.CallOutgoing.GetValue(),
+			Reason:  s.execution.Outgoing,
+		},
+	})
+
+	action := func(state *object.SharedState) {
+		state.Transcript.Add(entries...)
+		s.outgoingAddedToTranscript = true
+	}
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
 	}
 
-	// someone else can process other requests while we  waiting for outgoing results
-	ctx.Release(s.globalSemaphore.PartialLink())
+	s.incomingAddedToTranscript = true
+
+	s.transcript.Add(entries...)
 
 	// we'll wait for barge-in WakeUp here, not adapter
 	return ctx.Sleep().ThenJump(s.stepTakeLockAfterOutgoing)
 }
 
-func (s *SMExecute) addIncomingToTranscriptOnce(state *object.SharedState) {
-	if s.incomingAddedToTranscript {
-		return
-	}
-
-	state.Transcript.Add(
-		validation.TranscriptEntry{
-			Custom: validation.TranscriptEntryIncomingRequest{
-				ObjectMemory: s.objectMemoryRef(),
-				Incoming:     reference.Global{},
-				CallRequest:  *s.Payload,
-			},
+func (s *SMExecute) incomingTranscriptEntry() validation.TranscriptEntry {
+	return validation.TranscriptEntry{
+		Custom: validation.TranscriptEntryIncomingRequest{
+			ObjectMemory: s.objectMemoryRef(),
+			Incoming:     reference.Global{},
+			CallRequest:  *s.Payload,
 		},
-	)
-
-	s.incomingAddedToTranscript = true
+	}
 }
 
 func (s *SMExecute) stepTakeLockAfterOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -865,21 +870,22 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 			panic(throw.IllegalValue())
 		}
 
-		action := func(state *object.SharedState) {
-			state.Transcript.Add(
-				validation.TranscriptEntry{
-					Custom: validation.TranscriptEntryOutgoingResult{
-						OutgoingResult: reference.Global{},
-						CallResult:     *s.outgoingResult,
-						Reason:         s.execution.Outgoing,
-					},
-				},
-			)
+		entry := validation.TranscriptEntry{
+			Custom: validation.TranscriptEntryOutgoingResult{
+				OutgoingResult: reference.Global{},
+				CallResult:     *s.outgoingResult,
+				Reason:         s.execution.Outgoing,
+			},
 		}
 
+		action := func(state *object.SharedState) {
+			state.Transcript.Add(entry)
+		}
 		if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 			return stepUpdate
 		}
+
+		s.transcript.Add(entry)
 	}
 
 	// unset all outgoing fields in case we have new outgoing request
@@ -933,7 +939,21 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		panic(throw.IllegalValue())
 	}
 
+	tEntries := []validation.TranscriptEntry{}
+
+	if !s.incomingAddedToTranscript {
+		tEntries = append(tEntries, s.incomingTranscriptEntry())
+	}
+	tEntries = append(tEntries, validation.TranscriptEntry{
+		Custom: validation.TranscriptEntryIncomingResult{
+			IncomingResult: reference.Global{},
+			ObjectMemory:   s.newObjectMemoryRef(),
+			Reason:         s.execution.Outgoing,
+		},
+	})
+
 	if s.migrationHappened {
+		s.transcript.Add(tEntries...)
 		return ctx.Jump(s.stepSendCallResult)
 	}
 
@@ -951,28 +971,9 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 			}
 		}
 
-		s.addIncomingToTranscriptOnce(state)
-		var memoryRef reference.Global
-		if s.newObjectDescriptor != nil {
-			memoryRef = reference.NewRecordOf(
-				s.newObjectDescriptor.HeadRef(),
-				s.newObjectDescriptor.StateID(),
-			)
-		} else {
-			memoryRef = s.objectMemoryRef()
-		}
-		state.Transcript.Add(
-			validation.TranscriptEntry{
-				Custom: validation.TranscriptEntryIncomingResult{
-					IncomingResult: reference.Global{},
-					ObjectMemory:   memoryRef,
-					Reason:         s.execution.Outgoing,
-				},
-			},
-		)
-
+		state.Transcript.Add(tEntries...)
+		s.transcript.Add(tEntries...)
 	}
-
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
 	}
@@ -1260,4 +1261,17 @@ func (s *SMExecute) objectMemoryRef() reference.Global {
 		}
 		return reference.NewRecordOf(desc.HeadRef(), desc.StateID())
 	}
+}
+
+func (s *SMExecute) newObjectMemoryRef() reference.Global {
+	var res reference.Global
+	if s.newObjectDescriptor != nil {
+		res = reference.NewRecordOf(
+			s.newObjectDescriptor.HeadRef(),
+			s.newObjectDescriptor.StateID(),
+		)
+	} else {
+		res = s.objectMemoryRef()
+	}
+	return res
 }

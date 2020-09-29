@@ -14,8 +14,8 @@ func NewTranscript() Transcript {
 	}
 }
 
-func (t *Transcript) Add(e TranscriptEntry) {
-	t.Entries = append(t.Entries, e)
+func (t *Transcript) Add(e... TranscriptEntry) {
+	t.Entries = append(t.Entries, e...)
 }
 
 func (t *Transcript) GetRMSTranscript() (rms.Transcript, error) {
