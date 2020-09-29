@@ -220,8 +220,6 @@ jobs:
           make kube_start_net
           kubectl -n insolar describe ing api-proxy
         working-directory: ${{env.V2_PATH}}
-      - name: debuggie0
-        run: ls /home/runner/work/assured-ledger/assured-ledger/ledger-core/bin/
       - name: run tests
         run: make test_func_kubernetes_ci
         working-directory: ${{env.V2_PATH}}
