@@ -18,12 +18,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type TestFunc func(*testSMFinalize, smachine.ExecutionContext) smachine.StateUpdate
+
 type testSMFinalize struct {
 	smachine.StateMachineDeclTemplate
 
 	nFinalizeCalls    int
 	nSRFinalizeCalls  int
-	executionFunc smachine.StateFunc
+	executionFunc TestFunc
 }
 
 func (s *testSMFinalize) GetInitStateFor(_ smachine.StateMachine) smachine.InitFunc {
@@ -36,7 +38,9 @@ func (s *testSMFinalize) GetStateMachineDeclaration() smachine.StateMachineDecla
 
 func (s *testSMFinalize) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
 	ctx.SetFinalizer(s.finalize)
-	return ctx.Jump(s.executionFunc)
+	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
+		return s.executionFunc(s, ctx)
+	})
 }
 
 func (s *testSMFinalize) stepExecutionPanic(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -61,45 +65,47 @@ func (s *testSMFinalize) stepExecutionWithSubroutine(ctx smachine.ExecutionConte
 }
 
 func (s *testSMFinalize) stepDone(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	s.nFinalizeCalls = 77
 	return ctx.Stop()
 }
 
 func (s *testSMFinalize) finalize(ctx smachine.FinalizationContext) {
 	s.nFinalizeCalls ++
+	sp := &s
+	if sp == nil {
+		panic(throw.IllegalState())
+	}
 	return
 }
 
 func TestSlotMachine_FinalizeTable(t *testing.T) {
-	s := testSMFinalize{}
 
 	table := []struct {
 		name   string
-		execFunc smachine.StateFunc
+		execFunc TestFunc
 		nExpectedFinalizeRuns int
 		nExpectedSRFinalizeRuns int
 	}{
 		{
 			name:   "Call from Panic",
-			execFunc: s.stepExecutionPanic,
+			execFunc: (*testSMFinalize).stepExecutionPanic,
 			nExpectedFinalizeRuns: 1,
 			nExpectedSRFinalizeRuns: 0,
 
 		}, {
 			name:   "Call from Error",
-			execFunc: s.stepExecutionError,
+			execFunc: (*testSMFinalize).stepExecutionError,
 			nExpectedFinalizeRuns: 1,
 			nExpectedSRFinalizeRuns: 0,
 		}, {
 			name: "No Call from Stop",
-			execFunc: s.stepExecutionStop,
+			execFunc: (*testSMFinalize).stepExecutionStop,
 			nExpectedFinalizeRuns: 0,
 			nExpectedSRFinalizeRuns: 0,
 		}, {
-			name: "No Call from Subroutine",
-			execFunc: s.stepExecutionWithSubroutine,
+			name: "Call from Subroutine",
+			execFunc: (*testSMFinalize).stepExecutionWithSubroutine,
 			nExpectedFinalizeRuns: 0,
-			nExpectedSRFinalizeRuns: 0,
+			nExpectedSRFinalizeRuns: 1,
 		},
 	}
 	for _, test := range table {
@@ -120,9 +126,9 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 			workerFactory := sworker.NewAttachableSimpleSlotWorker()
 			neverSignal := synckit.NewNeverSignal()
 
-			s := testSMFinalize{}
+			s := &testSMFinalize{}
 			s.executionFunc = test.execFunc
-			m.AddNew(ctx, &s, smachine.CreateDefaultValues{})
+			m.AddNew(ctx, s, smachine.CreateDefaultValues{})
 			if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {
 				callContext.Migrate(nil)
 			}, true) {
