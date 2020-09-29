@@ -811,6 +811,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		s.outgoingAddedToTranscript = true
 	}
 
+	// FIXME: bug here, repeat of the step will result in resending
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
 	}

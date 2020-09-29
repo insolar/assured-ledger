@@ -791,7 +791,6 @@ func TestVirtual_CheckSortInTranscript(t *testing.T) {
 
 	var (
 		flags     = contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallValidated}
-		callFlags = rms.BuildCallFlags(flags.Interference, flags.State)
 
 		objectA = server.RandomGlobalWithPulse()
 		objectB = server.RandomGlobalWithPulse()
@@ -804,7 +803,6 @@ func TestVirtual_CheckSortInTranscript(t *testing.T) {
 	// create objects
 	{
 		Method_PrepareObject(ctx, server, rms.StateStatusReady, objectA, prevPulse)
-		Method_PrepareObject(ctx, server, rms.StateStatusReady, objectB, prevPulse)
 	}
 
 	var (
@@ -869,39 +867,8 @@ func TestVirtual_CheckSortInTranscript(t *testing.T) {
 			},
 		)
 
-		runnerMock.AddExecutionMock("Bar").AddStart(
-			func(ctx execution.Context) {
-				logger.Debug("ExecutionStart [B.Bar]")
-				assert.Equal(t, objectB, ctx.Request.Callee.GetValue())
-				assert.Equal(t, objectA, ctx.Request.Caller.GetValue())
-				assert.Equal(t, byteArguments, ctx.Request.Arguments.GetBytes())
-
-				// point.Synchronize()
-
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("finish B.Bar"), objectB),
-			},
-		)
-
-		runnerMock.AddExecutionMock("Bar2").AddStart(
-			func(ctx execution.Context) {
-				logger.Debug("ExecutionStart [B.Bar2]")
-				assert.Equal(t, objectB, ctx.Request.Callee.GetValue())
-				assert.Equal(t, objectA, ctx.Request.Caller.GetValue())
-				assert.Equal(t, byteArguments, ctx.Request.Arguments.GetBytes())
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("finish B.Bar2"), objectB),
-			},
-		)
-
 		runnerMock.AddExecutionClassify("Foo", flags, nil)
 		runnerMock.AddExecutionClassify("Foo2", flags, nil)
-		runnerMock.AddExecutionClassify("Bar", flags, nil)
-		runnerMock.AddExecutionClassify("Bar2", flags, nil)
 	}
 	{
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
@@ -928,12 +895,7 @@ func TestVirtual_CheckSortInTranscript(t *testing.T) {
 		})
 
 		typedChecker.VCallRequest.Set(func(result *rms.VCallRequest) bool {
-			t.FailNow()
-			// VCallResult
-			return false
-		})
-		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
-			t.FailNow()
+			// TODO: return VCallResult into system here
 			return false
 		})
 	}
@@ -941,17 +903,14 @@ func TestVirtual_CheckSortInTranscript(t *testing.T) {
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
 	{
-		pl := utils.GenerateVCallRequestMethod(server)
+		pl := utils.GenerateVCallRequestMethodImmutable(server)
 		pl.CallOutgoing.Set(outgoingA)
-		pl.CallFlags = callFlags
-		pl.Callee.Set(objectA)
 		pl.CallSiteMethod = "Foo"
-
 		server.SendPayload(ctx, pl)
 
+		pl = utils.GenerateVCallRequestMethodImmutable(server)
 		pl.CallOutgoing.Set(outgoingA2)
 		pl.CallSiteMethod = "Foo2"
-
 		server.SendPayload(ctx, pl)
 	}
 
