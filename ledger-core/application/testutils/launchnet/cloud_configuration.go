@@ -73,7 +73,7 @@ type inMemoryKeyStore struct {
 func (ks inMemoryKeyStore) GetPrivateKey(string) (crypto.PrivateKey, error) {
 	return ks.key, nil
 }
-func makeKeyFactory(nodes []nodeInfo) insapp.KeyStoreFactory {
+func makeKeyFactory(nodes []nodeInfo) insapp.KeyStoreFactoryFunc {
 	keysMap := make(map[string]crypto.PrivateKey)
 	for _, n := range nodes {
 		if _, ok := keysMap[n.keyName]; ok {
@@ -221,7 +221,7 @@ func generateNodeConfigs(nodes []nodeInfo, cloudSettings CloudSettings) []config
 	return appConfigs
 }
 
-func makeCertManagerFactory(certs map[string]*mandates.Certificate) insapp.CertManagerFactory {
+func makeCertManagerFactory(certs map[string]*mandates.Certificate) insapp.CertManagerFactoryFunc {
 	return func(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*mandates.CertificateManager, error) {
 		return mandates.NewCertificateManager(certs[certPath]), nil
 	}
@@ -343,8 +343,8 @@ type CloudSettings struct {
 func PrepareCloudConfiguration(cloudSettings CloudSettings) (
 	[]configuration.Configuration,
 	configuration.BaseCloudConfig,
-	insapp.CertManagerFactory,
-	insapp.KeyStoreFactory,
+	insapp.CertManagerFactoryFunc,
+	insapp.KeyStoreFactoryFunc,
 ) {
 	totalNum := cloudSettings.Virtual + cloudSettings.Light + cloudSettings.Heavy
 	if totalNum < 1 {

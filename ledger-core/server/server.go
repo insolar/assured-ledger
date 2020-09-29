@@ -84,8 +84,8 @@ func NewHeadlessNetworkNodeServer(cfg configuration.Configuration) *insapp.Serve
 type CloudConfigurationProvider struct {
 	PulsarConfig       configuration.PulsarConfiguration
 	BaseConfig         configuration.Configuration
-	CertificateFactory insapp.CertManagerFactory
-	KeyFactory         insapp.KeyStoreFactory
+	CertificateFactory insapp.CertManagerFactoryFunc
+	KeyFactory         insapp.KeyStoreFactoryFunc
 	GetAppConfigs      func() []configuration.Configuration
 }
 
@@ -93,10 +93,10 @@ func (cp CloudConfigurationProvider) Config() configuration.Configuration {
 	return cp.BaseConfig
 }
 
-func (cp CloudConfigurationProvider) GetCertManagerFactory() insapp.CertManagerFactory {
+func (cp CloudConfigurationProvider) GetCertManagerFactory() insapp.CertManagerFactoryFunc {
 	return cp.CertificateFactory
 }
 
-func (cp CloudConfigurationProvider) GetKeyStoreFactory() insapp.KeyStoreFactory {
+func (cp CloudConfigurationProvider) GetKeyStoreFactory() insapp.KeyStoreFactoryFunc {
 	return cp.KeyFactory
 }
