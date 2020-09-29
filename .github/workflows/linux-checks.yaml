@@ -148,7 +148,7 @@ jobs:
         with:
           name: coverage-out
           path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/coverage.out
-  functional-tests-on-kubernetes:
+  func-test-kuber:
     name: func-test-kuber # don't change, this name is used in repository restricts!
     runs-on: ubuntu-latest
     strategy:
