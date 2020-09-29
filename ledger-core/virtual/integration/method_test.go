@@ -51,41 +51,43 @@ func Method_PrepareObject(
 	object reference.Global,
 	pulse rms.PulseNumber,
 ) {
-	var (
-		walletState = makeRawWalletState(initialBalance)
 
-		content *rms.VStateReport_ProvidedContentBody
-	)
+	bytes := []byte("original object memory")
+	dirtyStateHash := append(bytes, object.AsBytes()...)
+	dirtyStateID := execute.NewStateID(pulse, dirtyStateHash)
+
+	p := &rms.VStateReport{
+		Status: state,
+		Object: rms.NewReference(object),
+		AsOf:   pulse,
+	}
 
 	switch state {
 	case rms.StateStatusMissing:
-		content = nil
 	case rms.StateStatusReady:
-		content = &rms.VStateReport_ProvidedContentBody{
+		p.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &rms.ObjectState{
-				Class: rms.NewReference(testwalletProxy.GetClass()),
-				State: rms.NewBytes(walletState),
+				Reference: rms.NewReferenceLocal(dirtyStateID),
+				Class:     rms.NewReference(testwalletProxy.GetClass()),
+				State:     rms.NewBytes(bytes),
 			},
 			LatestValidatedState: &rms.ObjectState{
-				Class: rms.NewReference(testwalletProxy.GetClass()),
-				State: rms.NewBytes(walletState),
+				Reference: rms.NewReferenceLocal(dirtyStateID),
+				Class:     rms.NewReference(testwalletProxy.GetClass()),
+				State:     rms.NewBytes(bytes),
 			},
 		}
+		p.LatestDirtyState = rms.NewReferenceLocal(dirtyStateID)
+		p.LatestValidatedState = rms.NewReferenceLocal(dirtyStateID)
 	case rms.StateStatusInactive:
-		content = nil
+		p.LatestDirtyState = rms.NewReferenceLocal(dirtyStateID)
+		p.LatestValidatedState = rms.NewReferenceLocal(dirtyStateID)
 	default:
 		panic("unexpected state")
 	}
 
-	vsrPayload := &rms.VStateReport{
-		Status:          state,
-		Object:          rms.NewReference(object),
-		AsOf:            pulse,
-		ProvidedContent: content,
-	}
-
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-	server.SendPayload(ctx, vsrPayload)
+	server.SendPayload(ctx, p)
 
 	select {
 	case <-wait:

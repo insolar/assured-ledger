@@ -712,12 +712,12 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
 			require.Equal(t, object, request.Callee.GetValue())
 
-		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			assert.Equal(t, object, report.Object.GetValue())
-			assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), report.AsOf)
-			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
-			return false
-		})
+			typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+				assert.Equal(t, object, report.Object.GetValue())
+				assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), report.AsOf)
+				assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+				return false
+			})
 
 			newPulse := server.GetPulse().PulseNumber
 			approver := server.RandomGlobalWithPulse()
@@ -768,4 +768,203 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 
 	mc.Finish()
 
+}
+
+func TestVirtual_CheckSortInTranscript(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+	insrail.LogCase(t, "")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	logger := inslogger.FromContext(ctx)
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
+		return execution.Request.CallSiteMethod
+	})
+	server.ReplaceRunner(runnerMock)
+	server.Init(ctx)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	var (
+		flags     = contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallValidated}
+		callFlags = rms.BuildCallFlags(flags.Interference, flags.State)
+
+		objectA = server.RandomGlobalWithPulse()
+		objectB = server.RandomGlobalWithPulse()
+
+		prevPulse = server.GetPulse().PulseNumber
+	)
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	// create objects
+	{
+		Method_PrepareObject(ctx, server, rms.StateStatusReady, objectA, prevPulse)
+		Method_PrepareObject(ctx, server, rms.StateStatusReady, objectB, prevPulse)
+	}
+
+	var (
+		class      = server.RandomGlobalWithPulse()
+		outgoingA  = server.BuildRandomOutgoingWithPulse()
+		incomingA  = reference.NewRecordOf(objectA, outgoingA.GetLocal())
+		outgoingA2 = server.BuildRandomOutgoingWithPulse()
+		incomingA2 = reference.NewRecordOf(objectA, outgoingA2.GetLocal())
+	)
+
+	point := synchronization.NewPoint(1)
+	defer point.Done()
+
+	// add mock
+	{
+		outgoingCall := execution.NewRPCBuilder(incomingA, objectA).
+			CallMethod(objectB, class, "Bar", byteArguments)
+		runnerMock.AddExecutionMock("Foo").AddStart(
+			func(ctx execution.Context) {
+				logger.Debug("ExecutionStart [A.Foo]")
+				assert.Equal(t, objectA, ctx.Request.Callee.GetValue())
+				assert.Equal(t, outgoingA, ctx.Request.CallOutgoing.GetValue()) // 1
+			},
+			&execution.Update{
+				Type:     execution.OutgoingCall,
+				Error:    nil,
+				Outgoing: outgoingCall,
+			},
+		).AddContinue(
+			func(result []byte) {
+				logger.Debug("ExecutionContinue [A.Foo]")
+				assert.Equal(t, []byte("finish B.Bar"), result)
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("finish A.Foo"), objectA),
+			},
+		)
+
+		outgoingCall2 := execution.NewRPCBuilder(incomingA2, objectA).
+			CallMethod(objectB, class, "Bar2", byteArguments)
+		runnerMock.AddExecutionMock("Foo2").AddStart(
+			func(ctx execution.Context) {
+				logger.Debug("ExecutionStart [A.Foo2]")
+				assert.Equal(t, objectA, ctx.Request.Callee.GetValue())
+				assert.Equal(t, outgoingA2, ctx.Request.CallOutgoing.GetValue())
+			},
+			&execution.Update{
+				Type:     execution.OutgoingCall,
+				Error:    nil,
+				Outgoing: outgoingCall2,
+			},
+		).AddContinue(
+			func(result []byte) {
+				logger.Debug("ExecutionContinue [A.Foo2]")
+				assert.Equal(t, []byte("finish B.Bar"), result)
+				// point.WakeUp()
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("finish A.Foo2"), objectA),
+			},
+		)
+
+		runnerMock.AddExecutionMock("Bar").AddStart(
+			func(ctx execution.Context) {
+				logger.Debug("ExecutionStart [B.Bar]")
+				assert.Equal(t, objectB, ctx.Request.Callee.GetValue())
+				assert.Equal(t, objectA, ctx.Request.Caller.GetValue())
+				assert.Equal(t, byteArguments, ctx.Request.Arguments.GetBytes())
+
+				// point.Synchronize()
+
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("finish B.Bar"), objectB),
+			},
+		)
+
+		runnerMock.AddExecutionMock("Bar2").AddStart(
+			func(ctx execution.Context) {
+				logger.Debug("ExecutionStart [B.Bar2]")
+				assert.Equal(t, objectB, ctx.Request.Callee.GetValue())
+				assert.Equal(t, objectA, ctx.Request.Caller.GetValue())
+				assert.Equal(t, byteArguments, ctx.Request.Arguments.GetBytes())
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("finish B.Bar2"), objectB),
+			},
+		)
+
+		runnerMock.AddExecutionClassify("Foo", flags, nil)
+		runnerMock.AddExecutionClassify("Foo2", flags, nil)
+		runnerMock.AddExecutionClassify("Bar", flags, nil)
+		runnerMock.AddExecutionClassify("Bar2", flags, nil)
+	}
+	{
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			// a / b
+			// assert.Equal(t, objectA, report.Object.GetValue())
+			// assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), report.AsOf)
+
+			assert.Len(t, report.ObjectTranscript.Entries, 2)
+
+			request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+			require.True(t, ok)
+			result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+			require.True(t, ok)
+
+			assert.Empty(t, request.Incoming)
+			assert.Empty(t, request.ObjectMemory)
+			// utils.AssertVCallRequestEqual(t, pl, &request.Request)
+
+			assert.Empty(t, result.IncomingResult)
+			// assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), result.ObjectState.Get().GetLocal().Pulse())
+			// assert.Equal(t, objectRef.GetBase(), result.ObjectState.Get().GetBase())
+
+			return false
+		})
+
+		typedChecker.VCallRequest.Set(func(result *rms.VCallRequest) bool {
+			t.FailNow()
+			// VCallResult
+			return false
+		})
+		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
+			t.FailNow()
+			return false
+		})
+	}
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+
+	{
+		pl := utils.GenerateVCallRequestMethod(server)
+		pl.CallOutgoing.Set(outgoingA)
+		pl.CallFlags = callFlags
+		pl.Callee.Set(objectA)
+		pl.CallSiteMethod = "Foo"
+
+		server.SendPayload(ctx, pl)
+
+		pl.CallOutgoing.Set(outgoingA2)
+		pl.CallSiteMethod = "Foo2"
+
+		server.SendPayload(ctx, pl)
+	}
+
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
+
+	assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
+	assert.Equal(t, 2, typedChecker.VCallRequest.Count())
+	assert.Equal(t, 2, typedChecker.VCallResult.Count())
+
+	mc.Finish()
 }
