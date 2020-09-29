@@ -59,6 +59,7 @@ type SMVObjectTranscriptReport struct {
 	incomingRequest *rms.VCallRequest
 	outgoingRequest *rms.VCallRequest
 	outgoingResult  *rms.VCallResult
+	withPendings    bool
 
 	validatedState reference.Global
 
@@ -100,6 +101,7 @@ func (s *SMVObjectTranscriptReport) Init(ctx smachine.InitializationContext) sma
 	s.pendings = s.Payload.PendingTranscripts
 
 	if len(s.pendings) != 0 {
+		s.withPendings = true
 		s.entries = make([]rms.Any, 0, len(s.pendings)*2)
 		for _, transcript := range s.pendings {
 			s.entries = append(s.entries, transcript.Entries...)
@@ -302,22 +304,42 @@ func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionCont
 		return ctx.Jump(s.stepValidationFailed)
 	}
 	s.counter++
-	expected, ok := entry.(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+	callResult, ok := entry.(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
 	if !ok {
 		ctx.Log().Warn("validation failed: failed to convert GoGoSerializable object to VObjectTranscriptReport_TranscriptEntryIncomingResult")
 		return ctx.Jump(s.stepValidationFailed)
 	}
 
 	if !noSideEffect {
-		// fixme: stateid vs stateref
-		stateRef := reference.NewRecordOf(newDesc.HeadRef(), newDesc.StateID())
-		equal := stateRef.Equal(expected.ObjectState.GetValue())
-		if !equal {
-			ctx.Log().Warn("validation failed: wrong stateRef")
-			return ctx.Jump(s.stepValidationFailed)
+		// for linter
+		if newDesc == nil {
+			panic(throw.Impossible())
 		}
 
-		s.validatedState = stateRef
+		if s.withPendings && s.object.GetLocal().Pulse().IsBefore(pulse) {
+			// it's pending, check headRef base and stateHash without pulse
+			// fixme: hack for validation, need to rethink
+			headRef := callResult.ObjectState.GetValue().GetBase()
+			if !headRef.Equal(s.object.GetBase()) {
+				ctx.Log().Warn("pending validation failed: wrong headRef base")
+				return ctx.Jump(s.stepValidationFailed)
+			}
+			stateHash := callResult.ObjectState.GetValue().GetLocal().GetHash()
+			if stateHash.Compare(newDesc.StateID().GetHash()) != 0 {
+				ctx.Log().Warn("pending validation failed: wrong stateHash")
+				return ctx.Jump(s.stepValidationFailed)
+			}
+		} else {
+			// fixme: stateid vs stateref
+			stateRef := reference.NewRecordOf(newDesc.HeadRef(), newDesc.StateID())
+			equal := stateRef.Equal(callResult.ObjectState.GetValue())
+			if !equal {
+				ctx.Log().Warn("validation failed: wrong stateRef")
+				return ctx.Jump(s.stepValidationFailed)
+			}
+
+		}
+		s.validatedState = callResult.ObjectState.GetValue()
 	}
 
 	return ctx.Jump(s.stepAdvanceToNextRequest)
@@ -430,19 +452,6 @@ func (s *SMVObjectTranscriptReport) makeNewDescriptor(
 		memory,
 		deactivated,
 	)
-}
-
-func (s *SMVObjectTranscriptReport) makeStateHash(memory []byte) []byte {
-	var prevStateIDBytes []byte
-	objDescriptor := s.objDesc
-	if objDescriptor != nil {
-		prevStateIDBytes = objDescriptor.StateID().AsBytes()
-	}
-
-	objectRefBytes := s.object.AsBytes()
-	stateHash := append(memory, objectRefBytes...)
-	stateHash = append(stateHash, prevStateIDBytes...)
-	return stateHash
 }
 
 func (s *SMVObjectTranscriptReport) prepareExecution(ctx context.Context) {
