@@ -9,7 +9,7 @@ import (
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"testing"
 	"time"
-
+	"fmt"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/sworker"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
@@ -18,59 +18,63 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type TestFunc func(*testSMFinalize, smachine.ExecutionContext) smachine.StateUpdate
-type TestFuncSR func(*testSMFinalizeSR, smachine.ExecutionContext) smachine.StateUpdate
+type TestFuncSR func(*testSMFinalize, smachine.ExecutionContext) smachine.StateUpdate
 
 type testSMFinalize struct {
 	smachine.StateMachineDeclTemplate
-
-	nFinalizeCallsLevel0  int
-	nFinalizeCallsLevel1  int
-	nFinalizeCallsLevel2  int
-	executionFunc TestFunc
+	nFinalizeCallsLevel0 int
+	nFinalizeCallsLevel1 int
+	nFinalizeCallsLevel2 int
+	executionFunc TestFuncSR
 	executionFuncSR TestFuncSR
 	executionFuncSRSR TestFuncSR
 }
 
-func (s *testSMFinalize) GetInitStateFor(_ smachine.StateMachine) smachine.InitFunc {
-	return s.stepInit
+func (testSMFinalize) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
+	return sm.(*testSMFinalize).Init
+}
+
+/* -------- Instance ------------- */
+
+func (s *testSMFinalize) GetSubroutineInitState(smachine.SubroutineStartContext) smachine.InitFunc {
+	return s.Init
 }
 
 func (s *testSMFinalize) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 	return s
 }
 
-func (s *testSMFinalize) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
+func (s *testSMFinalize) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	ctx.SetFinalizer(s.finalize)
+	return ctx.Jump(s.State0)
+}
+
+func (s *testSMFinalize) State0(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 		return s.executionFunc(s, ctx)
 	})
 }
 
-func (s *testSMFinalize) stepExecutionPanic(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	panic(throw.IllegalState())
-	return ctx.Stop()
-}
-
-func (s *testSMFinalize) stepExecutionError(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *testSMFinalize) StateError(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Error(throw.New("Test error"))
 }
 
-func (s *testSMFinalize) stepExecutionStop(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *testSMFinalize) StatePanic(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	panic(throw.IllegalState())
+	return ctx.Jump(s.StateStop)
+}
+
+func (s *testSMFinalize) StateStop(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Stop()
 }
 
-func (s *testSMFinalize) stepExecutionWithSubroutine(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	subroutineSM := &testSMFinalizeSR{executionFunc: s.executionFuncSR, executionFuncSR: s.executionFuncSRSR}
+func (s *testSMFinalize) StateGoDeeper(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	subroutineSM := &testSMFinalize{executionFunc: s.executionFuncSR, executionFuncSR: s.executionFuncSRSR}
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
-		s.nFinalizeCallsLevel1 = subroutineSM.nFinalizeCallsLevel0
 		s.nFinalizeCallsLevel2 = subroutineSM.nFinalizeCallsLevel1
-		return ctx.Jump(s.stepDone)
+		s.nFinalizeCallsLevel1 = subroutineSM.nFinalizeCallsLevel0
+		return ctx.Jump(s.StateStop)
 	})
-}
-
-func (s *testSMFinalize) stepDone(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	return ctx.Stop()
 }
 
 func (s *testSMFinalize) finalize(ctx smachine.FinalizationContext) {
@@ -82,7 +86,7 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 
 	table := []struct {
 		name   string
-		execFunc TestFunc
+		execFunc TestFuncSR
 		execFuncSR TestFuncSR
 		execFuncSRSR TestFuncSR
 		nExpectedFinalizeRunsLevel0 int
@@ -91,7 +95,7 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 	}{
 		{
 			name:   "Call from Panic",
-			execFunc: (*testSMFinalize).stepExecutionPanic,
+			execFunc: (*testSMFinalize).StatePanic,
 			execFuncSR: nil,
 			execFuncSRSR: nil,
 			nExpectedFinalizeRunsLevel0: 1,
@@ -100,7 +104,7 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 
 		}, {
 			name:   "Call from Error",
-			execFunc: (*testSMFinalize).stepExecutionError,
+			execFunc: (*testSMFinalize).StateError,
 			execFuncSR: nil,
 			execFuncSRSR: nil,
 			nExpectedFinalizeRunsLevel0: 1,
@@ -108,7 +112,7 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 			nExpectedFinalizeRunsLevel2: 0,
 		}, {
 			name: "No Call from Stop",
-			execFunc: (*testSMFinalize).stepExecutionStop,
+			execFunc: (*testSMFinalize).StateStop,
 			execFuncSR: nil,
 			execFuncSRSR: nil,
 			nExpectedFinalizeRunsLevel0: 0,
@@ -116,49 +120,49 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 			nExpectedFinalizeRunsLevel2: 0,
 		}, {
 			name: "Call from Subroutine with Stop",
-			execFunc: (*testSMFinalize).stepExecutionWithSubroutine,
-			execFuncSR: (*testSMFinalizeSR).StateStop,
+			execFunc: (*testSMFinalize).StateGoDeeper,
+			execFuncSR: (*testSMFinalize).StateStop,
 			execFuncSRSR: nil,
 			nExpectedFinalizeRunsLevel0: 0,
 			nExpectedFinalizeRunsLevel1: 1,
 			nExpectedFinalizeRunsLevel2: 0,
 		}, {
 			name: "Call from Subroutine with Error",
-			execFunc: (*testSMFinalize).stepExecutionWithSubroutine,
-			execFuncSR: (*testSMFinalizeSR).StateError,
+			execFunc: (*testSMFinalize).StateGoDeeper,
+			execFuncSR: (*testSMFinalize).StateError,
 			execFuncSRSR: nil,
 			nExpectedFinalizeRunsLevel0: 0,
 			nExpectedFinalizeRunsLevel1: 1,
 			nExpectedFinalizeRunsLevel2: 0,
 		}, {
 			name: "Call from Subroutine with Panic",
-			execFunc: (*testSMFinalize).stepExecutionWithSubroutine,
-			execFuncSR: (*testSMFinalizeSR).StatePanic,
+			execFunc: (*testSMFinalize).StateGoDeeper,
+			execFuncSR: (*testSMFinalize).StatePanic,
 			execFuncSRSR: nil,
 			nExpectedFinalizeRunsLevel0: 0,
 			nExpectedFinalizeRunsLevel1: 1,
 			nExpectedFinalizeRunsLevel2: 0,
 		}, {
 			name: "Call from Subroutine from Subroutine with Stop",
-			execFunc: (*testSMFinalize).stepExecutionWithSubroutine,
-			execFuncSR: (*testSMFinalizeSR).StateGoDeeper,
-			execFuncSRSR: (*testSMFinalizeSR).StateStop,
+			execFunc: (*testSMFinalize).StateGoDeeper,
+			execFuncSR: (*testSMFinalize).StateGoDeeper,
+			execFuncSRSR: (*testSMFinalize).StateStop,
 			nExpectedFinalizeRunsLevel0: 0,
 			nExpectedFinalizeRunsLevel1: 1,
 			nExpectedFinalizeRunsLevel2: 1,
 		}, {
 			name: "Call from Subroutine from Subroutine with Error",
-			execFunc: (*testSMFinalize).stepExecutionWithSubroutine,
-			execFuncSR: (*testSMFinalizeSR).StateGoDeeper,
-			execFuncSRSR: (*testSMFinalizeSR).StateError,
+			execFunc: (*testSMFinalize).StateGoDeeper,
+			execFuncSR: (*testSMFinalize).StateGoDeeper,
+			execFuncSRSR: (*testSMFinalize).StateError,
 			nExpectedFinalizeRunsLevel0: 0,
 			nExpectedFinalizeRunsLevel1: 1,
 			nExpectedFinalizeRunsLevel2: 1,
 		}, {
 			name: "Call from Subroutine from Subroutine with Panic",
-			execFunc: (*testSMFinalize).stepExecutionWithSubroutine,
-			execFuncSR: (*testSMFinalizeSR).StateGoDeeper,
-			execFuncSRSR: (*testSMFinalizeSR).StatePanic,
+			execFunc: (*testSMFinalize).StateGoDeeper,
+			execFuncSR: (*testSMFinalize).StateGoDeeper,
+			execFuncSRSR: (*testSMFinalize).StatePanic,
 			nExpectedFinalizeRunsLevel0: 0,
 			nExpectedFinalizeRunsLevel1: 1,
 			nExpectedFinalizeRunsLevel2: 1,
@@ -170,7 +174,7 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 			ctx := instestlogger.TestContext(t)
 
 			scanCountLimit := 1000
-
+			fmt.Println(test.name)
 			signal := synckit.NewVersionedSignal()
 			m := smachine.NewSlotMachine(smachine.SlotMachineConfig{
 				SlotPageSize:    1000,
@@ -215,64 +219,4 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 			assert.Equal(t, test.nExpectedFinalizeRunsLevel2, s.nFinalizeCallsLevel2)
 		})
 	}
-}
-
-
-type testSMFinalizeSR struct {
-	smachine.StateMachineDeclTemplate
-	nFinalizeCallsLevel0 int
-	nFinalizeCallsLevel1 int
-	executionFunc TestFuncSR
-	executionFuncSR TestFuncSR
-}
-
-func (testSMFinalizeSR) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
-	return sm.(*testSMFinalizeSR).Init
-}
-
-/* -------- Instance ------------- */
-
-func (s *testSMFinalizeSR) GetSubroutineInitState(smachine.SubroutineStartContext) smachine.InitFunc {
-	return s.Init
-}
-
-func (s *testSMFinalizeSR) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
-	return s
-}
-
-func (s *testSMFinalizeSR) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	ctx.SetFinalizer(s.finalize)
-	return ctx.Jump(s.State0)
-}
-
-func (s *testSMFinalizeSR) State0(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-		return s.executionFunc(s, ctx)
-	})
-}
-
-func (s *testSMFinalizeSR) StateError(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	return ctx.Error(throw.New("Test error"))
-}
-
-func (s *testSMFinalizeSR) StatePanic(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	panic(throw.IllegalState())
-	return ctx.Jump(s.StateStop)
-}
-
-func (s *testSMFinalizeSR) StateStop(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	return ctx.Stop()
-}
-
-func (s *testSMFinalizeSR) StateGoDeeper(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	subroutineSM := &testSMFinalizeSR{executionFunc: s.executionFuncSR}
-	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
-		s.nFinalizeCallsLevel1 = subroutineSM.nFinalizeCallsLevel0
-		return ctx.Jump(s.StateStop)
-	})
-}
-
-func (s *testSMFinalizeSR) finalize(ctx smachine.FinalizationContext) {
-	s.nFinalizeCallsLevel0 ++
-	return
 }
