@@ -22,6 +22,7 @@ type testSMFinalize struct {
 	smachine.StateMachineDeclTemplate
 
 	nFinalizeCalls    int
+	nSRFinalizeCalls  int
 	executionFunc smachine.StateFunc
 }
 
@@ -54,10 +55,14 @@ func (s *testSMFinalize) stepExecutionStop(ctx smachine.ExecutionContext) smachi
 func (s *testSMFinalize) stepExecutionWithSubroutine(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	subroutineSM := &StateMachine3{count: 0}
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
-//		param := ctx.EventParam()
-//		direct := subroutineSM.count
-		return ctx.Stop()
+		s.nSRFinalizeCalls = subroutineSM.nFinalizeCalls
+		return ctx.Jump(s.stepDone)
 	})
+}
+
+func (s *testSMFinalize) stepDone(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.nFinalizeCalls = 77
+	return ctx.Stop()
 }
 
 func (s *testSMFinalize) finalize(ctx smachine.FinalizationContext) {
@@ -72,23 +77,29 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 		name   string
 		execFunc smachine.StateFunc
 		nExpectedFinalizeRuns int
+		nExpectedSRFinalizeRuns int
 	}{
 		{
 			name:   "Call from Panic",
 			execFunc: s.stepExecutionPanic,
 			nExpectedFinalizeRuns: 1,
+			nExpectedSRFinalizeRuns: 0,
+
 		}, {
 			name:   "Call from Error",
 			execFunc: s.stepExecutionError,
 			nExpectedFinalizeRuns: 1,
+			nExpectedSRFinalizeRuns: 0,
 		}, {
 			name: "No Call from Stop",
 			execFunc: s.stepExecutionStop,
 			nExpectedFinalizeRuns: 0,
+			nExpectedSRFinalizeRuns: 0,
 		}, {
 			name: "No Call from Subroutine",
 			execFunc: s.stepExecutionWithSubroutine,
 			nExpectedFinalizeRuns: 0,
+			nExpectedSRFinalizeRuns: 0,
 		},
 	}
 	for _, test := range table {
@@ -136,6 +147,7 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 			}
 
 			assert.Equal(t, test.nExpectedFinalizeRuns, s.nFinalizeCalls)
+			assert.Equal(t, test.nExpectedSRFinalizeRuns, s.nSRFinalizeCalls)
 		})
 	}
 }
