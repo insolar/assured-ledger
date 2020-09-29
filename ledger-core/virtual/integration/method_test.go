@@ -47,7 +47,7 @@ const initialBalance uint32 = 500
 func Method_PrepareObject(
 	ctx context.Context,
 	server *utils.Server,
-	state rms.VStateReport_StateStatus,
+	stateStatus rms.VStateReport_StateStatus,
 	object reference.Global,
 	pulse rms.PulseNumber,
 ) {
@@ -57,12 +57,12 @@ func Method_PrepareObject(
 	dirtyStateID := execute.NewStateID(pulse, dirtyStateHash)
 
 	p := &rms.VStateReport{
-		Status: state,
+		Status: stateStatus,
 		Object: rms.NewReference(object),
 		AsOf:   pulse,
 	}
 
-	switch state {
+	switch stateStatus {
 	case rms.StateStatusMissing:
 	case rms.StateStatusReady:
 		state := rms.NewBytes(bytes)
@@ -88,7 +88,7 @@ func Method_PrepareObject(
 		p.LatestDirtyState = rms.NewReferenceLocal(dirtyStateID)
 		p.LatestValidatedState = rms.NewReferenceLocal(dirtyStateID)
 	default:
-		panic("unexpected state")
+		panic("unexpected stateStatus")
 	}
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)

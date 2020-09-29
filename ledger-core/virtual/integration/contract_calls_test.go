@@ -772,7 +772,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 
 func TestVirtual_CheckSortInTranscript(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-	insrail.LogCase(t, "")
+	insrail.LogCase(t, "C6008")
 
 	mc := minimock.NewController(t)
 
@@ -884,14 +884,17 @@ func TestVirtual_CheckSortInTranscript(t *testing.T) {
 			server.SendPayload(ctx, result)
 			return false
 		})
-		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool { return false })
+		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
+			require.Equal(t, objectA, result.Callee.GetValue())
+			return false
+		})
 
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
 
 			assert.Equal(t, objectA, report.Object.GetValue())
 			assert.Equal(t, outgoingA.GetLocal().Pulse(), report.AsOf)
 
-			assert.Equal(t, 6, len(report.ObjectTranscript.Entries))
+			assert.Equal(t, 8, len(report.ObjectTranscript.Entries))
 
 			request1, ok := report.ObjectTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
 			require.True(t, ok)
@@ -915,12 +918,14 @@ func TestVirtual_CheckSortInTranscript(t *testing.T) {
 			require.True(t, ok)
 			require.Equal(t, outgoingA.GetLocal().Pulse(), outgoingResult2.CallResult.CallOutgoing.GetValue().GetLocal().Pulse())
 
-			result2, ok := report.ObjectTranscript.Entries[4].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+			result2, ok := report.ObjectTranscript.Entries[6].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 			require.True(t, ok)
-			require.NotEmpty(t, result2.IncomingResult)
-			result1, ok := report.ObjectTranscript.Entries[5].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+			require.Empty(t, result2.IncomingResult)
+			require.Equal(t, prevPulse, result2.ObjectState.GetValue().GetLocal().Pulse())
+			result1, ok := report.ObjectTranscript.Entries[7].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 			require.True(t, ok)
-			require.NotEmpty(t, result1.IncomingResult)
+			require.Empty(t, result1.IncomingResult)
+			require.Equal(t, prevPulse, result1.ObjectState.GetValue().GetLocal().Pulse())
 
 			utils.AssertVCallRequestEqual(t, pl1, &request1.Request)
 			utils.AssertVCallRequestEqual(t, pl2, &request2.Request)
