@@ -6,16 +6,15 @@
 package smachine_test
 
 import (
-	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
-	"testing"
-	"time"
-	"fmt"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/sworker"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/stretchr/testify/assert"
+	"testing"
+	"time"
 )
 
 type TestFuncSR func(*testSMFinalize, smachine.ExecutionContext) smachine.StateUpdate
@@ -174,7 +173,6 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 			ctx := instestlogger.TestContext(t)
 
 			scanCountLimit := 1000
-			fmt.Println(test.name)
 			signal := synckit.NewVersionedSignal()
 			m := smachine.NewSlotMachine(smachine.SlotMachineConfig{
 				SlotPageSize:    1000,
