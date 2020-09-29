@@ -217,6 +217,8 @@ message VDelegatedRequestFinished {
     CallDelegationToken DelegationSpec = 26;
 
     ObjectState LatestState = 29 [(gogoproto.nullable) = true];
+
+    Transcript PendingTranscript = 30;
 }
 
 message VDelegatedCallRequest {
@@ -296,17 +298,8 @@ message VCachedMemoryResponse {
     Binary Memory = 54;
 }
 
-message VObjectTranscriptReport {
+message Transcript {
     option (insproto.id) = 1015;
-
-    //*** Start of predefined section ***//
-    reserved 1 to 18, 20 to 1799;
-    // FIXME: this is here just to make generator silent
-    Any Record = 19 [(gogoproto.embed) = true];
-    //*** End of predefined section ***//
-
-    uint32 AsOf = 1800 [(gogoproto.casttype) = "PulseNumber"];
-    Reference Object = 1801;
 
     message TranscriptEntryIncomingRequest {
         option (insproto.id) = 101501;
@@ -336,20 +329,29 @@ message VObjectTranscriptReport {
         Reference Reason = 1802;
     }
 
-    message Transcript {
-        option (insproto.id) = 1021;
+    // stub
+    repeated Any Entries = 1800;
+}
 
-        // stub
-        repeated Any Entries = 1800;
-    }
+message VObjectTranscriptReport {
+    option (insproto.id) = 1016;
 
-    repeated Transcript PendingTranscripts = 1803;
+    //*** Start of predefined section ***//
+    reserved 1 to 18, 20 to 1799;
+    // FIXME: this is here just to make generator silent
+    Any Record = 19 [(gogoproto.embed) = true];
+    //*** End of predefined section ***//
 
-    Transcript ObjectTranscript = 1804;
+    uint32 AsOf = 1800 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Object = 1801;
+
+    repeated Transcript PendingTranscripts = 1802;
+
+    Transcript ObjectTranscript = 1803;
 }
 
 message VObjectValidationReport {
-    option (insproto.id) = 1016;
+    option (insproto.id) = 1017;
     Reference Object = 21;
     uint32 In = 55 [(gogoproto.casttype) = "PulseNumber"];
     Reference Validated = 50;

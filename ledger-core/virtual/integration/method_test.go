@@ -1218,9 +1218,9 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 					if testCase.canChangeState {
 						assert.Len(t, report.ObjectTranscript.Entries, 2)
 
-						request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+						request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
 						require.True(t, ok)
-						result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+						result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 						require.True(t, ok)
 
 						assert.Empty(t, request.Incoming)

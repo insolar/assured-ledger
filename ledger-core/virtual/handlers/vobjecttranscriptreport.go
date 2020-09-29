@@ -48,7 +48,7 @@ type SMVObjectTranscriptReport struct {
 	// unboxed from message, often used
 	object   reference.Global
 	entries  []rms.Any
-	pendings []rms.VObjectTranscriptReport_Transcript
+	pendings []rms.Transcript
 
 	objState        reference.Global
 	objDesc         descriptor.Object
@@ -123,7 +123,7 @@ func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) s
 	s.counter++
 
 	switch tEntry := entry.(type) {
-	case *rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest:
+	case *rms.Transcript_TranscriptEntryIncomingRequest:
 		s.incomingRequest = &tEntry.Request
 		s.objState = tEntry.ObjectMemory.GetValue()
 		s.reasonRef = s.incomingRequest.CallOutgoing
@@ -224,9 +224,9 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 		return ctx.Jump(s.stepValidationFailed)
 	}
 	s.counter++
-	expectedRequest, ok := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest)
+	expectedRequest, ok := entry.(*rms.Transcript_TranscriptEntryOutgoingRequest)
 	if !ok {
-		ctx.Log().Warn("validation failed: failed to convert GoGoSerializable object to VObjectTranscriptReport_TranscriptEntryOutgoingRequest")
+		ctx.Log().Warn("validation failed: failed to convert GoGoSerializable object to Transcript_TranscriptEntryOutgoingRequest")
 		return ctx.Jump(s.stepValidationFailed)
 	}
 	equal := s.outgoingRequest.CallOutgoing.Equal(&expectedRequest.Request)
@@ -241,9 +241,9 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 		return ctx.Jump(s.stepValidationFailed)
 	}
 	s.counter++
-	outgoingResult, ok := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult)
+	outgoingResult, ok := entry.(*rms.Transcript_TranscriptEntryOutgoingResult)
 	if !ok {
-		ctx.Log().Warn("validation failed: failed to convert GoGoSerializable object to VObjectTranscriptReport_TranscriptEntryOutgoingResult")
+		ctx.Log().Warn("validation failed: failed to convert GoGoSerializable object to Transcript_TranscriptEntryOutgoingResult")
 		return ctx.Jump(s.stepValidationFailed)
 	}
 	s.outgoingResult = &outgoingResult.CallResult
@@ -304,9 +304,9 @@ func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionCont
 		return ctx.Jump(s.stepValidationFailed)
 	}
 	s.counter++
-	callResult, ok := entry.(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+	callResult, ok := entry.(*rms.Transcript_TranscriptEntryIncomingResult)
 	if !ok {
-		ctx.Log().Warn("validation failed: failed to convert GoGoSerializable object to VObjectTranscriptReport_TranscriptEntryIncomingResult")
+		ctx.Log().Warn("validation failed: failed to convert GoGoSerializable object to Transcript_TranscriptEntryIncomingResult")
 		return ctx.Jump(s.stepValidationFailed)
 	}
 
@@ -366,7 +366,7 @@ func (s *SMVObjectTranscriptReport) stepAdvanceToNextRequest(ctx smachine.Execut
 	for ind := s.startIndex; ind < len(s.entries); ind++ {
 		entry := s.peekEntry(ind)
 		switch entry.(type) {
-		case *rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest:
+		case *rms.Transcript_TranscriptEntryIncomingRequest:
 			s.startIndex = ind
 		default:
 			// do nothing
@@ -402,20 +402,20 @@ func (s *SMVObjectTranscriptReport) findNextEntry() rmsreg.GoGoSerializable {
 	for ind := s.entryIndex + 1; ind < len(s.entries); ind++ {
 		entry := s.peekEntry(ind)
 		switch entry.(type) {
-		case *rms.VObjectTranscriptReport_TranscriptEntryIncomingResult:
-			expected := entry.(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+		case *rms.Transcript_TranscriptEntryIncomingResult:
+			expected := entry.(*rms.Transcript_TranscriptEntryIncomingResult)
 			if expected.Reason.Equal(&s.reasonRef) {
 				s.entryIndex = ind
 				return entry
 			}
-		case *rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest:
-			expected := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest)
+		case *rms.Transcript_TranscriptEntryOutgoingRequest:
+			expected := entry.(*rms.Transcript_TranscriptEntryOutgoingRequest)
 			if expected.Reason.Equal(&s.reasonRef) {
 				s.entryIndex = ind
 				return entry
 			}
-		case *rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult:
-			expected := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult)
+		case *rms.Transcript_TranscriptEntryOutgoingResult:
+			expected := entry.(*rms.Transcript_TranscriptEntryOutgoingResult)
 			if expected.Reason.Equal(&s.reasonRef) {
 				s.entryIndex = ind
 				return entry

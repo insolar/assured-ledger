@@ -141,9 +141,9 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 
 		assert.Len(t, report.ObjectTranscript.Entries, 2)
 
-		request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+		request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
 		require.True(t, ok)
-		result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+		result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 		require.True(t, ok)
 
 		assert.Empty(t, request.Incoming)
@@ -267,9 +267,9 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 
 		assert.Len(t, report.ObjectTranscript.Entries, 2)
 
-		request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+		request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
 		require.True(t, ok)
-		result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+		result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 		require.True(t, ok)
 
 		assert.Empty(t, request.Incoming)
@@ -399,9 +399,9 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 
 			assert.Len(t, report.ObjectTranscript.Entries, 2)
 
-			request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+			request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
 			require.True(t, ok)
-			result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+			result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 			require.True(t, ok)
 
 			assert.Empty(t, request.Incoming)
@@ -580,24 +580,24 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 		if report.Object.GetValue() == objectA {
 			assert.Len(t, report.ObjectTranscript.Entries, 4)
 
-			_, ok := report.ObjectTranscript.Entries[0].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+			_, ok := report.ObjectTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
 			require.True(t, ok)
 
-			_, ok = report.ObjectTranscript.Entries[1].Get().(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest)
+			_, ok = report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryOutgoingRequest)
 			require.True(t, ok)
 
-			_, ok = report.ObjectTranscript.Entries[2].Get().(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult)
+			_, ok = report.ObjectTranscript.Entries[2].Get().(*rms.Transcript_TranscriptEntryOutgoingResult)
 			require.True(t, ok)
 
-			_, ok = report.ObjectTranscript.Entries[3].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+			_, ok = report.ObjectTranscript.Entries[3].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 			require.True(t, ok)
 		} else {
 			assert.Len(t, report.ObjectTranscript.Entries, 2)
 
-			_, ok := report.ObjectTranscript.Entries[0].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+			_, ok := report.ObjectTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
 			require.True(t, ok)
 
-			_, ok = report.ObjectTranscript.Entries[1].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+			_, ok = report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 			require.True(t, ok)
 		}
 

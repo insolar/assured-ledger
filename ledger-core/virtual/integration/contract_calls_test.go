@@ -893,32 +893,32 @@ func TestVirtual_CheckSortInTranscript(t *testing.T) {
 
 			assert.Equal(t, 6, len(report.ObjectTranscript.Entries))
 
-			request1, ok := report.ObjectTranscript.Entries[0].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+			request1, ok := report.ObjectTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
 			require.True(t, ok)
 			require.Equal(t, outgoingA, request1.Request.CallOutgoing.GetValue())
-			outgoing1, ok := report.ObjectTranscript.Entries[1].Get().(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest)
+			outgoing1, ok := report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryOutgoingRequest)
 			require.True(t, ok)
 			require.Equal(t, outgoingA.GetLocal().Pulse(), outgoing1.Request.GetValue().GetLocal().Pulse())
 
-			outgoingResult1, ok := report.ObjectTranscript.Entries[2].Get().(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult)
+			outgoingResult1, ok := report.ObjectTranscript.Entries[2].Get().(*rms.Transcript_TranscriptEntryOutgoingResult)
 			require.True(t, ok)
 			require.Equal(t, outgoingA.GetLocal().Pulse(), outgoingResult1.CallResult.CallOutgoing.GetValue().GetLocal().Pulse())
 
-			request2, ok := report.ObjectTranscript.Entries[3].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+			request2, ok := report.ObjectTranscript.Entries[3].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
 			require.True(t, ok)
 			require.Equal(t, outgoingA2, request2.Request.CallOutgoing.GetValue())
-			outgoing2, ok := report.ObjectTranscript.Entries[4].Get().(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest)
+			outgoing2, ok := report.ObjectTranscript.Entries[4].Get().(*rms.Transcript_TranscriptEntryOutgoingRequest)
 			require.True(t, ok)
 			require.Equal(t, outgoingA2.GetLocal().Pulse(), outgoing2.Request.GetValue().GetLocal().Pulse())
 
-			outgoingResult2, ok := report.ObjectTranscript.Entries[5].Get().(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult)
+			outgoingResult2, ok := report.ObjectTranscript.Entries[5].Get().(*rms.Transcript_TranscriptEntryOutgoingResult)
 			require.True(t, ok)
 			require.Equal(t, outgoingA.GetLocal().Pulse(), outgoingResult2.CallResult.CallOutgoing.GetValue().GetLocal().Pulse())
 
-			result2, ok := report.ObjectTranscript.Entries[4].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+			result2, ok := report.ObjectTranscript.Entries[4].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 			require.True(t, ok)
 			require.NotEmpty(t, result2.IncomingResult)
-			result1, ok := report.ObjectTranscript.Entries[5].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+			result1, ok := report.ObjectTranscript.Entries[5].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 			require.True(t, ok)
 			require.NotEmpty(t, result1.IncomingResult)
 

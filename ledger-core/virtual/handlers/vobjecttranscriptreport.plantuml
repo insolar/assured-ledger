@@ -24,6 +24,8 @@ state "stepExecuteFinish" as T01_S013
 T01_S013 : SMVObjectTranscriptReport
 T01_S013 --> T01_S014 : [entry==nil]
 T01_S013 --> T01_S014 : [!ok]
+T01_S013 --> T01_S014 : [!headRef.Equal()]
+T01_S013 --> T01_S014 : [stateHash.Compare()!=0]
 T01_S013 --> T01_S014 : [!equal]
 T01_S013 --> T01_S015
 state "stepExecuteOutgoing" as T01_S011
@@ -54,7 +56,7 @@ state "stepProcess" as T01_S002
 T01_S002 : SMVObjectTranscriptReport
 T01_S002 --> T01_S014 : [entry==nil]
 T01_S002 --> T01_S006 : [s.objState.IsEmpty()]
-T01_S002 --> T01_S003 : [(...).VObjectTranscriptReport_TranscriptEntryIncomingRequest]
+T01_S002 --> T01_S003 : [(...).Transcript_TranscriptEntryIncomingRequest]
 T01_S002 --> [*]
 state "stepSendValidationReport" as T01_S016
 T01_S016 : SMVObjectTranscriptReport

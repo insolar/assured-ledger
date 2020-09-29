@@ -85,15 +85,15 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 		pl := rms.VObjectTranscriptReport{
 			AsOf:   p,
 			Object: rms.NewReference(objectRef),
-			ObjectTranscript: rms.VObjectTranscriptReport_Transcript{
+			ObjectTranscript: rms.Transcript{
 				Entries: []rms.Any{
 					rms.NewAny(
-						&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+						&rms.Transcript_TranscriptEntryIncomingRequest{
 							Request: *callRequest,
 						},
 					),
 					rms.NewAny(
-						&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+						&rms.Transcript_TranscriptEntryIncomingResult{
 							ObjectState: rms.NewReference(stateRef),
 							Reason:      callRequest.CallOutgoing,
 						},
@@ -190,16 +190,16 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 		pl := rms.VObjectTranscriptReport{
 			AsOf:   p,
 			Object: rms.NewReference(objectRef),
-			ObjectTranscript: rms.VObjectTranscriptReport_Transcript{
+			ObjectTranscript: rms.Transcript{
 				Entries: []rms.Any{
 					rms.NewAny(
-						&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+						&rms.Transcript_TranscriptEntryIncomingRequest{
 							ObjectMemory: rms.NewReference(stateRef),
 							Request:      *callRequest,
 						},
 					),
 					rms.NewAny(
-						&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+						&rms.Transcript_TranscriptEntryIncomingResult{
 							ObjectState: rms.NewReference(newStateRef),
 							Reason:      callRequest.CallOutgoing,
 						},
@@ -292,18 +292,18 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 		}
 		pl.ObjectTranscript.Entries = []rms.Any{
 			rms.NewAny(
-				&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+				&rms.Transcript_TranscriptEntryIncomingRequest{
 					Request: *callRequest,
 				},
 			),
 			rms.NewAny(
-				&rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest{
+				&rms.Transcript_TranscriptEntryOutgoingRequest{
 					Request: rms.NewReference(outgoingRefFromConstructor),
 					Reason:  callRequest.CallOutgoing,
 				},
 			),
 			rms.NewAny(
-				&rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult{
+				&rms.Transcript_TranscriptEntryOutgoingResult{
 					CallResult: rms.VCallResult{
 						CallType:        rms.CallTypeMethod,
 						CallFlags:       rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
@@ -316,7 +316,7 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 				},
 			),
 			rms.NewAny(
-				&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+				&rms.Transcript_TranscriptEntryIncomingResult{
 					ObjectState: rms.NewReference(stateRef),
 					Reason:      callRequest.CallOutgoing,
 				},
@@ -434,25 +434,25 @@ func TestValidation_ObjectTranscriptReport_AfterTwoInterleaving(t *testing.T) {
 		}
 		pl.ObjectTranscript.Entries = []rms.Any{
 			rms.NewAny(
-				&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+				&rms.Transcript_TranscriptEntryIncomingRequest{
 					ObjectMemory: rms.NewReference(stateRef),
 					Request:      *callRequest1,
 				},
 			),
 			rms.NewAny(
-				&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+				&rms.Transcript_TranscriptEntryIncomingRequest{
 					ObjectMemory: rms.NewReference(stateRef),
 					Request:      *callRequest2,
 				},
 			),
 			rms.NewAny(
-				&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+				&rms.Transcript_TranscriptEntryIncomingResult{
 					ObjectState: rms.NewReference(newStateRef),
 					Reason:      callRequest1.CallOutgoing,
 				},
 			),
 			rms.NewAny(
-				&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+				&rms.Transcript_TranscriptEntryIncomingResult{
 					ObjectState: rms.NewReference(stateRef),
 					Reason:      callRequest2.CallOutgoing,
 				},
@@ -570,25 +570,25 @@ func TestValidation_ObjectTranscriptReport_AfterTwoSequential(t *testing.T) {
 		}
 		pl.ObjectTranscript.Entries = []rms.Any{
 			rms.NewAny(
-				&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+				&rms.Transcript_TranscriptEntryIncomingRequest{
 					ObjectMemory: rms.NewReference(stateRef),
 					Request:      *callRequest1,
 				},
 			),
 			rms.NewAny(
-				&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+				&rms.Transcript_TranscriptEntryIncomingResult{
 					ObjectState: rms.NewReference(newStateRef),
 					Reason:      callRequest1.CallOutgoing,
 				},
 			),
 			rms.NewAny(
-				&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+				&rms.Transcript_TranscriptEntryIncomingRequest{
 					ObjectMemory: rms.NewReference(stateRef),
 					Request:      *callRequest2,
 				},
 			),
 			rms.NewAny(
-				&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+				&rms.Transcript_TranscriptEntryIncomingResult{
 					ObjectState: rms.NewReference(stateRef),
 					Reason:      callRequest2.CallOutgoing,
 				},
@@ -727,35 +727,35 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 		pl := rms.VObjectTranscriptReport{
 			AsOf:   currentPulse,
 			Object: rms.NewReference(objectRef),
-			PendingTranscripts: []rms.VObjectTranscriptReport_Transcript{
+			PendingTranscripts: []rms.Transcript{
 				{
 					Entries: []rms.Any{{}, {}},
 				},
 			},
-			ObjectTranscript: rms.VObjectTranscriptReport_Transcript{
+			ObjectTranscript: rms.Transcript{
 				Entries: []rms.Any{{}, {}},
 			},
 		}
 		pl.ObjectTranscript.Entries[0].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+			&rms.Transcript_TranscriptEntryIncomingRequest{
 				ObjectMemory: rms.NewReference(pendingFinishedStateRef),
 				Request:      *callRequest,
 			},
 		)
 		pl.ObjectTranscript.Entries[1].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+			&rms.Transcript_TranscriptEntryIncomingResult{
 				ObjectState: rms.NewReference(requestFinishedStateRef),
 				Reason:      callRequest.CallOutgoing,
 			},
 		)
 		pl.PendingTranscripts[0].Entries[0].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+			&rms.Transcript_TranscriptEntryIncomingRequest{
 				ObjectMemory: rms.NewReference(initStateRef),
 				Request:      *pendingRequest,
 			},
 		)
 		pl.PendingTranscripts[0].Entries[1].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+			&rms.Transcript_TranscriptEntryIncomingResult{
 				ObjectState: rms.NewReference(pendingFinishedStateRef),
 				Reason:      pendingRequest.CallOutgoing,
 			},
