@@ -30,6 +30,7 @@ type multiLifecycle struct {
 	mutex sync.RWMutex
 
 	initer    *AppInitializer
+	multiFn   MultiNodeConfigFunc
 	apps      map[string]*appEntry
 	loggerFn  LoggerInitFunc
 	networkFn NetworkInitFunc
@@ -91,14 +92,15 @@ func (p *multiLifecycle) StopGraceful(ctx context.Context, fn errorFunc) {
 
 // func (p *multiLifecycle) addApp()
 
-func (p *multiLifecycle) addInitApp(cfg configuration.Configuration, logger log.Logger) {
+func (p *multiLifecycle) addInitApp(cfg configuration.Configuration, _ log.Logger) {
 	if p.state.WasStarted() {
 		panic(throw.IllegalState())
 	}
-	p._addApp(cfg, logger)
+	name := strconv.Itoa(len(p.apps) + 1)
+	p._addApp(name, cfg)
 }
 
-func (p *multiLifecycle) _addApp(cfg configuration.Configuration, _ log.Logger) {
+func (p *multiLifecycle) _addApp(name string, cfg configuration.Configuration) *appEntry {
 	app := &appEntry{}
 	app.cm, app.stopFn = p.initer.StartComponents(p.baseCtx, cfg, p.networkFn,
 		func(baseCtx context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context {
@@ -111,36 +113,82 @@ func (p *multiLifecycle) _addApp(cfg configuration.Configuration, _ log.Logger) 
 		p.apps = map[string]*appEntry{}
 	}
 
-	name := strconv.Itoa(len(p.apps) + 1)
 	p.apps[name] = app
+	return app
 }
 
-/********************************************/
-
-type monoLifecycle struct {
-	cm     *component.Manager
-	stopFn func()
+func (p *multiLifecycle) AppStop(s string) (bool, error) {
+	return p.appStop(s, false)
 }
 
-func (m monoLifecycle) Start(ctx context.Context, fn errorFunc) {
-	if err := m.cm.Start(ctx); err != nil {
-		fn("", err)
+func (p *multiLifecycle) AppStopGraceful(s string) (bool, error) {
+	return p.appStop(s, true)
+}
+
+func (p *multiLifecycle) appStop(s string, graceful bool) (bool, error) {
+	if !p.state.IsActive() {
+		panic(throw.IllegalState())
+	}
+
+	app := p.takeOut(s)
+	if app == nil {
+		return false, nil
+	}
+
+	if graceful {
+		if err := app.cm.GracefulStop(app.ctx); err != nil {
+			return true, err
+		}
+	}
+
+	if app.stopFn != nil {
+		app.stopFn()
+	}
+	err := app.cm.Stop(app.ctx)
+	return true, err
+}
+
+func (p *multiLifecycle) AppStart(s string) (bool, error) {
+	if s == "" {
+		panic(throw.IllegalValue())
+	}
+
+	switch app, start := p.addLateApp(s); {
+	case app == nil:
+		return false, nil
+	case start:
+		err := app.cm.Start(app.ctx)
+		return true, err
+	default:
+		return true, nil
 	}
 }
 
-func (m monoLifecycle) Stop(ctx context.Context, fn errorFunc) {
-	if m.stopFn != nil {
-		m.stopFn()
+func (p *multiLifecycle) addLateApp(s string) (*appEntry, bool) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	isActive, wasStarted := p.state.Status()
+	if wasStarted && !isActive {
+		// stopped
+		panic(throw.IllegalState())
 	}
 
-	if err := m.cm.Stop(ctx); err != nil {
-		fn("", err)
+	if _, ok := p.apps[s]; ok {
+		return nil, false
 	}
+
+	cfg := p.initer.confProvider.GetNamedConfig(s)
+
+	return p._addApp(s, cfg), isActive
 }
 
-func (m monoLifecycle) StopGraceful(ctx context.Context, fn errorFunc) {
-	if err := m.cm.GracefulStop(ctx); err != nil {
-		fn("", err)
-	}
+func (p *multiLifecycle) takeOut(name string) *appEntry {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	app := p.apps[name]
+	delete(p.apps, name)
+	return app
 }
 

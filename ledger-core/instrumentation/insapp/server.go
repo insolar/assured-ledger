@@ -7,13 +7,11 @@ package insapp
 
 import (
 	"context"
-	"crypto"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
@@ -44,18 +42,9 @@ func newServer(initer *AppInitializer) *Server {
 	}
 }
 
-type CertManagerFactoryFunc = func(crypto.PublicKey, cryptography.KeyProcessor, string) (*mandates.CertificateManager, error)
-type KeyStoreFactoryFunc = func(string) (cryptography.KeyStore, error)
-
-type ConfigurationProvider interface {
-	Config() configuration.Configuration
-	GetKeyStoreFactory() KeyStoreFactoryFunc
-	GetCertManagerFactory() CertManagerFactoryFunc
-}
-
 type Server struct {
 	initer    *AppInitializer
-	multiFn   MultiNodeConfigFunc
+	multi     *multiLifecycle
 	waitSig   chan os.Signal
 	waitStop  chan struct{}
 	waitStart chan struct{}
@@ -83,7 +72,7 @@ func (s *Server) Serve() {
 		baseLogger log.Logger
 	)
 
-	baseCfg := initer.confProvider.Config()
+	baseCfg := initer.confProvider.GetDefaultConfig()
 	if global.IsInitialized() {
 		baseCtx, baseLogger = inslogger.InitNodeLoggerByGlobal("", "")
 	} else {
@@ -91,7 +80,7 @@ func (s *Server) Serve() {
 	}
 
 	var ctl lifecycleController
-	if s.multiFn != nil {
+	if s.multi != nil {
 		ctl = s.serveMulti(baseCtx, baseLogger, initer)
 	} else {
 		ctl, baseLogger = s.serveMono(baseCtx, baseCfg, initer)
@@ -152,18 +141,23 @@ func (s *Server) serveMono(baseCtx context.Context, cfg configuration.Configurat
 }
 
 func (s *Server) serveMulti(baseCtx context.Context, baseLogger log.Logger, initer *AppInitializer) lifecycleController {
-	configs, networkFn := s.multiFn(initer.confProvider)
+	ctl := s.multi
 
-	ctl := &multiLifecycle{
-		baseCtx:   baseCtx,
-		initer:    initer,
-		apps:      make(map[string]*appEntry, len(configs)),
-		networkFn: networkFn,
-		loggerFn: func(baseCtx context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context {
-			ctx, _ := inslogger.InitNodeLogger(baseCtx, cfg, nodeRef, nodeRole)
-			return ctx
-		},
+	ctl.mutex.Lock()
+	defer ctl.mutex.Unlock()
+
+	switch {
+	case ctl.state.WasStarted():
+		panic(throw.IllegalState())
+	case ctl.multiFn == nil:
+		panic(throw.IllegalState())
 	}
+
+	configs, networkFn := ctl.multiFn(initer.confProvider)
+
+	ctl.baseCtx = baseCtx
+	ctl.initer = initer
+	ctl.networkFn = networkFn
 
 	for i := range configs {
 		ctl.addInitApp(configs[i], baseLogger)
@@ -189,7 +183,11 @@ type defaultConfigurationProvider struct {
 	config configuration.Configuration
 }
 
-func (cp defaultConfigurationProvider) Config() configuration.Configuration {
+func (cp defaultConfigurationProvider) GetNamedConfig(string) configuration.Configuration {
+	panic(throw.Unsupported())
+}
+
+func (cp defaultConfigurationProvider) GetDefaultConfig() configuration.Configuration {
 	return cp.config
 }
 

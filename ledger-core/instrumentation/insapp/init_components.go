@@ -15,27 +15,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/crypto"
 	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
-	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
-
-type PreComponents struct {
-	CryptographyService        cryptography.Service
-	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme
-	KeyStore                   cryptography.KeyStore
-	KeyProcessor               cryptography.KeyProcessor
-	CryptoScheme               crypto.PlatformScheme
-	CertificateManager         nodeinfo.CertificateManager
-}
 
 type AppInitializer struct {
 	appFn        AppFactoryFunc
