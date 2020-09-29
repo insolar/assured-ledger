@@ -779,7 +779,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 	} else {
 		if s.outgoingSentCounter >= MaxOutgoingSendCount {
 			// TODO when CallSummary will live longer than one pulse it needs to be updated
-			s.sendDelegatedRequestFinished(ctx, nil, rms.Transcript{})
+			s.sendDelegatedRequestFinished(ctx, nil)
 			return ctx.Error(throw.E("outgoing retries limit"))
 		}
 
@@ -1068,15 +1068,12 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		}
 	}
 
-	finishedRequestTranscript := rms.Transcript{}
-	// todo: add transcript
-
-	s.sendDelegatedRequestFinished(ctx, lastState, finishedRequestTranscript)
+	s.sendDelegatedRequestFinished(ctx, lastState)
 
 	return ctx.Stop()
 }
 
-func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, lastState *rms.ObjectState, finishedRequestTranscript rms.Transcript) {
+func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, lastState *rms.ObjectState) {
 	msg := rms.VDelegatedRequestFinished{
 		CallType:          s.Payload.CallType,
 		CallFlags:         s.Payload.CallFlags,
@@ -1085,7 +1082,7 @@ func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, 
 		CallIncoming:      rms.NewReference(s.execution.Incoming),
 		DelegationSpec:    s.getToken(),
 		LatestState:       lastState,
-		PendingTranscript: finishedRequestTranscript,
+		PendingTranscript: s.transcript.GetRMSTranscript(),
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {

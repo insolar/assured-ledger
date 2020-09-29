@@ -465,15 +465,10 @@ func (sm *SMObject) stepPublishCallSummary(ctx smachine.ExecutionContext) smachi
 }
 
 func (sm *SMObject) stepSendTranscriptReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	ObjectTranscript, err := sm.Transcript.GetRMSTranscript()
-	if err != nil {
-		return ctx.Error(err)
-	}
 	msg := rms.VObjectTranscriptReport{
 		AsOf:             sm.pulseSlot.PulseNumber(),
 		Object:           rms.NewReference(sm.Reference),
-		ObjectTranscript: ObjectTranscript, // TODO later need to filter only finish requests
-		// PendingTranscripts: sm.Transcript.GetEntries(), // TODO how to get? filter by object
+		ObjectTranscript: sm.Transcript.GetRMSTranscript(), // TODO later need to filter only finish requests
 	}
 
 	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {

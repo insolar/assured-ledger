@@ -2,6 +2,7 @@ package validation
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type Transcript struct {
@@ -18,7 +19,7 @@ func (t *Transcript) Add(e... TranscriptEntry) {
 	t.Entries = append(t.Entries, e...)
 }
 
-func (t *Transcript) GetRMSTranscript() (rms.Transcript, error) {
+func (t *Transcript) GetRMSTranscript() rms.Transcript {
 	objectTranscript := rms.Transcript{}
 	for _, entry := range t.Entries {
 		rmsEntry := new(rms.Any)
@@ -50,10 +51,12 @@ func (t *Transcript) GetRMSTranscript() (rms.Transcript, error) {
 				CallResult:     typedEntry.CallResult,
 				Reason:         rms.NewReference(typedEntry.Reason),
 			})
+		default:
+			panic(throw.IllegalValue())
 		}
 
 		objectTranscript.Entries = append(objectTranscript.Entries, *rmsEntry)
 	}
 
-	return objectTranscript, nil
+	return objectTranscript
 }
