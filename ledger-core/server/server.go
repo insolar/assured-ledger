@@ -28,11 +28,12 @@ func NewControlledMultiServer(controller cloud.Controller, configProvider insapp
 		return conf.GetAppConfigs(), controller.NetworkInitFunc
 	}
 
-	return insapp.NewMulti(
+	srv, _ := insapp.NewMulti(
 		configProvider,
 		appFactory,
 		multiFn,
 	)
+	return srv
 }
 
 func NewMultiServer(configProvider *CloudConfigurationProvider) Server {
@@ -46,12 +47,13 @@ func NewMultiServer(configProvider *CloudConfigurationProvider) Server {
 		return conf.GetAppConfigs(), controller.NetworkInitFunc
 	}
 
-	return insapp.NewMulti(
+	srv, _ := insapp.NewMulti(
 		configProvider,
 		appFactory,
 		multiFn,
 		cloud.NewPulsarWrapper(&controller, configProvider.PulsarConfig, configProvider.KeyFactory),
 	)
+	return srv
 }
 
 func NewMultiServerWithConsensus(configProvider *CloudConfigurationProvider) Server { // nolint:interfacer
@@ -69,12 +71,13 @@ func NewMultiServerWithConsensus(configProvider *CloudConfigurationProvider) Ser
 		panic(throw.W(err, "Failed to create distributor"))
 	}
 
-	return insapp.NewMulti(
+	srv, _ := insapp.NewMulti(
 		configProvider,
 		appFactory,
 		multiFn,
 		cloud.NewPulsarWrapper(pulseDistributor, configProvider.PulsarConfig, configProvider.KeyFactory),
 	)
+	return srv
 }
 
 func NewHeadlessNetworkNodeServer(cfg configuration.Configuration) Server {
@@ -89,7 +92,11 @@ type CloudConfigurationProvider struct {
 	GetAppConfigs      func() []configuration.Configuration
 }
 
-func (cp CloudConfigurationProvider) Config() configuration.Configuration {
+func (cp CloudConfigurationProvider) GetNamedConfig(string) configuration.Configuration {
+	panic(throw.NotImplemented())
+}
+
+func (cp CloudConfigurationProvider) GetDefaultConfig() configuration.Configuration {
 	return cp.BaseConfig
 }
 
