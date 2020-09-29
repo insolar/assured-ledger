@@ -12,35 +12,177 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/insolar/component-manager"
-
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
+	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type CertManagerFactory func(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*mandates.CertificateManager, error)
-type KeyStoreFactory func(path string) (cryptography.KeyStore, error)
+// New creates a one-node process.
+func New(cfg configuration.Configuration, appFn AppFactoryFunc, extraComponents ...interface{}) *Server {
+	return newServer(&AppInitializer{
+		confProvider: &defaultConfigurationProvider{config: cfg},
+		appFn:        appFn,
+		extra:        extraComponents,
+	})
+}
+
+func newServer(initer *AppInitializer) *Server {
+	if initer == nil {
+		panic(throw.IllegalValue())
+	}
+
+	return &Server{
+		initer: initer,
+		waitStart: make(chan struct{}),
+		waitStop:  make(chan struct{}),
+		waitSig:   make(chan os.Signal, 1),
+	}
+}
+
+type CertManagerFactoryFunc = func(crypto.PublicKey, cryptography.KeyProcessor, string) (*mandates.CertificateManager, error)
+type KeyStoreFactoryFunc = func(string) (cryptography.KeyStore, error)
 
 type ConfigurationProvider interface {
 	Config() configuration.Configuration
-	GetKeyStoreFactory() KeyStoreFactory
-	GetCertManagerFactory() CertManagerFactory
+	GetKeyStoreFactory() KeyStoreFactoryFunc
+	GetCertManagerFactory() CertManagerFactoryFunc
 }
 
 type Server struct {
-	appFn        AppFactoryFunc
-	multiFn      MultiNodeConfigFunc
-	extra        []interface{}
-	confProvider ConfigurationProvider
-	gracefulStop chan os.Signal
-	waitChannel  chan struct{}
-	started      chan struct{}
+	initer    *AppInitializer
+	multiFn   MultiNodeConfigFunc
+	waitSig   chan os.Signal
+	waitStop  chan struct{}
+	waitStart chan struct{}
+}
+
+func (s *Server) GetInitializerForTest() *AppInitializer {
+	if s.initer == nil {
+		panic(throw.IllegalState())
+	}
+	initer := s.initer
+	s.initer = nil
+
+	return initer
+}
+
+func (s *Server) Serve() {
+	if s.initer == nil {
+		panic(throw.IllegalState())
+	}
+	initer := s.initer
+	s.initer = nil
+
+	var (
+		baseCtx context.Context
+		baseLogger log.Logger
+	)
+
+	baseCfg := initer.confProvider.Config()
+	if global.IsInitialized() {
+		baseCtx, baseLogger = inslogger.InitNodeLoggerByGlobal("", "")
+	} else {
+		baseCtx, baseLogger = inslogger.InitGlobalNodeLogger(context.Background(), baseCfg.Log, "", "")
+	}
+
+	var ctl lifecycleController
+	if s.multiFn != nil {
+		ctl = s.serveMulti(baseCtx, baseLogger, initer)
+	} else {
+		ctl, baseLogger = s.serveMono(baseCtx, baseCfg, initer)
+	}
+
+	global.InitTicker()
+
+	signal.Notify(s.waitSig, syscall.SIGTERM, syscall.SIGINT)
+
+	go func() {
+		defer close(s.waitStop)
+
+		sig := <-s.waitSig
+		baseLogger.Debug("caught sig: ", sig)
+		if sig != syscall.SIGTERM {
+			baseLogger.Info("stopping gracefully")
+
+			ctl.StopGraceful(baseCtx, func(name string, err error) {
+				baseLogger.Fatalf("graceful stop failed [%s]: %s", name, throw.ErrorWithStack(err))
+			})
+		}
+
+		ctl.Stop(baseCtx, func(name string, err error) {
+			baseLogger.Fatalf("stop failed [%s]: %s", name, throw.ErrorWithStack(err))
+		})
+	}()
+
+	ctl.Start(baseCtx, func(name string, err error) {
+		baseLogger.Fatalf("start failed [%s]: %s", name, throw.ErrorWithStack(err))
+	})
+
+	close(s.waitStart)
+	<-s.waitStop
+}
+
+type errorFunc func(name string, err error)
+
+type lifecycleController interface {
+	Start(context.Context, errorFunc)
+	Stop(context.Context, errorFunc)
+	StopGraceful(context.Context, errorFunc)
+}
+
+func (s *Server) serveMono(baseCtx context.Context, cfg configuration.Configuration, initer *AppInitializer) (lifecycleController, log.Logger) {
+	ctl := monoLifecycle{}
+
+	var baseLogger log.Logger
+
+	ctl.cm, ctl.stopFn = initer.StartComponents(baseCtx, cfg, nil,
+		func(_ context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context {
+			ctx, logger := inslogger.InitNodeLogger(baseCtx, cfg, nodeRef, nodeRole)
+			baseCtx = ctx
+			baseLogger = logger
+			global.SetLogger(logger)
+			return ctx
+		})
+	return ctl, baseLogger
+}
+
+func (s *Server) serveMulti(baseCtx context.Context, baseLogger log.Logger, initer *AppInitializer) lifecycleController {
+	configs, networkFn := s.multiFn(initer.confProvider)
+
+	ctl := &multiLifecycle{
+		baseCtx:   baseCtx,
+		initer:    initer,
+		apps:      make(map[string]*appEntry, len(configs)),
+		networkFn: networkFn,
+		loggerFn: func(baseCtx context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context {
+			ctx, _ := inslogger.InitNodeLogger(baseCtx, cfg, nodeRef, nodeRole)
+			return ctx
+		},
+	}
+
+	for i := range configs {
+		ctl.addInitApp(configs[i], baseLogger)
+	}
+
+	return ctl
+}
+
+func (s *Server) Stop() {
+	select {
+	case s.waitSig <- syscall.SIGQUIT:
+	default:
+	}
+
+	<-s.waitStop
+}
+
+func (s *Server) WaitStarted() {
+	<-s.waitStart
 }
 
 type defaultConfigurationProvider struct {
@@ -51,140 +193,11 @@ func (cp defaultConfigurationProvider) Config() configuration.Configuration {
 	return cp.config
 }
 
-func (cp defaultConfigurationProvider) GetCertManagerFactory() CertManagerFactory {
+func (cp defaultConfigurationProvider) GetCertManagerFactory() CertManagerFactoryFunc {
 	return mandates.NewManagerReadCertificate
 }
 
-func (cp defaultConfigurationProvider) GetKeyStoreFactory() KeyStoreFactory {
+func (cp defaultConfigurationProvider) GetKeyStoreFactory() KeyStoreFactoryFunc {
 	return keystore.NewKeyStore
 }
 
-// New creates a one-node process.
-func New(cfg configuration.Configuration, appFn AppFactoryFunc, extraComponents ...interface{}) *Server {
-	return &Server{
-		confProvider: &defaultConfigurationProvider{config: cfg},
-		appFn:        appFn,
-		extra:        extraComponents,
-		started:      make(chan struct{}),
-	}
-}
-
-func (s *Server) Serve() {
-	var (
-		configs   []configuration.Configuration
-		networkFn NetworkInitFunc
-	)
-
-	if s.multiFn != nil {
-		configs, networkFn = s.multiFn(s.confProvider)
-	} else {
-		configs = append(configs, s.confProvider.Config())
-	}
-
-	baseCtx, baseLogger := inslogger.InitGlobalNodeLogger(context.Background(), s.confProvider.Config().Log, "", "")
-
-	n := len(configs)
-
-	cms := make([]*component.Manager, 0, n)
-	stops := make([]func(), 0, n)
-	contexts := make([]context.Context, 0, n)
-
-	for i := range configs {
-		cfg := configs[i]
-
-		cm, stopFunc := s.StartComponents(baseCtx, cfg, networkFn,
-			func(_ context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context {
-				ctx, logger := inslogger.InitNodeLogger(baseCtx, cfg, nodeRef, nodeRole)
-				contexts = append(contexts, ctx)
-
-				if n == 1 {
-					baseCtx = ctx
-					baseLogger = logger
-					global.SetLogger(logger)
-				}
-
-				return ctx
-			})
-		cms = append(cms, cm)
-		stops = append(stops, stopFunc)
-	}
-
-	s.confProvider = nil
-
-	global.InitTicker()
-
-	s.gracefulStop = make(chan os.Signal, 1)
-	signal.Notify(s.gracefulStop, syscall.SIGTERM)
-	signal.Notify(s.gracefulStop, syscall.SIGINT)
-
-	s.waitChannel = make(chan struct{})
-
-	go func() {
-		defer close(s.waitChannel)
-
-		sig := <-s.gracefulStop
-		baseLogger.Debug("caught sig: ", sig)
-
-		baseLogger.Info("stopping gracefully")
-
-		for i, cm := range cms {
-			// http server can hang upon Shutdown. It should not be treated as error
-			if err := cm.GracefulStop(baseCtx); err != nil && !throw.FindDetail(err, &context.DeadlineExceeded) {
-				baseLogger.Fatalf("graceful stop failed [%d]: %s", i, throw.ErrorWithStack(err))
-			}
-		}
-
-		for _, stopFn := range stops {
-			if stopFn != nil {
-				stopFn()
-			}
-		}
-
-		for i, cm := range cms {
-			// http server can hang upon Shutdown. It should not be treated as error
-			if err := cm.Stop(contexts[i]); err != nil && !throw.FindDetail(err, &context.DeadlineExceeded) {
-				baseLogger.Fatalf("stop failed [%d]: %s", i, throw.ErrorWithStack(err))
-			}
-		}
-	}()
-
-	for i, cm := range cms {
-		if err := cm.Start(contexts[i]); err != nil {
-			baseLogger.Fatalf("start failed [%d]: %s", i, throw.ErrorWithStack(err))
-		}
-	}
-
-	close(s.started)
-	<-s.waitChannel
-}
-
-type LoggerInitFunc = func(ctx context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context
-
-func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configuration,
-	networkFn NetworkInitFunc, loggerFn LoggerInitFunc,
-) (*component.Manager, func()) {
-	preComponents := s.initBootstrapComponents(ctx, cfg)
-
-	nodeCert := preComponents.CertificateManager.GetCertificate()
-	nodeRole := nodeCert.GetRole()
-	nodeRef := nodeCert.GetNodeRef().String()
-
-	ctx = loggerFn(ctx, cfg.Log, nodeRef, nodeRole.String())
-	traceID := trace.RandID() + "_main"
-
-	if cfg.Tracer.Jaeger.AgentEndpoint != "" {
-		jaegerFlush := jaeger(ctx, cfg.Tracer.Jaeger, traceID, nodeRef, nodeRole.String())
-		defer jaegerFlush()
-	}
-
-	return s.initComponents(ctx, cfg, networkFn, preComponents)
-}
-
-func (s *Server) Stop() {
-	s.gracefulStop <- syscall.SIGQUIT
-	<-s.waitChannel
-}
-
-func (s *Server) WaitStarted() {
-	<-s.started
-}

@@ -31,7 +31,7 @@ type NetworkSupport interface {
 
 // NetworkInitFunc should instantiate a network support for app compartment by the given configuration and root component manager.
 // Returned NetworkSupport will be registered as a component and used to run app compartment.
-// Returned network.Status will not be registered as a component, it can be nil, then monitoring/admin APIs will not be started.
+// Returned network.Status will not be registered as a component, it can be nil, then monitoring/admin APIs will not be waitStart.
 type NetworkInitFunc = func(configuration.Configuration, *component.Manager) (NetworkSupport, network.Status, error)
 
 // MultiNodeConfigFunc provides support for multi-node process initialization.
@@ -44,11 +44,12 @@ func NewMulti(cfgProvider ConfigurationProvider, appFn AppFactoryFunc, multiFn M
 		panic(throw.IllegalValue())
 	}
 
-	return &Server{
+	srv := newServer(&AppInitializer{
 		appFn:        appFn,
-		multiFn:      multiFn,
 		extra:        extraComponents,
 		confProvider: cfgProvider,
-		started:      make(chan struct{}),
-	}
+	})
+
+	srv.multiFn = multiFn
+	return srv
 }
