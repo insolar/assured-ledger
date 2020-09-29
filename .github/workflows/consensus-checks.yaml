@@ -1,8 +1,7 @@
 name: consensus-checks # consensus perfomance checks
 on:
-  pull_request:
-  #schedule:
-  #  - cron: '0 0 * * 6' # run at midnight on saturdays
+  schedule:
+    - cron: '0 0 * * 6' # run at midnight on saturdays
 env:
   KUBECONFIG: "${{ github.workspace }}/aks.yaml"
   GO_VERSION: 1.14

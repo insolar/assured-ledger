@@ -1,11 +1,10 @@
 name: master-checks # checks that should be executed only on master branch
 on:
-  pull_request:
-#  push:
-#    branches:
-#      - master
-#  schedule:
-#    - cron: '0 2,4,6 * * *'
+  push:
+    branches:
+      - master
+  schedule:
+    - cron: '0 2,4,6 * * *'
 env:
   KUBECONFIG: k3s.yaml
   GO_VERSION: 1.14
@@ -140,14 +139,14 @@ jobs:
         with:
           name: nodes-output
           path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/benchamrks-nodes-output.tgz
-#      - name: Send failure notification to Slack
-#        if: ${{ failure() }}
-#        uses: 8398a7/action-slack@v3
-#        with:
-#          status: ${{ job.status }}
-#          fields: repo,message,commit,author,action,eventName,ref,workflow
-#        env:
-#          SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}
+      - name: Send failure notification to Slack
+        if: ${{ failure() }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}
   functional-tests-master-on-kubernetes:
     name: func-test-kuber-on-master # don't change, this name is used in repository restricts!
     runs-on: ubuntu-latest
@@ -231,11 +230,11 @@ jobs:
       - name: run tests
         run: make test_func_kubernetes_ci
         working-directory: ${{env.V2_PATH}}
-#      - name: Send failure notification to Slack
-#        if: ${{ failure() }}
-#        uses: 8398a7/action-slack@v3
-#        with:
-#          status: ${{ job.status }}
-#          fields: repo,message,commit,author,action,eventName,ref,workflow
-#        env:
-#          SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}
+      - name: Send failure notification to Slack
+        if: ${{ failure() }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}

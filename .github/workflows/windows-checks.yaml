@@ -1,13 +1,13 @@
 name: windows-checks # checks executed on Windows, on both pull requests and master branch
 on:
-  #push:
-  #  branches:
-  #    - master
-  #    - staging
-  #    - trying
+  push:
+    branches:
+      - master
+      - staging
+      - trying
   pull_request:
-  #schedule:
-  #  - cron: '0 2,4,6 * * *'
+  schedule:
+    - cron: '0 2,4,6 * * *'
 env:
   GO_VERSION: 1.14
   CI_GOMAXPROCS: 0
@@ -82,11 +82,11 @@ jobs:
         with:
           name: windows-coverage-out
           path: ${{env.WORKDIR}}/coverage.out
-#      - name: Send failure notification to Slack
-#        if: ${{ github.event_name == 'push' && failure() }}
-#        uses: 8398a7/action-slack@v3
-#        with:
-#          status: ${{ job.status }}
-#          fields: repo,message,commit,author,action,eventName,ref,workflow
-#        env:
-#          SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}
+      - name: Send failure notification to Slack
+        if: ${{ github.event_name == 'push' && failure() }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}
