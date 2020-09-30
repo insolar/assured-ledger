@@ -467,11 +467,29 @@ func (sm *SMObject) stepPublishCallSummary(ctx smachine.ExecutionContext) smachi
 }
 
 func (sm *SMObject) stepSendTranscriptReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	filter := func(e validation.TranscriptEntry) bool {
+		st := sm.KnownRequests.GetList(isolation.CallTolerable).GetState(e.Reason)
+		if st == callregistry.RequestProcessing {
+			return false
+		}
+		st = sm.KnownRequests.GetList(isolation.CallIntolerable).GetState(e.Reason)
+		if st == callregistry.RequestProcessing {
+			return false
+		}
+
+		return true
+	}
+
+	rmsTranscript := sm.Transcript.GetRMSTranscript(filter)
+	if len(rmsTranscript.Entries) == 0 && len(sm.PendingTranscripts) == 0 {
+		return ctx.Jump(sm.stepFinalize)
+	}
+
 	msg := rms.VObjectTranscriptReport{
 		AsOf:               sm.pulseSlot.PulseNumber(),
 		Object:             rms.NewReference(sm.Reference),
-		ObjectTranscript:   sm.Transcript.GetRMSTranscript(), // TODO later need to filter only finish requests
-		PendingTranscripts: sm.PendingTranscripts,            // TODO filter by object
+		ObjectTranscript:   rmsTranscript,
+		PendingTranscripts: sm.PendingTranscripts, // TODO filter by object
 	}
 
 	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {

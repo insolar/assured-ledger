@@ -7,6 +7,7 @@ import (
 
 type TranscriptEntry struct {
 	// some common fields are expect, but a bit later
+	Reason         reference.Global
 
 	Custom CustomTranscriptEntryPart
 }
@@ -31,7 +32,6 @@ var _ CustomTranscriptEntryPart = TranscriptEntryIncomingResult{}
 type TranscriptEntryIncomingResult struct {
 	IncomingResult reference.Global
 	ObjectMemory   reference.Global
-	Reason         reference.Global
 }
 
 func (TranscriptEntryIncomingResult) TranscriptEntryMarker() {
@@ -41,7 +41,6 @@ var _ CustomTranscriptEntryPart = TranscriptEntryOutgoingRequest{}
 
 type TranscriptEntryOutgoingRequest struct {
 	Request reference.Global
-	Reason  reference.Global
 }
 
 func (TranscriptEntryOutgoingRequest) TranscriptEntryMarker() {
@@ -52,7 +51,6 @@ var _ CustomTranscriptEntryPart = TranscriptEntryOutgoingResult{}
 type TranscriptEntryOutgoingResult struct {
 	OutgoingResult reference.Global
 	CallResult     rms.VCallResult
-	Reason         reference.Global
 }
 
 func (TranscriptEntryOutgoingResult) TranscriptEntryMarker() {

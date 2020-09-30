@@ -814,9 +814,9 @@ func (s *SMExecute) stepTranscribeOutgoingRequest(ctx smachine.ExecutionContext)
 	}
 
 	entries = append(entries, validation.TranscriptEntry{
+		Reason: s.execution.Outgoing,
 		Custom: validation.TranscriptEntryOutgoingRequest{
 			Request: s.outgoing.CallOutgoing.GetValue(),
-			Reason:  s.execution.Outgoing,
 		},
 	})
 
@@ -838,6 +838,7 @@ func (s *SMExecute) stepTranscribeOutgoingRequest(ctx smachine.ExecutionContext)
 
 func (s *SMExecute) incomingTranscriptEntry() validation.TranscriptEntry {
 	return validation.TranscriptEntry{
+		Reason: s.Payload.CallOutgoing.GetValue(),
 		Custom: validation.TranscriptEntryIncomingRequest{
 			ObjectMemory: s.objectMemoryRef(),
 			Incoming:     reference.Global{},
@@ -871,10 +872,10 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 		}
 
 		entry := validation.TranscriptEntry{
+			Reason: s.execution.Outgoing,
 			Custom: validation.TranscriptEntryOutgoingResult{
 				OutgoingResult: reference.Global{},
 				CallResult:     *s.outgoingResult,
-				Reason:         s.execution.Outgoing,
 			},
 		}
 
@@ -945,10 +946,10 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		tEntries = append(tEntries, s.incomingTranscriptEntry())
 	}
 	tEntries = append(tEntries, validation.TranscriptEntry{
+		Reason: s.execution.Outgoing,
 		Custom: validation.TranscriptEntryIncomingResult{
 			IncomingResult: reference.Global{},
 			ObjectMemory:   s.newObjectMemoryRef(),
-			Reason:         s.execution.Outgoing,
 		},
 	})
 
@@ -1082,7 +1083,7 @@ func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, 
 		CallIncoming:      rms.NewReference(s.execution.Incoming),
 		DelegationSpec:    s.getToken(),
 		LatestState:       lastState,
-		PendingTranscript: s.transcript.GetRMSTranscript(),
+		PendingTranscript: s.transcript.GetRMSTranscript(nil),
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
