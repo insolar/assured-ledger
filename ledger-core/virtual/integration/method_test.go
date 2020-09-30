@@ -1215,31 +1215,31 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 					assert.Equal(t, objectRef, report.Object.GetValue())
 					assert.Equal(t, p2.PulseNumber, report.AsOf)
 
-					if testCase.canChangeState {
-						assert.Len(t, report.ObjectTranscript.Entries, 2)
+					assert.Len(t, report.ObjectTranscript.Entries, 2)
 
-						request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
-						require.True(t, ok)
-						result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
-						require.True(t, ok)
+					request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
+					require.True(t, ok)
+					result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+					require.True(t, ok)
 
-						assert.Empty(t, request.Incoming)
-						switch testCase.isolation.State {
-						case isolation.CallDirty:
-							assert.Equal(t, dirtyStateID, request.ObjectMemory.GetValue().GetLocal())
-						case isolation.CallValidated:
-							assert.Equal(t, validatedStateID, request.ObjectMemory.GetValue().GetLocal())
-						default:
-							t.Fatal("unexpected isolation state")
-						}
-						utils.AssertVCallRequestEqual(t, pl, &request.Request)
-
-						assert.Empty(t, result.IncomingResult)
-						assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), result.ObjectState.Get().GetLocal().Pulse())
-						assert.Equal(t, objectRef.GetBase(), result.ObjectState.Get().GetBase())
-					} else {
-						assert.Len(t, report.ObjectTranscript.Entries, 0)
+					assert.Empty(t, request.Incoming)
+					switch testCase.isolation.State {
+					case isolation.CallDirty:
+						assert.Equal(t, dirtyStateID, request.ObjectMemory.GetValue().GetLocal())
+					case isolation.CallValidated:
+						assert.Equal(t, validatedStateID, request.ObjectMemory.GetValue().GetLocal())
+					default:
+						t.Fatal("unexpected isolation state")
 					}
+					utils.AssertVCallRequestEqual(t, pl, &request.Request)
+
+					assert.Empty(t, result.IncomingResult)
+					if testCase.canChangeState {
+						assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), result.ObjectState.Get().GetLocal().Pulse())
+					} else {
+						assert.Equal(t, p1, result.ObjectState.Get().GetLocal().Pulse())
+					}
+					assert.Equal(t, objectRef.GetBase(), result.ObjectState.Get().GetBase())
 
 					return false
 				})

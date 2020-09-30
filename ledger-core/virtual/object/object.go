@@ -73,7 +73,8 @@ type Info struct {
 
 	objectState State
 
-	Transcript validation.Transcript
+	Transcript         validation.Transcript
+	PendingTranscripts []rms.Transcript
 }
 
 func (i *Info) IsReady() bool {
@@ -193,10 +194,11 @@ func NewStateMachineObject(objectReference reference.Global) *SMObject {
 	return &SMObject{
 		SharedState: SharedState{
 			Info: Info{
-				Reference:     objectReference,
-				KnownRequests: callregistry.NewWorkingTable(),
-				PendingTable:  callregistry.NewRequestTable(),
-				Transcript:    validation.NewTranscript(),
+				Reference:          objectReference,
+				KnownRequests:      callregistry.NewWorkingTable(),
+				PendingTable:       callregistry.NewRequestTable(),
+				Transcript:         validation.NewTranscript(),
+				PendingTranscripts: []rms.Transcript{{}},
 			},
 		},
 	}
@@ -466,9 +468,10 @@ func (sm *SMObject) stepPublishCallSummary(ctx smachine.ExecutionContext) smachi
 
 func (sm *SMObject) stepSendTranscriptReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	msg := rms.VObjectTranscriptReport{
-		AsOf:             sm.pulseSlot.PulseNumber(),
-		Object:           rms.NewReference(sm.Reference),
-		ObjectTranscript: sm.Transcript.GetRMSTranscript(), // TODO later need to filter only finish requests
+		AsOf:               sm.pulseSlot.PulseNumber(),
+		Object:             rms.NewReference(sm.Reference),
+		ObjectTranscript:   sm.Transcript.GetRMSTranscript(), // TODO later need to filter only finish requests
+		PendingTranscripts: sm.PendingTranscripts,            // TODO filter by object
 	}
 
 	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
