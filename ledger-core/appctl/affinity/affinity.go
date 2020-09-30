@@ -39,7 +39,8 @@ func (jc *Coordinator) Me() reference.Global {
 
 // QueryRole returns node refs responsible for role bound operations for given object and pulse.
 func (jc *Coordinator) QueryRole(role DynamicRole, objID reference.Holder, pn pulse.Number) ([]reference.Global, error) {
-	if role == DynamicRoleVirtualExecutor {
+	switch role {
+	case DynamicRoleVirtualExecutor:
 		n, err := jc.VirtualExecutorForObject(objID, pn)
 		if err != nil {
 			return nil, throw.WithDetails(err, struct {
@@ -48,9 +49,19 @@ func (jc *Coordinator) QueryRole(role DynamicRole, objID reference.Holder, pn pu
 			}{objID, pn})
 		}
 		return []reference.Global{n}, nil
+	case DynamicRoleVirtualValidator:
+		// fixme: func for validator
+		n, err := jc.VirtualExecutorForObject(objID, pn)
+		if err != nil {
+			return nil, throw.WithDetails(err, struct {
+				Ref reference.Holder
+				PN  pulse.Number
+			}{objID, pn})
+		}
+		return []reference.Global{n}, nil
+	default:
+		panic(throw.NotImplemented())
 	}
-
-	panic(throw.NotImplemented())
 }
 
 // VirtualExecutorForObject returns list of VEs for a provided pulse and objID
