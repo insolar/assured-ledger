@@ -741,6 +741,17 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 			require.NotNil(t, finished.LatestState)
 			assert.Equal(t, []byte("234"), finished.LatestState.State.GetBytes())
 			assert.Equal(t, delegationToken, finished.DelegationSpec)
+
+			assert.NotEmpty(t, finished.PendingTranscript.Entries)
+			request, ok := finished.PendingTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
+			assert.True(t, ok)
+			assert.Equal(t, class, request.Request.Callee.GetValue())
+			assert.Equal(t, outgoing, request.Request.CallOutgoing.GetValue())
+
+			result, ok := finished.PendingTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+			assert.True(t, ok)
+			assert.NotEmpty(t, result.ObjectState.GetValue())
+			assert.Equal(t, outgoing, result.Reason.GetValue())
 			return false
 		})
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
