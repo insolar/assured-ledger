@@ -252,6 +252,7 @@ func (s *testSuite) sendVStateReport(t *testing.T, ctx context.Context) {
 func (s *testSuite) sendVObjectValidationReport(t *testing.T, ctx context.Context, validatedStateRef reference.Global, getMemoryFromVStateReport bool) {
 	validationReport := &rms.VObjectValidationReport{
 		Object:    rms.NewReference(s.objectGlobal),
+		Class:     rms.NewReference(s.class),
 		In:        s.server.GetPulse().PulseNumber,
 		Validated: rms.NewReference(validatedStateRef),
 	}

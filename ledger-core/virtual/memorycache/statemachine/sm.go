@@ -9,7 +9,6 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
-	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
@@ -37,6 +36,7 @@ type SMGetCachedMemory struct {
 	// input
 	Object reference.Global
 	State  reference.Local
+	Class  reference.Global
 	// output
 	Result descriptor.Object
 
@@ -170,7 +170,7 @@ func (s *SMGetCachedMemory) stepProcessResponse(ctx smachine.ExecutionContext) s
 	s.Result = descriptor.NewObject(
 		s.Object,
 		s.State,
-		testwallet.ClassReference, // TODO: FIXME: XXX: dirty hack
+		s.Class,
 		s.response.Memory.GetBytes(),
 		s.response.Inactive,
 	)

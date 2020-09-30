@@ -488,6 +488,7 @@ func (sm *SMObject) stepSendTranscriptReport(ctx smachine.ExecutionContext) smac
 	msg := rms.VObjectTranscriptReport{
 		AsOf:               sm.pulseSlot.PulseNumber(),
 		Object:             rms.NewReference(sm.Reference),
+		Class:              rms.NewReference(reference.Global{}), // fixme
 		ObjectTranscript:   rmsTranscript,
 		PendingTranscripts: sm.PendingTranscripts, // TODO filter by object
 	}
