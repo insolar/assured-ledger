@@ -12,7 +12,6 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
