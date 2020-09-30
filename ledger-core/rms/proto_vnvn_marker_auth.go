@@ -63,14 +63,19 @@ func (m *VFindCallResponse) customSubject() (Reference, AuthSubjectMode) {
 	return m.GetCallee(), UseAnyPulse
 }
 
+// fixme: validator == executor , avoid 'unexpected sender' error
 func (m *VCachedMemoryRequest) customSubject() (Reference, AuthSubjectMode) {
-	return m.GetObject(), UseCurrentPulse
+	return m.GetObject(), UseAnyPulse
 }
 
 func (m *VCachedMemoryResponse) customSubject() (Reference, AuthSubjectMode) {
-	return m.GetObject(), UseCurrentPulse
+	return m.GetObject(), UseAnyPulse
 }
 
 func (m *VObjectValidationReport) customSubject() (Reference, AuthSubjectMode) {
+	return m.GetObject(), UsePrevPulse
+}
+
+func (m *VObjectTranscriptReport) customSubject() (Reference, AuthSubjectMode) {
 	return m.GetObject(), UsePrevPulse
 }
