@@ -460,4 +460,5 @@ func (s *SMVObjectTranscriptReport) prepareExecution(ctx context.Context) {
 
 	s.execution.Context = ctx
 	s.execution.Pulse = s.pulseSlot.PulseData()
+	s.execution.ObjectDescriptor = s.objDesc
 }
