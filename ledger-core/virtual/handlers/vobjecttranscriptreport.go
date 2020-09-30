@@ -114,6 +114,10 @@ func (s *SMVObjectTranscriptReport) Init(ctx smachine.InitializationContext) sma
 }
 
 func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if len(s.entries) == 0 {
+		panic(throw.Impossible())
+	}
+
 	entry := s.peekEntry(s.startIndex)
 	if entry == nil {
 		ctx.Log().Warn("validation failed: can't find TranscriptEntryIncomingRequest")

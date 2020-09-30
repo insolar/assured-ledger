@@ -68,6 +68,7 @@ func (m *VCachedMemoryRequest) customSubject() (Reference, AuthSubjectMode) {
 	return m.GetObject(), UseAnyPulse
 }
 
+// fixme: validator == executor , avoid 'unexpected sender' error
 func (m *VCachedMemoryResponse) customSubject() (Reference, AuthSubjectMode) {
 	return m.GetObject(), UseAnyPulse
 }
