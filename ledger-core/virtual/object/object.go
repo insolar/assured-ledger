@@ -198,7 +198,7 @@ func NewStateMachineObject(objectReference reference.Global) *SMObject {
 				KnownRequests:      callregistry.NewWorkingTable(),
 				PendingTable:       callregistry.NewRequestTable(),
 				Transcript:         validation.NewTranscript(),
-				PendingTranscripts: []rms.Transcript{{}},
+				PendingTranscripts: []rms.Transcript{},
 			},
 		},
 	}

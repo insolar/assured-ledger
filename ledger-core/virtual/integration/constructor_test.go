@@ -713,13 +713,6 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 			assert.Zero(t, report.DelegationSpec)
 			return false
 		})
-		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			assert.Equal(t, objectRef, report.Object.GetValue())
-			assert.Equal(t, constructorPulse, report.AsOf)
-			require.Len(t, report.ObjectTranscript.Entries, 0)
-
-			return false
-		})
 		typedChecker.VDelegatedCallRequest.Set(func(msg *rms.VDelegatedCallRequest) bool {
 			assert.Zero(t, msg.DelegationSpec)
 			assert.Equal(t, objectRef, msg.Callee.GetValue())
@@ -822,10 +815,9 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 
 	server.SendPayload(ctx, &msgVStateRequest)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 2))
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
 
 	{
-		assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
+		assert.Equal(t, 0, typedChecker.VObjectTranscriptReport.Count())
 		assert.Equal(t, 1, typedChecker.VCallResult.Count())
 		assert.Equal(t, 1, typedChecker.VDelegatedCallRequest.Count())
 		assert.Equal(t, 0, typedChecker.VDelegatedCallResponse.Count())
