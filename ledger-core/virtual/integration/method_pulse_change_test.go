@@ -160,7 +160,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
 					assert.Equal(t, object, report.Object.GetValue())
 					assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
-					assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+					// assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 					return false
 				})
 
@@ -201,6 +201,17 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
 					assert.Equal(t, object, finished.Callee.GetValue())
 					assert.Equal(t, expectedToken, finished.DelegationSpec)
+
+					assert.NotEmpty(t, finished.PendingTranscript.Entries)
+					request, ok := finished.PendingTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
+					assert.True(t, ok)
+					assert.Equal(t, object, request.Request.Callee.GetValue())
+					assert.Equal(t, outgoing, request.Request.CallOutgoing.GetValue())
+
+					result, ok := finished.PendingTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+					assert.True(t, ok)
+					assert.NotEmpty(t, result.ObjectState.GetValue())
+					assert.Equal(t, outgoing, result.Reason.GetValue())
 
 					if test.isolation == tolerableFlags() && test.withSideEffect {
 						require.NotEmpty(t, finished.LatestState)
