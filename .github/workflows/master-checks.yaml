@@ -172,7 +172,7 @@ jobs:
           echo "::set-env name=INSOLAR_NETWORK_SIZE::${TARGET}"
           echo "::set-env name=INSOLAR_NAMESPACE::${GITHUB_SHA:0:8}-${TARGET}"
           echo "::set-env name=INSOLAR_DESIRED_UPTIME::300"
-          echo "::set-env name=INSOLAR_BRANCH::$(echo "pull-$(echo ${{github.ref}} | cut -d '/' -f3)")"
+          echo "::set-env name=INSOLAR_BRANCH::$(echo "${{github.ref}})"
           echo "::set-env name=INSOLAR_NETWORK_SIZE_INT::$(echo $TARGET | awk '{gsub(/[^[0-9]]*/,"");print}')"
           echo "::set-env name=REPORT_WEBDAV_DIRECTORY::consensus-checks/$(date +"%Y%m%d-%H%M")-pull-$(echo ${{github.ref}} | cut -d '/' -f3)-${GITHUB_SHA:0:8}"
       - name: Set up go ${{env.GO_VERSION}}
