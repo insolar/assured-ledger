@@ -9,17 +9,16 @@ package functest
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
 	"time"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 var (
@@ -60,12 +59,12 @@ func createHTTPClient() *http.Client {
 func prepareReq(url string, body interface{}) (*http.Request, error) {
 	jsonValue, err := jsoniter.Marshal(body)
 	if err != nil {
-		return nil, errors.W(err, "problem with marshaling params")
+		return nil, throw.W(err, "problem with marshaling params")
 	}
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonValue))
 	if err != nil {
-		return nil, errors.W(err, "problem with creating request")
+		return nil, throw.W(err, "problem with creating request")
 	}
 	req.Header.Set(contentType, "application/json")
 
@@ -76,21 +75,21 @@ func prepareReq(url string, body interface{}) (*http.Request, error) {
 func doReq(req *http.Request) ([]byte, error) {
 	postResp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, errors.W(err, "problem with sending request")
+		return nil, throw.W(err, "problem with sending request")
 	}
 
 	if postResp == nil {
-		return nil, errors.New("response is nil")
+		return nil, throw.New("response is nil")
 	}
 
 	defer postResp.Body.Close()
 	if http.StatusOK != postResp.StatusCode {
-		return nil, errors.New("bad http response: " + postResp.Status)
+		return nil, throw.New("bad http response: " + postResp.Status)
 	}
 
 	body, err := ioutil.ReadAll(postResp.Body)
 	if err != nil {
-		return nil, errors.W(err, "problem with reading body")
+		return nil, throw.W(err, "problem with reading body")
 	}
 
 	return body, nil
@@ -117,7 +116,7 @@ func getURL(path, host, port string) string {
 func sendAPIRequest(url string, body interface{}) ([]byte, error) {
 	req, err := prepareReq(url, body)
 	if err != nil {
-		return nil, errors.W(err, "problem with preparing request")
+		return nil, throw.W(err, "problem with preparing request")
 	}
 
 	return doReq(req)
@@ -128,15 +127,17 @@ func createSimpleWallet() (string, error) {
 	createURL := getURL(walletCreatePath, "", "")
 	rawResp, err := sendAPIRequest(createURL, nil)
 	if err != nil {
-		return "", errors.W(err, "failed to send request or get response body")
+		return "", throw.W(err, "failed to send request or get response body")
 	}
 
 	resp, err := unmarshalWalletCreateResponse(rawResp)
 	if err != nil {
-		return "", errors.W(err, "failed to unmarshal response")
+		return "", throw.W(err, "failed to unmarshal response")
 	}
 	if resp.Err != "" {
-		return "", fmt.Errorf("problem during execute request: %s", resp.Err)
+		return "", throw.W(throw.New(resp.Err), "problem during execute request", struct {
+			TraceID string
+		}{TraceID: resp.TraceID})
 	}
 	return resp.Ref, nil
 }
@@ -145,15 +146,17 @@ func createSimpleWallet() (string, error) {
 func getWalletBalance(url, ref string) (uint, error) {
 	rawResp, err := sendAPIRequest(url, walletGetBalanceRequestBody{Ref: ref})
 	if err != nil {
-		return 0, errors.W(err, "failed to send request or get response body")
+		return 0, throw.W(err, "failed to send request or get response body")
 	}
 
 	resp, err := unmarshalWalletGetBalanceResponse(rawResp)
 	if err != nil {
-		return 0, errors.W(err, "failed to unmarshal response")
+		return 0, throw.W(err, "failed to unmarshal response")
 	}
 	if resp.Err != "" {
-		return 0, fmt.Errorf("problem during execute request: %s", resp.Err)
+		return 0, throw.W(throw.New(resp.Err), "problem during execute request", struct {
+			TraceID string
+		}{TraceID: resp.TraceID})
 	}
 	return resp.Amount, nil
 }
@@ -162,15 +165,17 @@ func getWalletBalance(url, ref string) (uint, error) {
 func addAmountToWallet(url, ref string, amount uint) error {
 	rawResp, err := sendAPIRequest(url, walletAddAmountRequestBody{To: ref, Amount: amount})
 	if err != nil {
-		return errors.W(err, "failed to send request or get response body")
+		return throw.W(err, "failed to send request or get response body")
 	}
 
 	resp, err := unmarshalWalletAddAmountResponse(rawResp)
 	if err != nil {
-		return errors.W(err, "failed to unmarshal response")
+		return throw.W(err, "failed to unmarshal response")
 	}
 	if resp.Err != "" {
-		return fmt.Errorf("problem during execute request: %s", resp.Err)
+		return throw.W(throw.New(resp.Err), "problem during execute request", struct {
+			TraceID string
+		}{TraceID: resp.TraceID})
 	}
 	return nil
 }
