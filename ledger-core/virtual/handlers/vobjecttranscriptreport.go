@@ -192,6 +192,7 @@ func (s *SMVObjectTranscriptReport) stepExecuteDecideNextStep(ctx smachine.Execu
 	case execution.OutgoingCall:
 		return ctx.Jump(s.stepExecuteOutgoing)
 	case execution.Error, execution.Abort:
+		ctx.Log().Error("execution failed", newState.Error)
 		panic(throw.NotImplemented())
 	default:
 		panic(throw.IllegalValue())
