@@ -53,8 +53,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 )
 
-const testCryptoKey = "../../cryptography/keystore/testdata/keys.json"
-
 type Server struct {
 	pulseLock sync.Mutex
 

@@ -14,11 +14,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -48,6 +50,7 @@ type SMTestAPICall struct {
 	messageSender    messageSenderAdapter.MessageSender
 	memoryCache      memoryCacheAdapter.MemoryCache
 	referenceBuilder lmn.RecordReferenceBuilderService
+	nodeReference    reference.Global
 }
 
 /* -------- Declaration ------------- */
@@ -65,6 +68,8 @@ func (*dSMTestAPICall) InjectDependencies(sm smachine.StateMachine, _ smachine.S
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.memoryCache)
 	injector.MustInject(&s.referenceBuilder)
+
+	injector.MustInjectByID(insapp.LocalNodeRefInjectionID, &s.nodeReference)
 }
 
 func (dSMTestAPICall) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -79,6 +84,13 @@ func (s *SMTestAPICall) GetStateMachineDeclaration() smachine.StateMachineDeclar
 }
 
 func (s *SMTestAPICall) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	var (
+		pulse      = s.pulseSlot.PulseNumber()
+		localPart  = gen.UniqueLocalRefWithPulse(pulse)
+		callReason = reference.NewRecordOf(s.nodeReference, localPart)
+	)
+	s.requestPayload.CallReason = rms.NewReference(callReason)
+
 	return ctx.Jump(s.stepSend)
 }
 

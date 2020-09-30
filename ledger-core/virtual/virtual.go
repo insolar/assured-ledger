@@ -14,11 +14,13 @@ import (
 	testWalletAPIStateMachine "github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -143,6 +145,10 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 	lr.Conveyor.AddInterfaceDependency(&lr.memoryCacheAdapter)
 	lr.Conveyor.AddInterfaceDependency(&lr.AuthenticationService)
 	lr.Conveyor.AddInterfaceDependency(&lr.ReferenceBuilder)
+
+	if !lr.Conveyor.TryPutDependency(insapp.LocalNodeRefInjectionID, reference.Copy(lr.Affinity.Me())) {
+		panic(throw.IllegalState())
+	}
 
 	var objectCatalog object.Catalog = object.NewLocalCatalog()
 	lr.Conveyor.AddInterfaceDependency(&objectCatalog)
