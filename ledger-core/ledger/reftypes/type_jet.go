@@ -109,7 +109,7 @@ func JetLegRef(id jet.LegID) reference.Global {
 
 func UnpackJetLegLocalRef(ref reference.LocalHolder) (jet.LegID, error) {
 	local := ref.GetLocal()
-	switch pn, id, err := unpackJetDropLocalRef(local, true, true); {
+	switch pn, id, err := unpackJetDropLocalRef(local, true); {
 	case err != nil:
 		return 0, newRefTypeErr(err, JetLeg, reference.Local{}, local)
 	default:
@@ -119,7 +119,7 @@ func UnpackJetLegLocalRef(ref reference.LocalHolder) (jet.LegID, error) {
 
 func UnpackJetLegRef(ref reference.Holder) (jet.LegID, error) {
 	base, local := ref.GetBase(), ref.GetLocal()
-	switch pn, id, err := unpackJetDropLocalRef(base, true, true); {
+	switch pn, id, err := unpackJetDropLocalRef(base, true); {
 	case err != nil:
 		return 0, newRefTypeErr(err, JetLeg, base, local)
 	case base != local:
@@ -201,7 +201,7 @@ func jetDropOfLocalRef(base reference.Local, mustBeDrop bool) (pulse.Number, jet
 
 func UnpackJetDropLocalRef(ref reference.LocalHolder) (jet.DropID, error) {
 	local := ref.GetLocal()
-	switch pn, id, err := unpackJetDropLocalRef(local, false, true); {
+	switch pn, id, err := unpackJetDropLocalRef(local, false); {
 	case err != nil:
 		return 0, newRefTypeErr(err, JetDrop, reference.Local{}, local)
 	default:
@@ -211,7 +211,7 @@ func UnpackJetDropLocalRef(ref reference.LocalHolder) (jet.DropID, error) {
 
 func UnpackJetDropRef(ref reference.Holder) (jet.DropID, error) {
 	base, local := ref.GetBase(), ref.GetLocal()
-	switch pn, id, err := unpackJetDropLocalRef(base, false, true); {
+	switch pn, id, err := unpackJetDropLocalRef(base, false); {
 	case err != nil:
 		return 0, newRefTypeErr(err, JetDrop, base, local)
 	case base != local:
@@ -221,12 +221,12 @@ func UnpackJetDropRef(ref reference.Holder) (jet.DropID, error) {
 	}
 }
 
-func unpackJetDropLocalRef(local reference.Local, checkLeg, checkTailingZeros bool) (pulse.Number, jet.ExactID, error) {
+func unpackJetDropLocalRef(local reference.Local, checkLeg bool) (pulse.Number, jet.ExactID, error) {
 	if pulseZeroScope(local.GetHeader()) != pulse.Jet {
 		return 0, 0, ErrIllegalRefValue
 	}
 
-	pn, id, err := DecodeJetData(local.IdentityHash(), checkTailingZeros)
+	pn, id, err := DecodeJetData(local.IdentityHash(), true)
 	switch {
 	case err != nil:
 		return 0, 0, err
