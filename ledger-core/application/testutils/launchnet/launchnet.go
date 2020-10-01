@@ -69,6 +69,27 @@ func SetCloudFileLogging(v bool) {
 	cloudFileLogging = v
 }
 
+type OneShotMode int
+
+func (o OneShotMode) ToValue() string {
+	switch o {
+	case OneShotUndefined:
+		panic(throw.IllegalState())
+	case OneShotTrue:
+		return "TRUE"
+	case OneShotFalse:
+		return "FALSE"
+	default:
+		panic(throw.IllegalValue())
+	}
+}
+
+const (
+	OneShotUndefined OneShotMode = iota
+	OneShotTrue
+	OneShotFalse
+)
+
 // rootPath returns project root folder
 func rootPath() string {
 	rootOnce.Do(func() {
@@ -82,11 +103,11 @@ func rootPath() string {
 }
 
 func CustomRunWithPulsar(numVirtual, numLight, numHeavy int, cb func([]string) int) int {
-	return customRun(false, numVirtual, numLight, numHeavy, cb)
+	return customRun(OneShotFalse, numVirtual, numLight, numHeavy, cb)
 }
 
 func CustomRunWithoutPulsar(numVirtual, numLight, numHeavy int, cb func([]string) int) int {
-	return customRun(true, numVirtual, numLight, numHeavy, cb)
+	return customRun(OneShotTrue, numVirtual, numLight, numHeavy, cb)
 }
 
 func GetPulseTimeEnv() string {
@@ -104,7 +125,7 @@ func GetPulseTime() int {
 	return defaultPulseTime
 }
 
-func customRun(pulsarOneShot bool, numVirtual, numLight, numHeavy int, cb func([]string) int) int {
+func customRun(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int, cb func([]string) int) int {
 	apiAddresses, teardown, err := newNetSetup(pulsarOneShot, numVirtual, numLight, numHeavy)
 	defer teardown()
 	if err != nil {
@@ -280,13 +301,28 @@ func waitForNetworkState(cfg appConfig, state network.State) error {
 	return nil
 }
 
-func runPulsar(oneShot bool) error {
+func runPulsar(oneShot OneShotMode) error {
 	pulsarCmd := exec.Command("sh", "-c", "./bin/pulsard --config .artifacts/launchnet/pulsar.yaml")
-	pulsarOneShotStr := "FALSE"
-	if oneShot {
-		pulsarOneShotStr = "TRUE"
+	switch oneShot {
+	case OneShotUndefined:
+		pulsarOneshot := os.Getenv("PULSARD_ONESHOT")
+
+		if pulsarOneshot == "FALSE" {
+			oneShot = OneShotFalse
+		} else if pulsarOneshot == "TRUE" {
+			oneShot = OneShotTrue
+		} else {
+			break
+		}
+
+		fallthrough
+	case OneShotTrue, OneShotFalse:
+		pulsarCmd.Env = append(pulsarCmd.Env, fmt.Sprintf("PULSARD_ONESHOT=%s", oneShot.ToValue()))
+
+	default:
+		panic(throw.IllegalValue())
 	}
-	pulsarCmd.Env = append(pulsarCmd.Env, fmt.Sprintf("PULSARD_ONESHOT=%s", pulsarOneShotStr))
+
 	pulsarCmd.Env = append(pulsarCmd.Env, fmt.Sprintf("%s=%d", pulseTimeEnv, GetPulseTime()))
 
 	if err := pulsarCmd.Start(); err != nil {
@@ -299,7 +335,7 @@ func runPulsar(oneShot bool) error {
 	return nil
 }
 
-func waitForNet(cfg appConfig, oneShot bool) error {
+func waitForNet(cfg appConfig, oneShot OneShotMode) error {
 	err := waitForNetworkState(cfg, network.WaitPulsar)
 	if err != nil {
 		return throw.W(err, "Can't wait for NetworkState "+network.WaitPulsar.String())
@@ -318,7 +354,7 @@ func waitForNet(cfg appConfig, oneShot bool) error {
 	return nil
 }
 
-func startCustomNet(pulsarOneShot bool, numVirtual, numLight, numHeavy int) (*exec.Cmd, []string, error) {
+func startCustomNet(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int) (*exec.Cmd, []string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, nil, throw.W(err, "failed to get working directory")
@@ -393,7 +429,7 @@ func startNet() (*exec.Cmd, error) {
 		return cmd, throw.W(err, "[ startNet ] couldn't read nodes config")
 	}
 
-	err = waitForNet(appCfg, false)
+	err = waitForNet(appCfg, OneShotUndefined)
 	if err != nil {
 		return cmd, throw.W(err, "[ startNet ] couldn't waitForNet more")
 	}
@@ -511,7 +547,7 @@ func RunOnlyWithLaunchnet(t *testing.T) {
 	}
 }
 
-func newNetSetup(pulsarOneShot bool, numVirtual, numLight, numHeavy int) (apiAddresses []string, cancelFunc func(), err error) {
+func newNetSetup(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int) (apiAddresses []string, cancelFunc func(), err error) {
 	cmd, apiAddresses, err := startCustomNet(pulsarOneShot, numVirtual, numLight, numHeavy)
 	cancelFunc = func() {}
 	if cmd != nil {

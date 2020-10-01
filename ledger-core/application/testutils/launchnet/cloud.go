@@ -114,8 +114,20 @@ func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider)
 	return s
 }
 
+func (cr CloudRunner) getPulseModeFromEnv() PulsarMode {
+	pulsarOneshot := os.Getenv("PULSARD_ONESHOT")
+	switch pulsarOneshot {
+	case "TRUE":
+		return ManualPulsar
+	case "FALSE", "":
+		return RegularPulsar
+	default:
+		panic(throw.IllegalValue())
+	}
+}
+
 func (cr CloudRunner) SetupCloud() (func(), error) {
-	return cr.SetupCloudCustom(RegularPulsar)
+	return cr.SetupCloudCustom(cr.getPulseModeFromEnv())
 }
 
 func (cr CloudRunner) SetupCloudCustom(pulsarMode PulsarMode) (func(), error) {
