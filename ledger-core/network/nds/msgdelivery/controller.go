@@ -227,7 +227,7 @@ func (p *Controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 		for _, id := range payload.BodyRqList {
 			switch msg := p.sender.get(AsShipmentID(peerID, id)); {
 			case msg == nil:
-				fmt.Printf("Add reject receiveState %d", id)
+				fmt.Printf("Add reject receiveState %d\n", id)
 				dPeer.addReject(id)
 			case msg.markBodyRq():
 				p.sender.sendBodyOnly(msg)
@@ -318,13 +318,13 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 		rq, ok := p.stater.RemoveRq(dPeer, payload.ParcelID)
 
 		if !ok && duplicate {
-			fmt.Printf("Add reject duplicate %d", payload.ParcelID)
+			fmt.Printf("Add reject duplicate %d\n", payload.ParcelID)
 			dPeer.addReject(payload.ParcelID)
 			return nil
 		}
 
 		if ok && !rq.isValid() {
-			fmt.Printf("Add reject invalid %d", payload.ParcelID)
+			fmt.Printf("Add reject invalid %d\n", payload.ParcelID)
 			dPeer.addReject(payload.ParcelID)
 			if fn := rq.requestRejectedFn(); fn != nil {
 				fn()
@@ -539,7 +539,7 @@ func (p *Controller) rejectBodyRq(from ReturnAddress) error {
 
 	sid := AsShipmentID(uint32(dPeer.peerID), from.returnID)
 	if rq, _ := p.stater.RemoveByID(sid); !rq.isEmpty() {
-		fmt.Printf("Add reject body %d", from.returnID)
+		fmt.Printf("Add reject body %d\n", from.returnID)
 		dPeer.addReject(from.returnID)
 	}
 	return nil
