@@ -224,11 +224,17 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 	}
 }
 
+type migrateFuncType func(*smMigrateAndFinalize, smachine.MigrationContext) smachine.StateUpdate
 
 type smMigrateAndFinalize struct {
 	smachine.StateMachineDeclTemplate
-	nFinalizeCalls int
+	migrateFunc migrateFuncType
+	nFinalizeCallsLevel0 int
+	nFinalizeCallsLevel1 int
 	wasContinued bool
+	wasContinuedAfterMigration bool
+	wasMigratedStop bool
+	wasMigratedJump bool
 }
 
 func (s *smMigrateAndFinalize) GetInitStateFor(_ smachine.StateMachine) smachine.InitFunc {
@@ -240,78 +246,142 @@ func (s *smMigrateAndFinalize) GetStateMachineDeclaration() smachine.StateMachin
 }
 
 func (s *smMigrateAndFinalize) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
-	ctx.SetDefaultMigration(s.migrate)
+	//ctx.SetDefaultMigration(s.migrateFunc)
+	ctx.SetDefaultMigration(func(ctx smachine.MigrationContext) smachine.StateUpdate {
+		return s.migrateFunc(s, ctx)
+	})
 	ctx.SetFinalizer(s.finalize)
 	return ctx.Jump(s.stepWaitInfinity)
 }
 
 func (s *smMigrateAndFinalize) stepWaitInfinity(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.wasContinued = true
+	if s.wasMigratedJump {
+		s.wasContinuedAfterMigration = true
+	}
 	subroutineSM := &testSMFinalize{executionFunc: (*testSMFinalize).StateSleep, executionFuncSR: nil}
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		s.nFinalizeCallsLevel1 = subroutineSM.nFinalizeCallsLevel0
 		return ctx.Stop()
 	})
 }
 
-func (s *smMigrateAndFinalize) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
-	s.wasContinued = false
+func (s *smMigrateAndFinalize) migrateStop(ctx smachine.MigrationContext) smachine.StateUpdate {
+	s.wasMigratedStop = true
 	return ctx.Stop()
 }
 
+func (s *smMigrateAndFinalize) migrateJump(ctx smachine.MigrationContext) smachine.StateUpdate {
+	s.wasMigratedJump = true
+	return ctx.Jump(s.stepWaitInfinity)
+}
+
 func (s *smMigrateAndFinalize) finalize(smachine.FinalizationContext) {
-	s.nFinalizeCalls++
+	s.nFinalizeCallsLevel0++
 	return
 }
 
 func TestSlotMachine_MigrateAndFinalize(t *testing.T) {
-	ctx := instestlogger.TestContext(t)
 
-	scanCountLimit := 1000
-
-	signal := synckit.NewVersionedSignal()
-	m := smachine.NewSlotMachine(smachine.SlotMachineConfig{
-		SlotPageSize:    1000,
-		PollingPeriod:   10 * time.Millisecond,
-		PollingTruncate: 1 * time.Microsecond,
-		ScanCountLimit:  scanCountLimit,
-	}, signal.NextBroadcast, signal.NextBroadcast, nil)
-
-	workerFactory := sworker.NewAttachableSimpleSlotWorker()
-	neverSignal := synckit.NewNeverSignal()
-
-	s := smMigrateAndFinalize{}
-	m.AddNew(ctx, &s, smachine.CreateDefaultValues{})
-
-	require.False(t, s.wasContinued)
-
-	if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {}, true) {
-		panic(throw.IllegalState())
+	table := []struct {
+		name   string
+		migrateFunc migrateFuncType
+		nExpectedFinalizeRunsLevel0 int
+		nExpectedFinalizeRunsLevel1 int
+		expectedWasContinued bool
+		expectedWasContinuedAfterMigration bool
+		expectedWasMigratedJump bool
+		expectedWasMigratedStop bool
+	}{
+		{
+			name:                        		"migrate Jump",
+			migrateFunc:                    	(*smMigrateAndFinalize).migrateJump,
+			nExpectedFinalizeRunsLevel0: 		0,
+			nExpectedFinalizeRunsLevel1: 		1,
+			expectedWasContinued:				true,
+			expectedWasContinuedAfterMigration:	true,
+			expectedWasMigratedJump:			true,
+			expectedWasMigratedStop:			false,
+		}, {
+			name:                        		"migrate Stop",
+			migrateFunc:                    	(*smMigrateAndFinalize).migrateStop,
+			nExpectedFinalizeRunsLevel0: 		1,
+			nExpectedFinalizeRunsLevel1: 		1,
+			expectedWasContinued:				true,
+			expectedWasContinuedAfterMigration:	false,
+			expectedWasMigratedJump:			false,
+			expectedWasMigratedStop:			true,
+		},
 	}
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+			ctx := instestlogger.TestContext(t)
 
-	iterFn := func() {
-		for {
-			var repeatNow bool
-			workerFactory.AttachTo(m, neverSignal, uint32(scanCountLimit), func(worker smachine.AttachedSlotWorker) {
-				repeatNow, _ = m.ScanOnce(0, worker)
-			})
-			if repeatNow {
-				continue
+			scanCountLimit := 1000
+
+			signal := synckit.NewVersionedSignal()
+			m := smachine.NewSlotMachine(smachine.SlotMachineConfig{
+				SlotPageSize:    1000,
+				PollingPeriod:   10 * time.Millisecond,
+				PollingTruncate: 1 * time.Microsecond,
+				ScanCountLimit:  scanCountLimit,
+			}, signal.NextBroadcast, signal.NextBroadcast, nil)
+
+			workerFactory := sworker.NewAttachableSimpleSlotWorker()
+			neverSignal := synckit.NewNeverSignal()
+
+			s := smMigrateAndFinalize{migrateFunc: test.migrateFunc}
+			m.AddNew(ctx, &s, smachine.CreateDefaultValues{})
+
+			require.False(t, s.wasContinued)
+			require.False(t, s.wasContinuedAfterMigration)
+			require.False(t, s.wasMigratedJump)
+			require.False(t, s.wasMigratedStop)
+			assert.Equal(t, 0, s.nFinalizeCallsLevel0)
+			assert.Equal(t, 0, s.nFinalizeCallsLevel1)
+
+			if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {}, true) {
+				panic(throw.IllegalState())
 			}
-			break
-		}
+
+			iterFn := func() {
+				for {
+					var repeatNow bool
+					workerFactory.AttachTo(m, neverSignal, uint32(scanCountLimit), func(worker smachine.AttachedSlotWorker) {
+						repeatNow, _ = m.ScanOnce(0, worker)
+					})
+					if repeatNow {
+						continue
+					}
+					break
+				}
+			}
+
+			// make 1 iteration
+			iterFn()
+
+			require.True(t, s.wasContinued)
+			require.False(t, s.wasContinuedAfterMigration)
+			require.False(t, s.wasMigratedJump)
+			require.False(t, s.wasMigratedStop)
+			assert.Equal(t, 0, s.nFinalizeCallsLevel0)
+			assert.Equal(t, 0, s.nFinalizeCallsLevel1)
+
+			if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {
+				callContext.Migrate(nil)
+			}, true) {
+				panic(throw.IllegalState())
+			}
+			iterFn()
+
+			require.True(t, s.wasContinued)
+			assert.Equal(t, test.expectedWasContinuedAfterMigration, s.wasContinuedAfterMigration)
+			assert.Equal(t, test.expectedWasMigratedJump, s.wasMigratedJump)
+			assert.Equal(t, test.expectedWasMigratedStop, s.wasMigratedStop)
+			assert.Equal(t, test.nExpectedFinalizeRunsLevel0, s.nFinalizeCallsLevel0)
+			assert.Equal(t, test.nExpectedFinalizeRunsLevel1, s.nFinalizeCallsLevel1)
+
+		})
 	}
-
-	// make 1 iteration
-	iterFn()
-
-	require.True(t, s.wasContinued)
-
-	if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {
-		callContext.Migrate(nil)
-	}, true) {
-		panic(throw.IllegalState())
-	}
-	iterFn()
-	require.False(t, s.wasContinued)
-	assert.Equal(t, 1, s.nFinalizeCalls)
 }
