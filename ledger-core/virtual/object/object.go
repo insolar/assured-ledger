@@ -485,10 +485,18 @@ func (sm *SMObject) stepSendTranscriptReport(ctx smachine.ExecutionContext) smac
 		return ctx.Jump(sm.stepFinalize)
 	}
 
+	if sm.descriptorDirty == nil {
+		panic(throw.Impossible())
+	}
+	class, err := sm.descriptorDirty.Class()
+	if err != nil {
+		ctx.Log().Error("failed to get class", err)
+	}
+
 	msg := rms.VObjectTranscriptReport{
 		AsOf:               sm.pulseSlot.PulseNumber(),
 		Object:             rms.NewReference(sm.Reference),
-		Class:              rms.NewReference(reference.Global{}), // fixme
+		Class:              rms.NewReference(class),
 		ObjectTranscript:   rmsTranscript,
 		PendingTranscripts: sm.PendingTranscripts, // TODO filter by object
 	}
