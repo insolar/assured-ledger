@@ -53,20 +53,15 @@ func TestController_PartialDistribute(t *testing.T) {
 		},
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-
 	controller := cloud.NewController()
-	s := server.NewControlledMultiServer(ctx, controller, confProvider)
+	s := server.NewControlledMultiServer(controller, confProvider)
 	go func() {
 		s.Serve()
 	}()
 
 	s.WaitStarted()
 
-	defer func() {
-		cancel()
-		s.WaitStop()
-	}()
+	defer s.Stop()
 
 	allNodes := make(map[reference.Global]struct{})
 	for i := 0; i < len(appConfigs); i++ {
