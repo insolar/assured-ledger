@@ -9,6 +9,7 @@ package execute
 
 import (
 	"context"
+	"encoding/hex"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -1096,20 +1097,41 @@ func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, 
 	}).WithoutAutoWakeUp().Start()
 }
 
-func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte, deactivated bool) descriptor.Object {
+func (s *SMExecute) makeNewDescriptor(
+	class reference.Global,
+	memory []byte,
+	deactivated bool,
+) descriptor.Object {
+	return MakeDescriptor(
+		s.execution.ObjectDescriptor,
+		s.execution.Object,
+		class, memory, deactivated,
+		s.pulseSlot.PulseData().GetPulseNumber(),
+	)
+}
+
+func MakeDescriptor(
+	prevDesc descriptor.Object,
+	object reference.Global,
+	class reference.Global,
+	memory []byte,
+	deactivated bool,
+	pn pulse.Number,
+) descriptor.Object {
 	var prevStateIDBytes []byte
-	objDescriptor := s.execution.ObjectDescriptor
-	if objDescriptor != nil {
-		prevStateIDBytes = objDescriptor.StateID().AsBytes()
+	if prevDesc != nil {
+		prevStateIDBytes = prevDesc.StateID().AsBytes()
 	}
 
-	objectRefBytes := s.execution.Object.AsBytes()
+	objectRefBytes := object.AsBytes()
+	println("WTF: memory: ", hex.Dump(memory), " prev: ", prevStateIDBytes, " object ref: ", hex.Dump(objectRefBytes) )
+
 	stateHash := append(memory, objectRefBytes...)
 	stateHash = append(stateHash, prevStateIDBytes...)
 
-	stateID := NewStateID(s.pulseSlot.PulseData().GetPulseNumber(), stateHash)
+	stateID := NewStateID(pn, stateHash)
 	return descriptor.NewObject(
-		s.execution.Object,
+		object,
 		stateID,
 		class,
 		memory,

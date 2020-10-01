@@ -285,20 +285,19 @@ func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionCont
 		newDesc      descriptor.Object
 		noSideEffect bool
 	)
-	pulse := s.pulseSlot.PulseData().GetPulseNumber()
 
 	switch s.executionNewState.Result.Type() {
 	case requestresult.SideEffectNone:
 		noSideEffect = true
 	case requestresult.SideEffectActivate:
 		class, memory := s.executionNewState.Result.Activate()
-		newDesc = s.makeNewDescriptor(class, memory, false, pulse)
+		newDesc = s.makeNewDescriptor(class, memory, false)
 	case requestresult.SideEffectAmend:
 		class, memory := s.executionNewState.Result.Amend()
-		newDesc = s.makeNewDescriptor(class, memory, false, pulse)
+		newDesc = s.makeNewDescriptor(class, memory, false)
 	case requestresult.SideEffectDeactivate:
 		class, memory := s.executionNewState.Result.Deactivate()
-		newDesc = s.makeNewDescriptor(class, memory, true, pulse)
+		newDesc = s.makeNewDescriptor(class, memory, true)
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -315,34 +314,20 @@ func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionCont
 		return ctx.Jump(s.stepValidationFailed)
 	}
 
+	// fixme: we still should compare if there is no side effect
 	if !noSideEffect {
-		// for linter
-		if newDesc == nil {
-			panic(throw.Impossible())
+		// it's pending, check headRef base and stateHash without pulse
+		// fixme: hack for validation, need to rethink
+		// fixme: stateid vs stateref
+		headRef := callResult.ObjectState.GetValue().GetBase()
+		if !headRef.Equal(s.object.GetBase()) {
+			ctx.Log().Warn("pending validation failed: wrong headRef base")
+			return ctx.Jump(s.stepValidationFailed)
 		}
-
-		if s.withPendings && s.object.GetLocal().Pulse().IsBefore(pulse) {
-			// it's pending, check headRef base and stateHash without pulse
-			// fixme: hack for validation, need to rethink
-			headRef := callResult.ObjectState.GetValue().GetBase()
-			if !headRef.Equal(s.object.GetBase()) {
-				ctx.Log().Warn("pending validation failed: wrong headRef base")
-				return ctx.Jump(s.stepValidationFailed)
-			}
-			stateHash := callResult.ObjectState.GetValue().GetLocal().GetHash()
-			if stateHash.Compare(newDesc.StateID().GetHash()) != 0 {
-				ctx.Log().Warn("pending validation failed: wrong stateHash")
-				return ctx.Jump(s.stepValidationFailed)
-			}
-		} else {
-			// fixme: stateid vs stateref
-			stateRef := reference.NewRecordOf(newDesc.HeadRef(), newDesc.StateID())
-			equal := stateRef.Equal(callResult.ObjectState.GetValue())
-			if !equal {
-				ctx.Log().Warn("validation failed: wrong stateRef")
-				return ctx.Jump(s.stepValidationFailed)
-			}
-
+		stateHash := callResult.ObjectState.GetValue().GetLocal().GetHash()
+		if stateHash.Compare(newDesc.StateID().GetHash()) != 0 {
+			ctx.Log().Warn("pending validation failed: wrong stateHash")
+			return ctx.Jump(s.stepValidationFailed)
 		}
 		s.validatedState = callResult.ObjectState.GetValue()
 	}
@@ -433,30 +418,17 @@ func (s *SMVObjectTranscriptReport) findNextEntry() rmsreg.GoGoSerializable {
 	return nil
 }
 
-// FIXME: copy&paste from execute.go, also many things around c&p, we should re-use code
 func (s *SMVObjectTranscriptReport) makeNewDescriptor(
 	class reference.Global,
 	memory []byte,
 	deactivated bool,
-	pulse rms.PulseNumber,
 ) descriptor.Object {
-	var prevStateIDBytes []byte
-	objDescriptor := s.objDesc
-	if objDescriptor != nil {
-		prevStateIDBytes = objDescriptor.StateID().AsBytes()
-	}
-
-	objectRefBytes := s.object.AsBytes()
-	stateHash := append(memory, objectRefBytes...)
-	stateHash = append(stateHash, prevStateIDBytes...)
-
-	stateID := execute.NewStateID(pulse, stateHash)
-	return descriptor.NewObject(
+	return execute.MakeDescriptor(
+		s.objDesc,
 		s.object,
-		stateID,
-		class,
-		memory,
-		deactivated,
+		class, memory, deactivated,
+		// FIXME: incorrect pulse
+		s.pulseSlot.PulseData().GetPulseNumber(),
 	)
 }
 
