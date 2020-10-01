@@ -117,6 +117,9 @@ func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) s
 	if len(s.entries) == 0 {
 		panic(throw.Impossible())
 	}
+	if ok := len(s.entries) % 2; ok != 0 {
+		panic(throw.Impossible())
+	}
 
 	entry := s.peekEntry(s.startIndex)
 	if entry == nil {
@@ -355,11 +358,9 @@ func (s *SMVObjectTranscriptReport) stepAdvanceToNextRequest(ctx smachine.Execut
 
 	for ind := s.startIndex; ind < len(s.entries); ind++ {
 		entry := s.peekEntry(ind)
-		switch entry.(type) {
-		case *rms.Transcript_TranscriptEntryIncomingRequest:
+		if _, ok := entry.(*rms.Transcript_TranscriptEntryIncomingRequest); ok {
 			s.startIndex = ind
-		default:
-			// do nothing
+			break
 		}
 	}
 
