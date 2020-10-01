@@ -280,7 +280,11 @@ func GetLifelineAnticipatedReference(
 	pn pulse.Number,
 ) reference.Global {
 	if request.CallOutgoing.IsEmpty() {
-		panic(throw.IllegalState())
+		panic(throw.IllegalValue())
+	}
+
+	if request.CallType != rms.CallTypeConstructor {
+		panic(throw.IllegalValue())
 	}
 
 	sm := SubSMRegister{
@@ -774,7 +778,7 @@ func (s *SubSMRegister) stepSendMessage(ctx smachine.ExecutionContext) smachine.
 		return func(ctx smachine.AsyncResultContext) {
 			s.sendError = throw.W(err, "failed to send LRegisterRequest message")
 		}
-	}).Start()
+	}).WithoutAutoWakeUp().Start()
 
 	return ctx.Jump(s.stepWaitResponse)
 }
