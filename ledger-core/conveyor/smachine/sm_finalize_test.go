@@ -6,17 +6,15 @@
 package smachine_test
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
-	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/conveyor/sworker"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -177,45 +175,15 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 			defer commontestutils.LeakTester(t)
 			ctx := instestlogger.TestContext(t)
 
-			scanCountLimit := 1000
-			signal := synckit.NewVersionedSignal()
-			m := smachine.NewSlotMachine(smachine.SlotMachineConfig{
-				SlotPageSize:    1000,
-				PollingPeriod:   10 * time.Millisecond,
-				PollingTruncate: 1 * time.Microsecond,
-				ScanCountLimit:  scanCountLimit,
-			}, signal.NextBroadcast, signal.NextBroadcast, nil)
-
-			workerFactory := sworker.NewAttachableSimpleSlotWorker()
-			neverSignal := synckit.NewNeverSignal()
+			helper := newTestsHelper()
 
 			s := &testSMFinalize{}
 			s.executionFunc = test.execFunc
 			s.executionFuncSR = test.execFuncSR
 			s.executionFuncSRSR = test.execFuncSRSR
-			m.AddNew(ctx, s, smachine.CreateDefaultValues{})
-			if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {
-				callContext.Migrate(nil)
-			}, true) {
-				panic(throw.IllegalState())
-			}
+			helper.add(ctx, s)
 
-			// make 1 iteration
-			for {
-				var (
-					repeatNow bool
-				)
-
-				workerFactory.AttachTo(m, neverSignal, uint32(scanCountLimit), func(worker smachine.AttachedSlotWorker) {
-					repeatNow, _ = m.ScanOnce(0, worker)
-				})
-
-				if repeatNow {
-					continue
-				}
-
-				break
-			}
+			helper.iter(nil)
 
 			assert.Equal(t, test.nExpectedFinalizeRunsLevel0, s.nFinalizeCallsLevel0)
 			assert.Equal(t, test.nExpectedFinalizeRunsLevel1, s.nFinalizeCallsLevel1)
@@ -246,7 +214,6 @@ func (s *smMigrateAndFinalize) GetStateMachineDeclaration() smachine.StateMachin
 }
 
 func (s *smMigrateAndFinalize) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
-	//ctx.SetDefaultMigration(s.migrateFunc)
 	ctx.SetDefaultMigration(func(ctx smachine.MigrationContext) smachine.StateUpdate {
 		return s.migrateFunc(s, ctx)
 	})
@@ -318,21 +285,10 @@ func TestSlotMachine_MigrateAndFinalize(t *testing.T) {
 			defer commontestutils.LeakTester(t)
 			ctx := instestlogger.TestContext(t)
 
-			scanCountLimit := 1000
-
-			signal := synckit.NewVersionedSignal()
-			m := smachine.NewSlotMachine(smachine.SlotMachineConfig{
-				SlotPageSize:    1000,
-				PollingPeriod:   10 * time.Millisecond,
-				PollingTruncate: 1 * time.Microsecond,
-				ScanCountLimit:  scanCountLimit,
-			}, signal.NextBroadcast, signal.NextBroadcast, nil)
-
-			workerFactory := sworker.NewAttachableSimpleSlotWorker()
-			neverSignal := synckit.NewNeverSignal()
+			helper := newTestsHelper()
 
 			s := smMigrateAndFinalize{migrateFunc: test.migrateFunc}
-			m.AddNew(ctx, &s, smachine.CreateDefaultValues{})
+			helper.add(ctx, &s)
 
 			require.False(t, s.wasContinued)
 			require.False(t, s.wasContinuedAfterMigration)
@@ -341,25 +297,7 @@ func TestSlotMachine_MigrateAndFinalize(t *testing.T) {
 			assert.Equal(t, 0, s.nFinalizeCallsLevel0)
 			assert.Equal(t, 0, s.nFinalizeCallsLevel1)
 
-			if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {}, true) {
-				panic(throw.IllegalState())
-			}
-
-			iterFn := func() {
-				for {
-					var repeatNow bool
-					workerFactory.AttachTo(m, neverSignal, uint32(scanCountLimit), func(worker smachine.AttachedSlotWorker) {
-						repeatNow, _ = m.ScanOnce(0, worker)
-					})
-					if repeatNow {
-						continue
-					}
-					break
-				}
-			}
-
-			// make 1 iteration
-			iterFn()
+			helper.iter(nil)
 
 			require.True(t, s.wasContinued)
 			require.False(t, s.wasContinuedAfterMigration)
@@ -368,12 +306,9 @@ func TestSlotMachine_MigrateAndFinalize(t *testing.T) {
 			assert.Equal(t, 0, s.nFinalizeCallsLevel0)
 			assert.Equal(t, 0, s.nFinalizeCallsLevel1)
 
-			if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {
-				callContext.Migrate(nil)
-			}, true) {
-				panic(throw.IllegalState())
-			}
-			iterFn()
+			helper.migrate()
+
+			helper.iter(nil)
 
 			require.True(t, s.wasContinued)
 			assert.Equal(t, test.expectedWasContinuedAfterMigration, s.wasContinuedAfterMigration)
@@ -381,7 +316,6 @@ func TestSlotMachine_MigrateAndFinalize(t *testing.T) {
 			assert.Equal(t, test.expectedWasMigratedStop, s.wasMigratedStop)
 			assert.Equal(t, test.nExpectedFinalizeRunsLevel0, s.nFinalizeCallsLevel0)
 			assert.Equal(t, test.nExpectedFinalizeRunsLevel1, s.nFinalizeCallsLevel1)
-
 		})
 	}
 }
