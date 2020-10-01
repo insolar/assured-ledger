@@ -1,0 +1,40 @@
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: $INSOLAR_NAMESPACE-http
+  namespace: kube-system
+spec:
+  entryPoints:
+    - http
+  routes:
+  - kind: Rule
+    match: Host(`localhost`) && PathPrefix(`/api`)
+    services:
+    - name: platform-network
+      namespace: $INSOLAR_NAMESPACE
+      port: 19101
+      weight: 1
+      passHostHeader: true
+      responseForwarding:
+        flushInterval: 100ms
+  - kind: Rule
+    match: Host(`localhost`) && PathPrefix(`/admin-api`)
+    services:
+    - name: platform-network
+      namespace: $INSOLAR_NAMESPACE
+      port: 19001
+      weight: 1
+      passHostHeader: true
+      responseForwarding:
+        flushInterval: 100ms
+  - kind: Rule
+    match: Host(`localhost`) && PathPrefix(`/wallet`)
+    services:
+    - name: platform-network
+      namespace: $INSOLAR_NAMESPACE
+      port: 32301
+      weight: 1
+      passHostHeader: true
+      responseForwarding:
+        flushInterval: 100ms
