@@ -337,7 +337,9 @@ func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionCont
 		// FIXME: we don't really change value of validateState of the object, we shouldn't
 		// send message at the end when all requests are intollerable
 		// or don't change memory
-		s.validatedState = callResult.ObjectState.GetValue()
+		if s.validatedState.IsEmpty() {
+			s.validatedState = callResult.ObjectState.GetValue()
+		}
 	} else {
 		ctx.Log().Warn("pending validation failed: wrong stateHash")
 		return ctx.Jump(s.stepValidationFailed)
