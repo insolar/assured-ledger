@@ -340,6 +340,7 @@ func TestEchoHeadAndBody(t *testing.T) {
 		err := srv1.PullBody(a, ShipmentRequest{
 			ReceiveFn: func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 				vo := v.(fmt.Stringer).String()
+				t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 				require.True(t, bool(done))
 
@@ -389,7 +390,7 @@ func TestEchoHeadAndBody(t *testing.T) {
 	require.NoError(t, err)
 	srv2 = server2.service
 
-	err = server2.service.ShipTo(server1.directAddress(), sh)
+	err = srv2.ShipTo(server1.directAddress(), sh)
 	require.NoError(t, err)
 
 	expHeadPayload := head.S + "echo1"
