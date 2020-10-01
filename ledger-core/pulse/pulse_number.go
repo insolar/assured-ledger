@@ -33,6 +33,7 @@ const (
 	Unknown           Number = 0
 	MinPackagePrivate        = 1
 	MaxPackagePrivate        = 255
+	Reserved0         Number = 256
 	localRelative            = 65536
 	LocalRelative     Number = localRelative
 
