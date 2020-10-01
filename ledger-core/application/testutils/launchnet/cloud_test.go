@@ -6,7 +6,6 @@
 package launchnet
 
 import (
-	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -29,15 +28,6 @@ func Test_RunCloud(t *testing.T) {
 	signChan := make(chan os.Signal, 1)
 	signal.Notify(signChan, os.Interrupt, syscall.SIGTERM)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		sig := <-signChan
-
-		global.Infof("%v signal received\n", sig)
-
-		cancel()
-	}()
-
 	cloudSettings := CloudSettings{Virtual: numVirtual, Light: numLightMaterials, Heavy: numHeavyMaterials}
 
 	appConfigs, cloudBaseConf, certFactory, keyFactory := PrepareCloudConfiguration(cloudSettings)
@@ -54,6 +44,14 @@ func Test_RunCloud(t *testing.T) {
 		},
 	}
 
-	s := server.NewMultiServer(ctx, confProvider)
+	s := server.NewMultiServer(confProvider)
+	go func() {
+		sig := <-signChan
+
+		global.Infof("%v signal received\n", sig)
+
+		s.Stop()
+	}()
+
 	s.Serve()
 }

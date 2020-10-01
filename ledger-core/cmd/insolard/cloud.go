@@ -65,9 +65,7 @@ func runInsolardCloud(configPath string) {
 		},
 	}
 
-	ctx := cancelableContext()
-
-	s := server.NewMultiServer(ctx, configProvider)
+	s := server.NewMultiServer(configProvider)
 
 	s.Serve()
 }

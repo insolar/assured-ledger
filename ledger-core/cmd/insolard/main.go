@@ -11,9 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 
 	"github.com/spf13/cobra"
 
@@ -83,9 +81,7 @@ func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 	cfg := readConfig(configPath)
 	fmt.Printf("Starts with configuration:\n%s\n", configuration.ToString(&cfg))
 
-	ctx := cancelableContext()
-
-	s = server.NewNode(ctx, cfg)
+	s = server.NewNode(cfg)
 	s.Serve()
 }
 
@@ -96,8 +92,7 @@ func runHeadlessNetwork(configPath string) {
 	cfg := readConfig(configPath)
 	fmt.Printf("Starts with configuration:\n%s\n", configuration.ToString(&cfg))
 
-	ctx := cancelableContext()
-	server.NewHeadlessNetworkNodeServer(ctx, cfg).Serve()
+	server.NewHeadlessNetworkNodeServer(cfg).Serve()
 }
 
 func readRoleFromCertificate(path string) (member.PrimaryRole, error) {
@@ -131,13 +126,4 @@ func stopper(cancel context.CancelFunc, signChan chan os.Signal) {
 	global.Infof("%v signal received\n", sig)
 
 	cancel()
-}
-
-func cancelableContext() context.Context {
-	signChan := make(chan os.Signal, 1)
-	signal.Notify(signChan, os.Interrupt, syscall.SIGTERM)
-	ctx, cancel := context.WithCancel(context.Background())
-	go stopper(cancel, signChan)
-
-	return ctx
 }

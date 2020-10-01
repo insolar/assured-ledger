@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/signal"
-	"syscall"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
@@ -63,11 +61,7 @@ func WithPulsarMode(mode PulsarMode) func(runner *CloudRunner) {
 	}
 }
 
-func RunCloud(cb func([]string) int, options ...cloudOption) int {
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-
-	ctx, abort := context.WithCancel(context.Background())
+func PrepareCloudRunner(options ...cloudOption) *CloudRunner {
 	cr := CloudRunner{
 		defaultLogLevel: log.DebugLevel,
 		pulsarMode:      RegularPulsar,
@@ -76,43 +70,7 @@ func RunCloud(cb func([]string) int, options ...cloudOption) int {
 		o(&cr)
 	}
 	cr.PrepareConfig()
-
-	teardown, err := cr.SetupCloud(ctx)
-	if err != nil {
-		abort()
-		fmt.Println("error while setup, skip tests: ", err)
-		return 1
-	}
-	defer teardown()
-	defer abort()
-
-	go func() {
-		sig := <-c
-		abort()
-		fmt.Printf("Got %s signal. Aborting...\n", sig)
-		teardown()
-
-		os.Exit(2)
-	}()
-
-	pulseWatcher, config := pulseWatcherPath()
-
-	apiAddresses := make([]string, 0, len(cr.ConfProvider.GetAppConfigs()))
-	for _, el := range cr.ConfProvider.GetAppConfigs() {
-		apiAddresses = append(apiAddresses, el.TestWalletAPI.Address)
-	}
-
-	code := cb(apiAddresses)
-
-	if code != 0 {
-		out, err := exec.Command(pulseWatcher, "-c", config, "-s").CombinedOutput()
-		if err != nil {
-			fmt.Println("PulseWatcher execution error: ", err)
-			return 1
-		}
-		fmt.Println(string(out))
-	}
-	return code
+	return &cr
 }
 
 func prepareConfigProvider(numVirtual, numLightMaterials, numHeavyMaterials int, defaultLogLevel log.Level) *server.CloudConfigurationProvider {
@@ -158,9 +116,9 @@ func (cr *CloudRunner) PrepareConfig() {
 	cr.ConfProvider = prepareConfigProvider(cr.numVirtual, cr.numLightMaterials, cr.numHeavyMaterials, cr.defaultLogLevel)
 }
 
-func prepareCloudForOneShotMode(ctx context.Context, confProvider *server.CloudConfigurationProvider) server.Server {
+func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider) *insapp.Server {
 	controller := cloud.NewController()
-	s := server.NewControlledMultiServer(ctx, controller, confProvider)
+	s := server.NewControlledMultiServer(controller, confProvider)
 	go func() {
 		s.WaitStarted()
 
@@ -196,16 +154,16 @@ func (cr CloudRunner) getPulseModeFromEnv() PulsarMode {
 	}
 }
 
-func (cr CloudRunner) SetupCloud(ctx context.Context) (func(), error) {
-	return cr.SetupCloudCustom(ctx, cr.getPulseModeFromEnv())
+func (cr CloudRunner) SetupCloud() (func(), error) {
+	return cr.SetupCloudCustom(RegularPulsar)
 }
 
-func (cr CloudRunner) SetupCloudCustom(ctx context.Context, pulsarMode PulsarMode) (func(), error) {
-	var s server.Server
+func (cr CloudRunner) SetupCloudCustom(pulsarMode PulsarMode) (func(), error) {
+	var s *insapp.Server
 	if pulsarMode == ManualPulsar {
-		s = prepareCloudForOneShotMode(ctx, cr.ConfProvider)
+		s = prepareCloudForOneShotMode(cr.ConfProvider)
 	} else {
-		s = server.NewMultiServer(ctx, cr.ConfProvider)
+		s = server.NewMultiServer(cr.ConfProvider)
 	}
 	go func() {
 		s.Serve()
@@ -220,11 +178,37 @@ func (cr CloudRunner) SetupCloudCustom(ctx context.Context, pulsarMode PulsarMod
 	}
 
 	SetVerbose(false)
-	err := waitForNetworkState(ctx, appConfig{Nodes: nodes}, network.CompleteNetworkState)
+	err := waitForNetworkState(appConfig{Nodes: nodes}, network.CompleteNetworkState)
 	if err != nil {
 		return nil, throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
 	}
-	return func() {
-		s.(*insapp.Server).WaitStop()
-	}, nil
+	return s.Stop, nil
+}
+
+func (cr *CloudRunner) Run(cb func([]string) int) int {
+	teardown, err := cr.SetupCloud()
+	if err != nil {
+		fmt.Println("error while setup, skip tests: ", err)
+		return 1
+	}
+	defer teardown()
+
+	pulseWatcher, config := pulseWatcherPath()
+
+	apiAddresses := make([]string, 0, len(cr.ConfProvider.GetAppConfigs()))
+	for _, el := range cr.ConfProvider.GetAppConfigs() {
+		apiAddresses = append(apiAddresses, el.TestWalletAPI.Address)
+	}
+
+	code := cb(apiAddresses)
+
+	if code != 0 {
+		out, err := exec.Command(pulseWatcher, "-c", config, "-s").CombinedOutput()
+		if err != nil {
+			fmt.Println("PulseWatcher execution error: ", err)
+			return 1
+		}
+		fmt.Println(string(out))
+	}
+	return code
 }

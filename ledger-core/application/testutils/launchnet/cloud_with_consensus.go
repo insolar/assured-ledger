@@ -6,7 +6,6 @@
 package launchnet
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -24,19 +23,18 @@ func RunCloudWithConsensus(numVirtual, numLight, numHeavy int, cb func() int) in
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	ctx, abort := context.WithCancel(context.Background())
-	defer abort()
+	confProvider := prepareConfigProvider(numVirtual, numLight, numHeavy, log.DebugLevel)
+
+	s := server.NewMultiServerWithConsensus(confProvider)
+
 	go func() {
 		sig := <-c
-		abort()
 		fmt.Printf("Got %s signal. Aborting...\n", sig)
+		s.Stop()
 
 		os.Exit(2)
 	}()
 
-	confProvider := prepareConfigProvider(numVirtual, numLight, numHeavy, log.DebugLevel)
-
-	s := server.NewMultiServerWithConsensus(ctx, confProvider)
 	go func() {
 		s.Serve()
 	}()
@@ -49,7 +47,7 @@ func RunCloudWithConsensus(numVirtual, numLight, numHeavy int, cb func() int) in
 		})
 	}
 
-	err := waitForNetworkState(ctx, appConfig{Nodes: nodes}, network.CompleteNetworkState)
+	err := waitForNetworkState(appConfig{Nodes: nodes}, network.CompleteNetworkState)
 	if err != nil {
 		fmt.Println(throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String()).Error())
 		return 1

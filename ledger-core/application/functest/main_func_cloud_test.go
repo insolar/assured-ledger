@@ -41,12 +41,14 @@ func TestMain(m *testing.M) {
 
 	numNodes = numVirtual + numLight + numHeavy
 
-	os.Exit(launchnet.RunCloud(
+	cloudRunner := launchnet.PrepareCloudRunner(
+		launchnet.WithNumVirtual(numVirtual),
+		launchnet.WithNumLightMaterials(numLight),
+		launchnet.WithNumHeavyMaterials(numHeavy))
+
+	os.Exit(cloudRunner.Run(
 		func(apiAddresses []string) int {
 			return m.Run()
 		},
-		launchnet.WithNumVirtual(numVirtual),
-		launchnet.WithNumLightMaterials(numLight),
-		launchnet.WithNumHeavyMaterials(numHeavy)),
-	)
+	))
 }

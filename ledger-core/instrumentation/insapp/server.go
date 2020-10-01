@@ -8,6 +8,9 @@ package insapp
 import (
 	"context"
 	"crypto"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/insolar/component-manager"
 
@@ -31,11 +34,11 @@ type ConfigurationProvider interface {
 }
 
 type Server struct {
-	ctx          context.Context
 	appFn        AppFactoryFunc
 	multiFn      MultiNodeConfigFunc
 	extra        []interface{}
 	confProvider ConfigurationProvider
+	gracefulStop chan os.Signal
 	waitChannel  chan struct{}
 	started      chan struct{}
 }
@@ -57,9 +60,8 @@ func (cp defaultConfigurationProvider) GetKeyStoreFactory() KeyStoreFactory {
 }
 
 // New creates a one-node process.
-func New(ctx context.Context, cfg configuration.Configuration, appFn AppFactoryFunc, extraComponents ...interface{}) *Server {
+func New(cfg configuration.Configuration, appFn AppFactoryFunc, extraComponents ...interface{}) *Server {
 	return &Server{
-		ctx:          ctx,
 		confProvider: &defaultConfigurationProvider{config: cfg},
 		appFn:        appFn,
 		extra:        extraComponents,
@@ -111,11 +113,17 @@ func (s *Server) Serve() {
 
 	global.InitTicker()
 
+	s.gracefulStop = make(chan os.Signal, 1)
+	signal.Notify(s.gracefulStop, os.Interrupt, syscall.SIGTERM)
+
 	s.waitChannel = make(chan struct{})
 
 	go func() {
 		defer close(s.waitChannel)
-		<-s.ctx.Done()
+
+		sig := <-s.gracefulStop
+		baseLogger.Debug("caught sig: ", sig)
+
 		baseLogger.Info("stopping gracefully")
 
 		for i, cm := range cms {
@@ -171,7 +179,8 @@ func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configur
 	return s.initComponents(ctx, cfg, networkFn, preComponents)
 }
 
-func (s *Server) WaitStop() {
+func (s *Server) Stop() {
+	s.gracefulStop <- syscall.SIGQUIT
 	<-s.waitChannel
 }
 

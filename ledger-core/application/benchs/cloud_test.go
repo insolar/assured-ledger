@@ -21,7 +21,10 @@ func Benchmark_MultiPulseOnCloud_Timed(b *testing.B) {
 
 	for numNodes := 2; numNodes <= 5; numNodes++ {
 		b.Run(fmt.Sprintf("Nodes %d", numNodes), func(b *testing.B) {
-			if res := launchnet.RunCloud(func(apiAddresses []string) int {
+			cloudRunner := launchnet.PrepareCloudRunner(
+				launchnet.WithNumVirtual(numNodes),
+				launchnet.WithDefaultLogLevel(log.FatalLevel))
+			if res := cloudRunner.Run(func(apiAddresses []string) int {
 				runner := benchRunner{
 					benchLimiterFactory: func(n int) benchLimiter {
 						return &countedBenchLimiter{targetCount: int32(n), currentCount: 0}
@@ -30,7 +33,7 @@ func Benchmark_MultiPulseOnCloud_Timed(b *testing.B) {
 
 				run := runner.runBenchOnNetwork(b)
 				return run(apiAddresses)
-			}, launchnet.WithNumVirtual(numNodes), launchnet.WithDefaultLogLevel(log.FatalLevel)); res != 0 {
+			}); res != 0 {
 				b.Fatal("Failed to run benchmark")
 			}
 		})
@@ -41,7 +44,11 @@ func Benchmark_SinglePulseOnCloud_N(b *testing.B) {
 	instestlogger.SetTestOutput(b)
 	for numNodes := 2; numNodes <= 5; numNodes++ {
 		b.Run(fmt.Sprintf("Nodes %d", numNodes), func(b *testing.B) {
-			if res := launchnet.RunCloud(func(apiAddresses []string) int {
+			cloudRunner := launchnet.PrepareCloudRunner(
+				launchnet.WithNumVirtual(numNodes),
+				launchnet.WithDefaultLogLevel(log.FatalLevel),
+				launchnet.WithPulsarMode(launchnet.ManualPulsar))
+			if res := cloudRunner.Run(func(apiAddresses []string) int {
 				runner := benchRunner{
 					benchLimiterFactory: func(n int) benchLimiter {
 						return &countedBenchLimiter{targetCount: int32(n), currentCount: 0}
@@ -50,7 +57,7 @@ func Benchmark_SinglePulseOnCloud_N(b *testing.B) {
 
 				run := runner.runBenchOnNetwork(b)
 				return run(apiAddresses)
-			}, launchnet.WithNumVirtual(numNodes), launchnet.WithDefaultLogLevel(log.FatalLevel), launchnet.WithPulsarMode(launchnet.ManualPulsar)); res != 0 {
+			}); res != 0 {
 				b.Fatal("Failed to run benchmark")
 			}
 		})

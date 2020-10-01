@@ -8,7 +8,6 @@
 package launchnet
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -22,10 +21,7 @@ func Run(cb func() int) int {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	ctx, abort := context.WithCancel(context.Background())
-	defer abort()
-
-	teardown, err := setup(ctx)
+	teardown, err := setup()
 	if err != nil {
 		fmt.Println("error while setup, skip tests: ", err)
 		return 1
@@ -34,7 +30,6 @@ func Run(cb func() int) int {
 
 	go func() {
 		sig := <-c
-		abort()
 		fmt.Printf("Got %s signal. Aborting...\n", sig)
 		teardown()
 
