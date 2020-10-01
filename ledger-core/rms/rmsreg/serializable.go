@@ -15,7 +15,13 @@ type unmarshaler interface {
 	Unmarshal([]byte) error
 }
 
+// UnknownCallbackFunc handles unknown field during unmarshalling.
+// This func can return:
+// - positive value to indicate that size of the field
+// - zero to use default skip behavior
+// - negative value to ignore all further fields
 type UnknownCallbackFunc = func([]byte) (int, error)
+
 type unmarshalerWithUnknownCallback interface {
 	UnmarshalWithUnknownCallback([]byte, UnknownCallbackFunc) error
 }

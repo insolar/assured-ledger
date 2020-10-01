@@ -1,8 +1,0 @@
-nodes:
-- virtual-0.platform-network:19001
-- virtual-1.platform-network:19001
-- virtual-2.platform-network:19001
-- virtual-3.platform-network:19001
-- virtual-4.platform-network:19001
-interval: 500ms
-timeout: 1s

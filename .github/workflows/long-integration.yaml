@@ -3,7 +3,6 @@ on:
   schedule:
     - cron: '0 14 * * *'
 env:
-  KUBECONFIG: k3s.yaml
   GO_VERSION: 1.14
   CI_GOMAXPROCS: 0
   INSOLAR_LOG_LEVEL: warn

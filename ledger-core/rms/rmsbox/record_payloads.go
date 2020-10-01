@@ -132,7 +132,7 @@ func (p *RecordPayloads) TryUnmarshalPayloadFromBytes(b []byte) (int, error) {
 	return endPos, nil
 }
 
-func (p *RecordPayloads) ApplyPayloadsTo(record BasicRecord, digester cryptkit.DataDigester) error {
+func (p *RecordPayloads) ApplyPayloadsTo(record PayloadHolder, digester cryptkit.DataDigester) error {
 	switch {
 	case len(p.payloads) == 0:
 		if record == nil {
@@ -165,5 +165,18 @@ func (p *RecordPayloads) GetExtensionID(index int) uint32 {
 	default:
 		// TODO extract ExtensionID
 		return 0
+	}
+}
+
+func (p *RecordPayloads) WrapSkipFunc(skipFn rmsreg.UnknownCallbackFunc) rmsreg.UnknownCallbackFunc {
+	if skipFn == nil {
+		return p.TryUnmarshalPayloadFromBytes
+	}
+
+	return func(b []byte) (int, error) {
+		if n, err := skipFn(b); n != 0 || err != nil {
+			return n, err
+		}
+		return p.TryUnmarshalPayloadFromBytes(b)
 	}
 }
