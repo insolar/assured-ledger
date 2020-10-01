@@ -2,6 +2,7 @@ name: consensus-checks # consensus perfomance checks
 on:
   schedule:
     - cron: '0 0 * * 6' # run at midnight on saturdays
+  workflow_dispatch: {}
 env:
   KUBECONFIG: "${{ github.workspace }}/aks.yaml"
   GO_VERSION: 1.14
@@ -11,7 +12,7 @@ env:
   GOPROXY: https://proxy.golang.org,https://gocenter.io,direct
   CORE_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core
   ACR_HOST: usciregistry.azurecr.io
-  PROMETHEUS_USER: ${{secrets.PROMETHEUS_USER}}	
+  PROMETHEUS_USER: ${{secrets.PROMETHEUS_USER}}
   PROMETHEUS_PASS: ${{secrets.PROMETHEUS_PASS}}
   REPORT_WEBDAV_HOST: "https://reports.garage.insolar.io"
   REPORT_WEBDAV_USERNAME: "${{secrets.WEBDAV_USERNAME}}"
