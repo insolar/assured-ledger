@@ -6,6 +6,7 @@
 package smachine_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -50,43 +51,11 @@ func (s *testSM) stepInit(ctx smachine.InitializationContext) smachine.StateUpda
 func TestSlotMachine_AddSMAndMigrate(t *testing.T) {
 	ctx := instestlogger.TestContext(t)
 
-	scanCountLimit := 1000
-
-	signal := synckit.NewVersionedSignal()
-	m := smachine.NewSlotMachine(smachine.SlotMachineConfig{
-		SlotPageSize:    1000,
-		PollingPeriod:   10 * time.Millisecond,
-		PollingTruncate: 1 * time.Microsecond,
-		ScanCountLimit:  scanCountLimit,
-	}, signal.NextBroadcast, signal.NextBroadcast, nil)
-
-	workerFactory := sworker.NewAttachableSimpleSlotWorker()
-	neverSignal := synckit.NewNeverSignal()
-
+	helper := newTestsHelper()
 	s := testSM{}
-	m.AddNew(ctx, &s, smachine.CreateDefaultValues{})
-	if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {
-		callContext.Migrate(nil)
-	}, true) {
-		panic(throw.IllegalState())
-	}
-
-	// make 1 iteration
-	for {
-		var (
-			repeatNow bool
-		)
-
-		workerFactory.AttachTo(m, neverSignal, uint32(scanCountLimit), func(worker smachine.AttachedSlotWorker) {
-			repeatNow, _ = m.ScanOnce(0, worker)
-		})
-
-		if repeatNow {
-			continue
-		}
-
-		break
-	}
+	helper.add(ctx, &s)
+	helper.migrate()
+	helper.iter()
 
 	assert.True(t, s.ok)
 	assert.False(t, s.notOk)
@@ -124,61 +93,33 @@ func (s *smTestRestoreStep) migrate(ctx smachine.MigrationContext) smachine.Stat
 func TestSlotMachine_RestoreStep(t *testing.T) {
 	ctx := instestlogger.TestContext(t)
 
-	scanCountLimit := 1000
-
-	signal := synckit.NewVersionedSignal()
-	m := smachine.NewSlotMachine(smachine.SlotMachineConfig{
-		SlotPageSize:    1000,
-		PollingPeriod:   10 * time.Millisecond,
-		PollingTruncate: 1 * time.Microsecond,
-		ScanCountLimit:  scanCountLimit,
-	}, signal.NextBroadcast, signal.NextBroadcast, nil)
-
-	workerFactory := sworker.NewAttachableSimpleSlotWorker()
-	neverSignal := synckit.NewNeverSignal()
-
+	helper := newTestsHelper()
 	s := smTestRestoreStep{}
-	m.AddNew(ctx, &s, smachine.CreateDefaultValues{})
-
+	helper.add(ctx, &s)
 	require.False(t, s.wasContinued)
 
-	if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {}, true) {
+	if !helper.m.ScheduleCall(func(callContext smachine.MachineCallContext) {}, true) {
 		panic(throw.IllegalState())
-	}
-
-	iterFn := func() {
-		for {
-			var repeatNow bool
-			workerFactory.AttachTo(m, neverSignal, uint32(scanCountLimit), func(worker smachine.AttachedSlotWorker) {
-				repeatNow, _ = m.ScanOnce(0, worker)
-			})
-			if repeatNow {
-				continue
-			}
-			break
-		}
 	}
 
 	// make 1 iteration
-	iterFn()
+	helper.iter()
 
 	require.True(t, s.wasContinued)
 
-	if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {
-		callContext.Migrate(nil)
-	}, true) {
-		panic(throw.IllegalState())
-	}
-	iterFn()
+	helper.migrate()
+	helper.iter()
+
 	require.False(t, s.wasContinued)
 }
-
 
 type smReplaceAndMigrate1 struct {
 	smachine.StateMachineDeclTemplate
 
-	migrated bool
-	executed bool
+	replaced  bool
+	migrated1 bool
+	migrated2 bool
+	executed  bool
 }
 
 func (s *smReplaceAndMigrate1) GetInitStateFor(_ smachine.StateMachine) smachine.InitFunc {
@@ -190,12 +131,17 @@ func (s *smReplaceAndMigrate1) GetStateMachineDeclaration() smachine.StateMachin
 }
 
 func (s *smReplaceAndMigrate1) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(func(ctx smachine.MigrationContext) smachine.StateUpdate {
+		s.migrated1 = true
+		return ctx.Stop()
+	})
 	return ctx.Jump(s.stepExecute)
 }
 
-func (s *smReplaceAndMigrate1) stepExecute(ctx smachine.ExecutionContext)  smachine.StateUpdate {
+func (s *smReplaceAndMigrate1) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.replaced = true
 	return ctx.Replace(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		return &smReplaceAndMigrate2{migrated: &s.migrated, executed: &s.executed}
+		return &smReplaceAndMigrate2{migrated: &s.migrated2, executed: &s.executed}
 	})
 }
 
@@ -216,7 +162,7 @@ func (s *smReplaceAndMigrate2) GetStateMachineDeclaration() smachine.StateMachin
 
 func (s *smReplaceAndMigrate2) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	return ctx.JumpExt(smachine.SlotStep{
-		Transition: 		s.stepExecute,
+		Transition: s.stepExecute,
 		Migration: func(ctx smachine.MigrationContext) smachine.StateUpdate {
 			*s.migrated = true
 			return ctx.Stop()
@@ -224,7 +170,7 @@ func (s *smReplaceAndMigrate2) Init(ctx smachine.InitializationContext) smachine
 	})
 }
 
-func (s *smReplaceAndMigrate2) stepExecute(ctx smachine.ExecutionContext)  smachine.StateUpdate {
+func (s *smReplaceAndMigrate2) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	*s.executed = true
 	return ctx.Stop()
 }
@@ -232,45 +178,68 @@ func (s *smReplaceAndMigrate2) stepExecute(ctx smachine.ExecutionContext)  smach
 func TestSlotMachine_ReplaceAndMigrate(t *testing.T) {
 	ctx := instestlogger.TestContext(t)
 
-	scanCountLimit := 1000
+	helper := newTestsHelper()
+	s := smReplaceAndMigrate1{}
+	helper.add(ctx, &s)
+	helper.iter()
+
+	assert.True(t, s.replaced)
+
+	helper.migrate()
+	helper.iter()
+
+	assert.False(t, s.migrated1)
+	assert.True(t, s.migrated2)
+	assert.False(t, s.executed)
+}
+
+type testsHelper struct {
+	scanCountLimit int
+	m              *smachine.SlotMachine
+	wFactory       *sworker.AttachableSimpleSlotWorker
+	neverSignal    *synckit.SignalVersion
+}
+
+func newTestsHelper() *testsHelper {
+	res := testsHelper{}
+	res.scanCountLimit = 1000
 
 	signal := synckit.NewVersionedSignal()
-	m := smachine.NewSlotMachine(smachine.SlotMachineConfig{
+	res.m = smachine.NewSlotMachine(smachine.SlotMachineConfig{
 		SlotPageSize:    1000,
 		PollingPeriod:   10 * time.Millisecond,
 		PollingTruncate: 1 * time.Microsecond,
-		ScanCountLimit:  scanCountLimit,
+		ScanCountLimit:  res.scanCountLimit,
 	}, signal.NextBroadcast, signal.NextBroadcast, nil)
 
-	workerFactory := sworker.NewAttachableSimpleSlotWorker()
-	neverSignal := synckit.NewNeverSignal()
+	res.wFactory = sworker.NewAttachableSimpleSlotWorker()
+	res.neverSignal = synckit.NewNeverSignal()
 
-	s := smReplaceAndMigrate1{}
-	m.AddNew(ctx, &s, smachine.CreateDefaultValues{})
+	return &res
+}
 
-	if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {
-		callContext.Migrate(nil)
-	}, true) {
-		panic(throw.IllegalState())
-	}
+func (h *testsHelper) add(ctx context.Context, sm smachine.StateMachine) {
+	h.m.AddNew(ctx, sm, smachine.CreateDefaultValues{})
+}
 
-	// make 1 iteration
+func (h *testsHelper) iter() {
 	for {
-		var (
-			repeatNow bool
-		)
-
-		workerFactory.AttachTo(m, neverSignal, uint32(scanCountLimit), func(worker smachine.AttachedSlotWorker) {
-			repeatNow, _ = m.ScanOnce(0, worker)
+		var repeatNow bool
+		h.wFactory.AttachTo(h.m, h.neverSignal, uint32(h.scanCountLimit), func(worker smachine.AttachedSlotWorker) {
+			repeatNow, _ = h.m.ScanOnce(0, worker)
 		})
-
 		if repeatNow {
 			continue
 		}
 
 		break
 	}
+}
 
-	assert.True(t, s.migrated)
-	assert.False(t, s.executed)
+func (h *testsHelper) migrate() {
+	if !h.m.ScheduleCall(func(callContext smachine.MachineCallContext) {
+		callContext.Migrate(nil)
+	}, true) {
+		panic(throw.IllegalState())
+	}
 }
