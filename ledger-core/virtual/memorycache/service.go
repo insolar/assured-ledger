@@ -42,8 +42,8 @@ func (s *DefaultService) Set(ctx context.Context, stateReference reference.Globa
 
 func NewDefaultService() *DefaultService {
 	strategy := cacheStrategy{
-		pgSize:   100,
-		maxTotal: 100000,
+		pgSize:   1000,
+		maxTotal: 1000000,
 		trimEach: true,
 	}
 	return &DefaultService{
