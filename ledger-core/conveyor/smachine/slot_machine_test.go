@@ -55,7 +55,7 @@ func TestSlotMachine_AddSMAndMigrate(t *testing.T) {
 	s := testSM{}
 	helper.add(ctx, &s)
 	helper.migrate()
-	helper.iter()
+	helper.iter(nil)
 
 	assert.True(t, s.ok)
 	assert.False(t, s.notOk)
@@ -103,12 +103,12 @@ func TestSlotMachine_RestoreStep(t *testing.T) {
 	}
 
 	// make 1 iteration
-	helper.iter()
+	helper.iter(nil)
 
 	require.True(t, s.wasContinued)
 
 	helper.migrate()
-	helper.iter()
+	helper.iter(nil)
 
 	require.False(t, s.wasContinued)
 }
@@ -181,12 +181,14 @@ func TestSlotMachine_ReplaceAndMigrate(t *testing.T) {
 	helper := newTestsHelper()
 	s := smReplaceAndMigrate1{}
 	helper.add(ctx, &s)
-	helper.iter()
+	helper.iter(func() bool {
+		return !s.replaced
+	})
 
 	assert.True(t, s.replaced)
 
 	helper.migrate()
-	helper.iter()
+	helper.iter(nil)
 
 	assert.False(t, s.migrated1)
 	assert.True(t, s.migrated2)
@@ -222,17 +224,11 @@ func (h *testsHelper) add(ctx context.Context, sm smachine.StateMachine) {
 	h.m.AddNew(ctx, sm, smachine.CreateDefaultValues{})
 }
 
-func (h *testsHelper) iter() {
-	for {
-		var repeatNow bool
+func (h *testsHelper) iter(fn func() bool) {
+	for repeatNow := true; repeatNow && (fn == nil || fn()); {
 		h.wFactory.AttachTo(h.m, h.neverSignal, uint32(h.scanCountLimit), func(worker smachine.AttachedSlotWorker) {
 			repeatNow, _ = h.m.ScanOnce(0, worker)
 		})
-		if repeatNow {
-			continue
-		}
-
-		break
 	}
 }
 
