@@ -6,11 +6,9 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -118,12 +116,4 @@ func readRoleFromCertificate(path string) (member.PrimaryRole, error) {
 		return member.PrimaryRoleUnknown, errors.W(err, "failed to parse certificate json")
 	}
 	return cert.GetRole(), nil
-}
-
-func stopper(cancel context.CancelFunc, signChan chan os.Signal) {
-	sig := <-signChan
-
-	global.Infof("%v signal received\n", sig)
-
-	cancel()
 }
