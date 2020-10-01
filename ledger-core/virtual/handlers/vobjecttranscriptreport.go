@@ -333,6 +333,11 @@ func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionCont
 			return ctx.Jump(s.stepValidationFailed)
 		}
 		s.validatedState = callResult.ObjectState.GetValue()
+	} else if callResult.ObjectState.GetValue().GetLocal().Equal(s.objDesc.StateID()) {
+		s.validatedState = callResult.ObjectState.GetValue()
+	} else {
+		ctx.Log().Warn("pending validation failed: wrong stateHash")
+		return ctx.Jump(s.stepValidationFailed)
 	}
 
 	return ctx.Jump(s.stepAdvanceToNextRequest)
