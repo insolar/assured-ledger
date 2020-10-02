@@ -115,7 +115,7 @@ func TestShipToHead(t *testing.T) {
 
 	srv1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
-		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
+		// t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 		require.True(t, bool(done))
 
@@ -155,7 +155,7 @@ func TestShipToBody(t *testing.T) {
 
 	srv1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
-		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
+		// t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 		require.True(t, bool(done))
 
@@ -202,7 +202,7 @@ func TestShipToHeadAndBody(t *testing.T) {
 
 	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
-		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
+		// t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 		require.False(t, bool(done))
 
@@ -212,7 +212,7 @@ func TestShipToHeadAndBody(t *testing.T) {
 		err := srv1.PullBody(a, ShipmentRequest{
 			ReceiveFn: func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 				vo := v.(fmt.Stringer).String()
-				t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
+				// t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 				require.True(t, bool(done))
 
@@ -268,7 +268,7 @@ func TestEchoHead(t *testing.T) {
 
 	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
-		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
+		// t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 		require.True(t, bool(done))
 
@@ -288,7 +288,7 @@ func TestEchoHead(t *testing.T) {
 
 	server2, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
-		t.Log(a.String(), fmt.Sprintf("ctrl-2:"), len(vo))
+		// t.Log(a.String(), fmt.Sprintf("ctrl-2:"), len(vo))
 
 		require.True(t, bool(done))
 
@@ -331,7 +331,7 @@ func TestEchoHeadAndBody(t *testing.T) {
 
 	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
-		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
+		// t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 		require.False(t, bool(done))
 
@@ -340,7 +340,7 @@ func TestEchoHeadAndBody(t *testing.T) {
 		err := srv1.PullBody(a, ShipmentRequest{
 			ReceiveFn: func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 				vo := v.(fmt.Stringer).String()
-				t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
+				// t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 				require.True(t, bool(done))
 
@@ -365,7 +365,7 @@ func TestEchoHeadAndBody(t *testing.T) {
 
 	server2, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
-		t.Log(a.String(), fmt.Sprintf("ctrl-2:"), len(vo))
+		// t.Log(a.String(), fmt.Sprintf("ctrl-2:"), len(vo))
 
 		require.False(t, bool(done))
 
@@ -374,7 +374,7 @@ func TestEchoHeadAndBody(t *testing.T) {
 		err := srv2.PullBody(a, ShipmentRequest{
 			ReceiveFn: func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 				vo := v.(fmt.Stringer).String()
-				t.Log(a.String(), fmt.Sprintf("ctrl-2:"), len(vo))
+				// t.Log(a.String(), fmt.Sprintf("ctrl-2:"), len(vo))
 
 				require.True(t, bool(done))
 
@@ -429,7 +429,7 @@ func TestShipToCancel(t *testing.T) {
 
 	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
-		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
+		// t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 		require.True(t, bool(done))
 
@@ -473,7 +473,7 @@ func TestShipReturnCancel(t *testing.T) {
 
 	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
-		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
+		// t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 		require.True(t, bool(done))
 
@@ -496,7 +496,7 @@ func TestShipReturnCancel(t *testing.T) {
 
 	server2, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
-		t.Log(a.String(), fmt.Sprintf("ctrl-2:"), len(vo))
+		// t.Log(a.String(), fmt.Sprintf("ctrl-2:"), len(vo))
 
 		require.True(t, bool(done))
 
@@ -541,8 +541,8 @@ func TestPullBodyCancel(t *testing.T) {
 	ch1 := make(chan string)
 
 	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
-		vo := v.(fmt.Stringer).String()
-		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
+		// vo := v.(fmt.Stringer).String()
+		// t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 		require.False(t, bool(done))
 
@@ -552,7 +552,7 @@ func TestPullBodyCancel(t *testing.T) {
 		err := srv1.PullBody(a, ShipmentRequest{
 			ReceiveFn: func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 				vo := v.(fmt.Stringer).String()
-				t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
+				// t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 				require.True(t, bool(done))
 
@@ -607,14 +607,14 @@ func TestRejectBody(t *testing.T) {
 
 	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
-		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
+		// t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 		require.False(t, bool(done))
 
 		err := srv1.PullBody(a, ShipmentRequest{
 			ReceiveFn: func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 				vo := v.(fmt.Stringer).String()
-				t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
+				// t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 				require.True(t, bool(done))
 
