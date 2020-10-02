@@ -50,7 +50,7 @@ type PayloadCompleteness bool
 const (
 	CompletePayload PayloadCompleteness = true
 	PartialPayload  PayloadCompleteness = false
-	HeadOnlyPayload                     = PartialPayload
+	HeadOnlyPayload                     = CompletePayload
 )
 
 type DeserializationFactory interface {

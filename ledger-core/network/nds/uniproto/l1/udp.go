@@ -148,15 +148,14 @@ func runUDPListener(t *udpTransportFactory, receiveFn SessionlessReceiveFunc) {
 	buf := make([]byte, t.maxByteSize)
 
 	for {
-		n, addr, err := t.conn.ReadFromUDP(buf)
-		switch {
+		switch n, addr, err := t.conn.ReadFromUDP(buf); {
 		case err == nil:
-			if !receiveFn(to, nwapi.FromUDPAddr(addr), buf[:n], err) {
-				break
-			}
+			receiveFn(to, nwapi.FromUDPAddr(addr), buf[:n], nil)
+		case !receiveFn(to, nwapi.Address{}, nil, err):
+			return
 		default:
 			if ne, ok := err.(net.Error); !ok || !ne.Temporary() {
-				break
+				return
 			}
 		}
 	}
