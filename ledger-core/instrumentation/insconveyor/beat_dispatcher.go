@@ -36,7 +36,7 @@ func (c *conveyorDispatcher) PrepareBeat(sink beat.Ack) {
 	}
 
 	if err := c.conveyor.PreparePulseChange(stateFn); err != nil {
-		panic(throw.WithStack(err))
+		panic(err)
 	}
 }
 
