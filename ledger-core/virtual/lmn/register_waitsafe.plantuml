@@ -2,21 +2,11 @@
 state "Init" as T01_S001
 T01_S001 : SMWaitSafeResponse
 [*] --> T01_S001
-T01_S001 --> T01_S003
-state "migrateDefault" as T01_S002
+T01_S001 --> T01_S002
+state "stepWaitResult" as T01_S002
 T01_S002 : SMWaitSafeResponse
-T01_S002 --> T01_S004
-state "stepSendCheckStatus" as T01_S004
-T01_S004 : SMWaitSafeResponse
-T01_S004 --> T01_S005
-state "stepWaitResult" as T01_S003
-T01_S003 : SMWaitSafeResponse
-T01_S003 --[dashed]> T01_S003 : [s.receivedType==ReceivedNothing]\n[!stateUpdate.IsEmpty()]...\nSleep
-T01_S003 --> [*]
-state "stepWaitStatusResult" as T01_S005
-T01_S005 : SMWaitSafeResponse
-T01_S005 --[dashed]> T01_S005 : [(...).receivedType<ReceivedLStateVerifyResponse]\n[!stateUpdate.IsEmpty()]...\nSleep
-T01_S005 --> [*]
+T01_S002 --[dashed]> T01_S002 : [s.receivedType==ReceivedNothing]\n[!stateUpdate.IsEmpty()]...\nSleep
+T01_S002 --> [*]
 state "GetInitStateFor" as T00_S001
 T00_S001 : dSMWaitSafeResponse
 [*] --> T00_S001

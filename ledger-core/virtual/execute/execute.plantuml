@@ -146,13 +146,13 @@ T01_S018 : SMExecute
 T01_S018 --[dotted]> T01_S001
 T01_S018 --[dashed]> T01_S018 : [ctx.Acquire().IsNotPassed()]\nSleep
 T01_S018 --> T01_S019
-state "stepRegisterObjectLifeLine.2.1.1" as T01_S019
+state "stepRegisterObjectLifeLine.subroutineSM.1" as T01_S016 <<sdlreceive>>
+T01_S016 --> T01_S017
+state "stepRegisterObjectLifelineAfter" as T01_S019
 T01_S019 : SMExecute
 T01_S019 --[dotted]> T01_S001
 T01_S019 --> T01_S019 : [!stepUpdate.IsEmpty()]
 T01_S019 --> T01_S020
-state "stepRegisterObjectLifeLine.subroutineSM.1" as T01_S016 <<sdlreceive>>
-T01_S016 --> T01_S017
 state "stepRegisterOutgoing" as T01_S030
 T01_S030 : SMExecute
 T01_S030 --[dotted]> T01_S021
@@ -243,12 +243,12 @@ T01_S006 : SMExecute
 T01_S006 --[dotted]> T01_S001
 T01_S006 --[dashed]> T01_S006 : [ctx.Acquire().IsNotPassed()]\n[!stepUpdate.IsEmpty()]...\nSleep
 T01_S006 --> T01_S007
-state "stepWaitSafeAnswersReal" as T01_S040
+state "stepWaitSafeAnswers" as T01_S040
 T01_S040 : SMExecute
 T01_S040 --[dotted]> T01_S021
 T01_S040 --> T01_S040 : [!stateUpdate.IsEmpty()]
 T01_S040 --> T01_S041
-state "stepWaitSafeAnswersReal.1" as T01_S041
+state "stepWaitSafeAnswers.1" as T01_S041
 T01_S041 : SMExecute
 T01_S041 --[dotted]> T01_S021
 T01_S041 --[dashed]> T01_S041 : [!ctx.Acquire().IsPassed()]\nSleep
