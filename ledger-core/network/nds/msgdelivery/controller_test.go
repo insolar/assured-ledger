@@ -198,7 +198,7 @@ func TestShipToHeadAndBody(t *testing.T) {
 	}
 
 	var srv1, srv2 Service
-	ch1 := make(chan string, 2)
+	ch1 := make(chan string, 10)
 
 	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
@@ -318,7 +318,7 @@ func TestEchoHeadAndBody(t *testing.T) {
 	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
 	defer h.stop()
 
-	payloadLen := 1024 * 1024 * 64
+	payloadLen := 1024 * 64
 	bytes := rndBytes(payloadLen)
 	head := TestString{string(bytes[:64])}
 	body := TestString{string(bytes)}
@@ -340,6 +340,7 @@ func TestEchoHeadAndBody(t *testing.T) {
 		err := srv1.PullBody(a, ShipmentRequest{
 			ReceiveFn: func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 				vo := v.(fmt.Stringer).String()
+				t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 				require.True(t, bool(done))
 
@@ -389,7 +390,7 @@ func TestEchoHeadAndBody(t *testing.T) {
 	require.NoError(t, err)
 	srv2 = server2.service
 
-	err = server2.service.ShipTo(server1.directAddress(), sh)
+	err = srv2.ShipTo(server1.directAddress(), sh)
 	require.NoError(t, err)
 
 	expHeadPayload := head.S + "echo1"
@@ -526,7 +527,7 @@ func TestPullBodyCancel(t *testing.T) {
 	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
 	defer h.stop()
 
-	payloadLen := 1024 * 1024 * 64
+	payloadLen := 1024 * 64
 	bytes := rndBytes(payloadLen)
 	head := TestString{string(bytes[:64])}
 	body := TestString{string(bytes)}
@@ -590,7 +591,7 @@ func TestRejectBody(t *testing.T) {
 	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
 	defer h.stop()
 
-	payloadLen := 1024 * 1024 * 512
+	payloadLen := 1024 * 512
 	bytes := rndBytes(payloadLen)
 	head := TestString{string(bytes[:64])}
 	body := TestString{string(bytes)}

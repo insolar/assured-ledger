@@ -88,9 +88,9 @@ type Controller struct {
 
 	pulseCycle atomickit.Uint64
 
-	stopSignal    synckit.ClosableSignalChannel
-	maxSmallSize  uint
-	maxHeadSize   uint // <= maxSmallSize
+	stopSignal   synckit.ClosableSignalChannel
+	maxSmallSize uint
+	maxHeadSize  uint // <= maxSmallSize
 
 	stateOutType  uniproto.OutType
 	parcelOutType uniproto.OutType
@@ -151,7 +151,7 @@ func (p *Controller) pullBody(from ReturnAddress, rq ShipmentRequest) error {
 	case cycle > from.expires:
 		//
 	case !from.canPull:
-		//
+		// call ReceiveFn with nil value - as there is no body available
 	default:
 		return p.sendBodyRq(from, rq)
 	}
@@ -295,8 +295,6 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 	}
 
 	duplicate := !dPeer.dedup.Add(DedupID(payload.ParcelID))
-	// todo: remove me
-	// log.Printf("peerID: %d ParcelID: %d duplicate: %t", dPeer.peerID, payload.ParcelID, duplicate)
 
 	ok := false
 	if ok, _, retAddr.expires, err = p.adjustedExpiry(payload.PulseNumber, payload.TTLCycles, true); !ok {
@@ -304,41 +302,42 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 		return err
 	}
 
-	if payload.ParcelType == nwapi.HeadOnlyPayload {
+	switch payload.ParcelType {
+	case nwapi.PartialPayload:
 		if duplicate {
-			dPeer.addReject(payload.ParcelID)
 			return nil
 		}
+
 		dPeer.addAck(payload.ParcelID)
 		retAddr.canPull = true
 		return p.receiveFn(retAddr, payload.ParcelType, payload.Data)
-	}
+	case nwapi.CompletePayload:
+		rq, ok := p.stater.RemoveRq(dPeer, payload.ParcelID)
 
-	var rq rqShipment
-	switch rq, ok = p.stater.RemoveRq(dPeer, payload.ParcelID); {
-	case ok:
-		// Body ignores peer-based deduplication when served per-request
-		if rq.isValid() {
-			break
+		switch {
+		case !ok:
+			if duplicate {
+				dPeer.addReject(payload.ParcelID)
+				return nil
+			}
+		case !rq.isValid():
+			dPeer.addReject(payload.ParcelID)
+			if fn := rq.requestRejectedFn(); fn != nil {
+				fn()
+			}
+			return nil
 		}
 
-		dPeer.addReject(payload.ParcelID)
-		if fn := rq.requestRejectedFn(); fn != nil {
-			fn()
+		dPeer.addBodyAck(payload.ParcelID)
+
+		receiveFn := rq.request.ReceiveFn
+		if receiveFn == nil {
+			receiveFn = p.receiveFn
 		}
-		return nil
-	case duplicate:
-		dPeer.addReject(payload.ParcelID)
-		return nil
+		return receiveFn(retAddr, payload.ParcelType, payload.Data)
+	default:
+		return throw.Impossible()
 	}
-
-	dPeer.addBodyAck(payload.ParcelID)
-
-	receiveFn := rq.request.ReceiveFn
-	if receiveFn == nil {
-		receiveFn = p.receiveFn
-	}
-	return receiveFn(retAddr, payload.ParcelType, payload.Data)
 }
 
 func (p *Controller) onReceiveLargeParcelData(packet *uniproto.Packet, payload *ParcelPacket, dataFn func() error) error {
