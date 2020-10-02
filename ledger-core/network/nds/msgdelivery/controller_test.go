@@ -188,7 +188,7 @@ func TestShipToHeadAndBody(t *testing.T) {
 	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
 	defer h.stop()
 
-	payloadLen := 1024 * 1024 * 64
+	payloadLen := 1024 * 64
 	bytes := rndBytes(payloadLen)
 	head := TestString{string(bytes[:64])}
 	body := TestString{string(bytes)}
@@ -198,7 +198,7 @@ func TestShipToHeadAndBody(t *testing.T) {
 	}
 
 	var srv1, srv2 Service
-	ch1 := make(chan string, 2)
+	ch1 := make(chan string, 10)
 
 	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()

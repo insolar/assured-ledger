@@ -42,7 +42,7 @@ func (p *protoStarter) NextPulse(pr pulse.Range) {
 		return
 	}
 	_, cycle := p.ctl.nextPulseCycle(pr.RightBoundData().PulseNumber)
-	go p.ctl.sender.tracks.nextTTLCycle(cycle)
+	p.ctl.sender.tracks.nextTTLCycle(cycle)
 }
 
 func (p *protoStarter) isActive() bool {
