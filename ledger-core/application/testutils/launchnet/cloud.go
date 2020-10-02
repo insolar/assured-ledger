@@ -114,6 +114,7 @@ func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider)
 	return s
 }
 
+//nolint:goconst
 func (cr CloudRunner) getPulseModeFromEnv() PulsarMode {
 	pulsarOneshot := os.Getenv("PULSARD_ONESHOT")
 	switch pulsarOneshot {

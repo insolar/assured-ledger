@@ -81,7 +81,7 @@ func (p *Mock) SetResendMode(ctx context.Context, sender MinimalSender) {
 	p.checker = checker.NewResend(ctx, sender)
 }
 
-func (p *Mock) SetTypedChecker(ctx context.Context, t minimock.Tester, sender Sender) *checker.Typed {
+func (p *Mock) SetTypedChecker(ctx context.Context, t minimock.Tester, sender MinimalSender) *checker.Typed {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 

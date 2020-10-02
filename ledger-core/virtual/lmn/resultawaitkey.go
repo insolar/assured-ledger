@@ -16,10 +16,10 @@ type ResultAwaitKey struct {
 	RequiredFlag   rms.RegistrationFlags
 }
 
-func NewResultAwaitKey(ref rms.Reference, RequiredFlag rms.RegistrationFlags) ResultAwaitKey {
+func NewResultAwaitKey(ref rms.Reference, requiredFlag rms.RegistrationFlags) ResultAwaitKey {
 	return ResultAwaitKey{
 		AnticipatedRef: ref,
-		RequiredFlag:   RequiredFlag,
+		RequiredFlag:   requiredFlag,
 	}
 }
 

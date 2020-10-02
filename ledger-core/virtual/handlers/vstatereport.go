@@ -130,7 +130,7 @@ func (s *SMVStateReport) stepAsOfOutdated(ctx smachine.ExecutionContext) smachin
 	return ctx.Stop()
 }
 
-func (s *SMVStateReport) updateSharedState(ctx smachine.ExecutionContext, state *object.SharedState) {
+func (s *SMVStateReport) updateSharedState(_ smachine.ExecutionContext, state *object.SharedState) {
 	objectRef := s.Payload.Object.GetValue()
 
 	var objState object.State

@@ -75,7 +75,7 @@ T01_S013 --[dotted]> T01_S004
 T01_S013 --[dotted]> T01_S005
 T01_S013 --[dotted]> T01_S006
 T01_S013 --> [*] : [msg==nil]
-T01_S013 --> T01_S014 : PrepareAsync(ctx)
+T01_S013 --> T01_S014 : PrepareAsync(ctx).WithoutAutoWakeUp()
 T01_S013 --> T01_S015
 state "stepWaitResponse" as T01_S015
 T01_S015 : SubSMRegister

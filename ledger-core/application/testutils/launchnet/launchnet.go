@@ -303,16 +303,19 @@ func waitForNetworkState(cfg appConfig, state network.State) error {
 
 func runPulsar(oneShot OneShotMode) error {
 	pulsarCmd := exec.Command("sh", "-c", "./bin/pulsard --config .artifacts/launchnet/pulsar.yaml")
+
+parentSwitch:
 	switch oneShot {
 	case OneShotUndefined:
 		pulsarOneshot := os.Getenv("PULSARD_ONESHOT")
 
-		if pulsarOneshot == "FALSE" {
+		switch pulsarOneshot {
+		case "FALSE":
 			oneShot = OneShotFalse
-		} else if pulsarOneshot == "TRUE" {
+		case "TRUE":
 			oneShot = OneShotTrue
-		} else {
-			break
+		default:
+			break parentSwitch
 		}
 
 		fallthrough

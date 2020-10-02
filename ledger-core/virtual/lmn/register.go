@@ -9,13 +9,11 @@ package lmn
 
 import (
 	"context"
-	"reflect"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -200,13 +198,6 @@ func (s *SubSMRegister) bargeInHandler(param interface{}) smachine.BargeInCallba
 	}
 }
 
-type logRegisterBargeIn struct {
-	*log.Msg       `txt:"publishing bargeIn callback"`
-	AnticipatedRef reference.Global
-	Flag           rms.RegistrationFlags
-	Type           reflect.Type
-}
-
 func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.LRegisterRequest) error {
 	waitFlag := msg.Flags
 
@@ -356,15 +347,11 @@ func (s *SubSMRegister) getOutboundRecord() *rms.ROutboundRequest {
 }
 
 func (s *SubSMRegister) getOutboundRetryableRequest() *rms.ROutboundRetryableRequest {
-	retryableOutbound := rms.ROutboundRetryableRequest(*s.getOutboundRecord())
-
-	return &retryableOutbound
+	return s.getOutboundRecord()
 }
 
 func (s *SubSMRegister) getOutboundRetryRequest() *rms.ROutboundRetryRequest {
-	retryOutbound := rms.ROutboundRetryRequest(*s.getOutboundRecord())
-
-	return &retryOutbound
+	return s.getOutboundRecord()
 }
 
 func (s *SubSMRegister) getLifelineRecord() *rms.RLifelineStart {

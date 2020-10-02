@@ -58,6 +58,7 @@ func (h *VCallRequestConstructorHandler) regenerate() {
 
 }
 
+//nolint:interfacer
 func (h *VCallRequestConstructorHandler) SetClass(ref reference.Global) {
 	h.request.Callee.Set(ref)
 	h.regenerate()

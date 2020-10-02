@@ -87,7 +87,6 @@ type SMExecute struct {
 	findCallResponse *rms.VFindCallResponse
 
 	// registration in LMN
-	lmnObjectRef               reference.Global
 	lmnLastFilamentRef         reference.Global
 	lmnLastLifelineRef         reference.Global
 	lmnSafeResponseCounter     shared.SafeResponseCounter
@@ -553,26 +552,28 @@ func (s *SMExecute) stepRegisterObjectLifeLine(ctx smachine.ExecutionContext) sm
 				return ctx.Sleep().ThenRepeat()
 			}
 
-			// TODO: dirty hack in case when we must set initial (empty) descriptor
-			return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-				action := func(state *object.SharedState) {
-					state.SetDescriptorDirty(descriptor.NewObject(
-						s.execution.Object,
-						subroutineSM.NewLastLifelineRef.GetLocal(),
-						s.Payload.Callee.GetValue(),
-						[]byte(""),
-						false,
-					))
-				}
-
-				if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
-					return stepUpdate
-				}
-
-				return ctx.Jump(s.stepStartRequestProcessing)
-			})
+			return ctx.Jump(s.stepRegisterObjectLifelineAfter)
 		})
 	})
+}
+
+func (s *SMExecute) stepRegisterObjectLifelineAfter(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	// TODO: we must set initial (empty) descriptor
+	action := func(state *object.SharedState) {
+		state.SetDescriptorDirty(descriptor.NewObject(
+			s.execution.Object,
+			s.lmnLastLifelineRef.GetLocal(),
+			s.Payload.Callee.GetValue(),
+			[]byte(""),
+			false,
+		))
+	}
+
+	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+		return stepUpdate
+	}
+
+	return ctx.Jump(s.stepStartRequestProcessing)
 }
 
 func (s *SMExecute) getDescriptor(state *object.SharedState) descriptor.Object {
@@ -773,11 +774,8 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		}
 
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
-		// newOutgoing := reference.NewRecordOf(s.outgoing.Caller.GetValue(), gen.UniqueLocalRefWithPulse(pulseNumber))
-		// s.outgoing.CallOutgoing.Set(newOutgoing)
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
-		// s.outgoingObject = reference.NewSelf(newOutgoing.GetLocal())
 	case execution.CallMethod:
 		if s.intolerableCall() && outgoing.Interference() == isolation.CallTolerable {
 			err := throw.E("interference violation: ordered call from unordered call")
@@ -787,8 +785,6 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		}
 
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
-		// newOutgoing := reference.NewRecordOf(s.outgoing.Caller.GetValue(), gen.UniqueLocalRefWithPulse(pulseNumber))
-		// s.outgoing.CallOutgoing.Set(newOutgoing)
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
 		s.outgoingObject = s.outgoing.Callee.GetValue()
@@ -938,10 +934,10 @@ func (s *SMExecute) stepWaitSafeAnswersRelease(ctx smachine.ExecutionContext) sm
 	ctx.Release(s.globalSemaphore.PartialLink())
 
 	// waiting for all save responses to be there
-	return ctx.Jump(s.stepWaitSafeAnswersReal)
+	return ctx.Jump(s.stepWaitSafeAnswers)
 }
 
-func (s *SMExecute) stepWaitSafeAnswersReal(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) stepWaitSafeAnswers(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	// waiting for all save responses to be there
 	stateUpdate := shared.CounterAwaitZero(ctx, s.lmnSafeResponseCounterLink)
 	if !stateUpdate.IsEmpty() {

@@ -71,25 +71,25 @@ func (s *SMWaitSafeResponse) bargeInLRegisterResponseHandler(param interface{}) 
 	}
 }
 
-func (s *SMWaitSafeResponse) bargeInLStateVerifyResponseHandler(param interface{}) smachine.BargeInCallbackFunc {
-	// res, ok := param.(*rms.LStateVerifyResponse)
-	// if !ok || res == nil {
-	// 	panic(throw.IllegalValue())
-	// }
-
-	return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-		// if res.AnticipatedRef != s.ExpectedKey.AnticipatedRef || res.Flags != s.ExpectedKey.RequiredFlag {
-		// 	panic(throw.IllegalValue())
-		// }
-
-		if s.receivedType <= ReceivedLStateVerifyResponse {
-			s.receivedType = ReceivedLStateVerifyResponse
-		}
-
-		s.receivedMessage = param
-		return ctx.WakeUp()
-	}
-}
+// func (s *SMWaitSafeResponse) bargeInLStateVerifyResponseHandler(param interface{}) smachine.BargeInCallbackFunc {
+// 	res, ok := param.(*rms.LStateVerifyResponse)
+// 	if !ok || res == nil {
+// 		panic(throw.IllegalValue())
+// 	}
+//
+// 	return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+// 		if res.AnticipatedRef != s.ExpectedKey.AnticipatedRef || res.Flags != s.ExpectedKey.RequiredFlag {
+// 			panic(throw.IllegalValue())
+// 		}
+//
+// 		if s.receivedType <= ReceivedLStateVerifyResponse {
+// 			s.receivedType = ReceivedLStateVerifyResponse
+// 		}
+//
+// 		s.receivedMessage = param
+// 		return ctx.WakeUp()
+// 	}
+// }
 
 func (s *SMWaitSafeResponse) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	var (
@@ -105,11 +105,11 @@ func (s *SMWaitSafeResponse) Init(ctx smachine.InitializationContext) smachine.S
 	return ctx.Jump(s.stepWaitResult)
 }
 
-func (s *SMWaitSafeResponse) migrateDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
-	ctx.Unpublish(s.ExpectedKey)
-
-	return ctx.Jump(s.stepSendCheckStatus)
-}
+// func (s *SMWaitSafeResponse) migrateDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+// 	ctx.Unpublish(s.ExpectedKey)
+//
+// 	return ctx.Jump(s.stepSendCheckStatus)
+// }
 
 func (s *SMWaitSafeResponse) stepWaitResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.receivedType == ReceivedNothing {
@@ -126,23 +126,23 @@ func (s *SMWaitSafeResponse) stepWaitResult(ctx smachine.ExecutionContext) smach
 	return ctx.Stop()
 }
 
-func (s *SMWaitSafeResponse) stepSendCheckStatus(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	// TODO: send message here
-
-	return ctx.Jump(s.stepWaitStatusResult)
-}
-
-func (s *SMWaitSafeResponse) stepWaitStatusResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.receivedType < ReceivedLStateVerifyResponse {
-		return ctx.Sleep().ThenRepeat()
-	}
-
-	// TODO: check everything here
-
-	stateUpdate := shared.CounterDecrement(ctx, s.SafeResponseCounter)
-	if !stateUpdate.IsEmpty() {
-		return stateUpdate
-	}
-
-	return ctx.Stop()
-}
+// func (s *SMWaitSafeResponse) stepSendCheckStatus(ctx smachine.ExecutionContext) smachine.StateUpdate {
+// 	// TODO: send message here
+//
+// 	return ctx.Jump(s.stepWaitStatusResult)
+// }
+//
+// func (s *SMWaitSafeResponse) stepWaitStatusResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+// 	if s.receivedType < ReceivedLStateVerifyResponse {
+// 		return ctx.Sleep().ThenRepeat()
+// 	}
+//
+// 	// TODO: check everything here
+//
+// 	stateUpdate := shared.CounterDecrement(ctx, s.SafeResponseCounter)
+// 	if !stateUpdate.IsEmpty() {
+// 		return stateUpdate
+// 	}
+//
+// 	return ctx.Stop()
+// }
