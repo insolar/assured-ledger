@@ -17,8 +17,8 @@ const (
 	stateUpdError
 	stateUpdPanic
 	stateUpdReplace
-	stateUpdSubroutineStart
-	stateUpdSubroutineAbort
+	stateUpdSubroutineBegin
+	stateUpdSubroutineEnd
 
 	stateUpdInternalRepeatNow // this is a special op. MUST NOT be used anywhere else.
 
@@ -68,6 +68,25 @@ func init() {
 		stateUpdStop: {
 			name:   "stop",
 			filter: updCtxExec | updCtxInit | updCtxMigrate | updCtxBargeIn | updCtxSubrExit,
+
+			// prepare: func(slot *Slot, stateUpdate *StateUpdate) {
+			// 	if slot.hasSubroutine() {
+			// 		stateUpdate.step = slot.prepareSubroutineStop(nil, worker)
+			// 		stateUpdate.updKind = uint8(stateUpdSubroutineEnd)
+			// 		return
+			// 	}
+			//
+			// 	if err := slot.callFinalizeOnce(worker, nil); err != nil {
+			// 		stateUpdate.param1 = err
+			// 		stateUpdate.updKind = uint8(stateUpdPanic)
+			// 	}
+			// },
+			//
+			// apply: func(slot *Slot, _ StateUpdate, worker FixedSlotWorker, _ *StepDeclaration) (isAvailable bool, err error) {
+			// 	slot.machine.recycleSlot(slot, worker)
+			// 	return false, nil
+			// },
+
 			apply:  stateUpdateDefaultStop,
 		},
 
@@ -106,15 +125,15 @@ func init() {
 
 			stepDeclaration: &replaceInitDecl,
 
-			prepare: func(slot *Slot, stateUpdate *StateUpdate) {
+			prepare: func(slot *Slot, _ *StateUpdate) {
 				slot.slotFlags |= slotStepSuspendMigrate
 			},
 
 			apply: stateUpdateDefaultJump,
 		},
 
-		stateUpdSubroutineStart: {
-			name:   "subroutineStart",
+		stateUpdSubroutineBegin: {
+			name:   "subroutineBegin",
 			filter: updCtxExec|updCtxMigrate,
 			params: updParamStep,
 
@@ -123,12 +142,12 @@ func init() {
 			apply: stateUpdateDefaultJump,
 		},
 
-		stateUpdSubroutineAbort: {
-			name:   "subroutineAbort",
+		stateUpdSubroutineEnd: {
+			name:   "subroutineEnd",
 			filter: updCtxInternal,
 			params: updParamStep,
 
-			stepDeclaration: &defaultSubroutineAbortDecl,
+			stepDeclaration: &defaultSubroutineExitDecl,
 
 			apply: stateUpdateDefaultJump,
 		},
@@ -405,13 +424,16 @@ func stateUpdateDefaultJump(slot *Slot, stateUpdate StateUpdate, worker FixedSlo
 
 func stateUpdateDefaultStop(slot *Slot, _ StateUpdate, worker FixedSlotWorker, _ *StepDeclaration) (isAvailable bool, err error) {
 	m := slot.machine
+
 	if slot.hasSubroutine() {
-		slot.prepareSubroutineExit(nil)
+		slot.applySubroutineStop(nil, worker.asDetachable())
 		m.updateSlotQueue(slot, worker, activateSlot)
 		return true, nil
 	}
 
-	// recycleSlot can handle both in-place and off-place updates
-	m.recycleSlot(slot, worker)
+	err = slot.callFinalizeOnce(worker.asDetachable(), nil)
+	// recycleSlotWithError can handle both in-place and off-place updates
+	m.recycleSlotWithError(slot, worker, err)
+
 	return false, nil
 }

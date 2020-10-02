@@ -148,7 +148,7 @@ type CreateDefaultValues struct {
 	PreInitializationHandler PreInitHandlerFunc
 
 	// TerminationHandler provides a special termination handler that will be invoked AFTER termination of SM.
-	// This handler is invoked with data from GetDefaultTerminationResult() and error (if any).
+	// This handler is invoked with data from GetTerminationResult() and error (if any).
 	// This handler is not directly accessible to SM.
 	// WARNING! This handler is UNSAFE to access any SM.
 	TerminationHandler TerminationHandlerFunc

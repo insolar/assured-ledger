@@ -116,7 +116,7 @@ type initializationContext struct {
 func (p *initializationContext) executeInitialization(fn InitFunc) (stateUpdate StateUpdate) {
 	p.setMode(updCtxInit)
 	defer func() {
-		stateUpdate = p.discardAndUpdate("initialization", recover(), stateUpdate, StateArea)
+		stateUpdate = p.discardAndUpdate("initialization", recover(), stateUpdate, StepArea)
 	}()
 
 	return p.ensureAndPrepare(p.s, fn(p))
@@ -140,7 +140,7 @@ func (p *migrationContext) SkipMultipleMigrations() {
 func (p *migrationContext) executeMigration(fn MigrateFunc) (stateUpdate StateUpdate, skipMultiple bool) {
 	p.setMode(updCtxMigrate)
 	defer func() {
-		stateUpdate = p.discardAndUpdate("migration", recover(), stateUpdate, StateArea)
+		stateUpdate = p.discardAndUpdate("migration", recover(), stateUpdate, StepArea)
 	}()
 
 	su := p.ensureAndPrepare(p.s, fn(p))
@@ -153,22 +153,26 @@ var _ FailureContext = &failureContext{}
 
 type failureContext struct {
 	slotContext
-	isPanic    bool
-	area       SlotPanicArea
-	canRecover bool
 	err        error
-	result     interface{}
 	action     ErrorHandlerAction
+	area       SlotPanicArea
+	isPanic    bool
+	canRecover bool
 }
 
-func (p *failureContext) GetDefaultTerminationResult() interface{} {
+func (p *failureContext) GetTerminationResult() interface{} {
 	p.ensure(updCtxFail)
 	return p.s.defResult
 }
 
 func (p *failureContext) SetTerminationResult(v interface{}) {
 	p.ensure(updCtxFail)
-	p.result = v
+	p.s.defResult = v
+}
+
+func (p *failureContext) UnsetFinalizer() {
+	p.ensure(updCtxFail)
+	p.s.defFinalize = nil
 }
 
 func (p *failureContext) GetError() error {
@@ -204,4 +208,38 @@ func (p *failureContext) executeFailure(fn ErrorHandlerFunc) (ok bool, result Er
 	err = p.err // ensure it will be included on panic
 	fn(p)
 	return true, p.action, err
+}
+
+/* ========================================================================= */
+
+var _ FinalizationContext = &finalizeContext{}
+
+type finalizeContext struct {
+	slotContext
+	err        error
+}
+
+func (p *finalizeContext) GetTerminationResult() interface{} {
+	p.ensure(updCtxFinalize)
+	return p.s.defResult
+}
+
+func (p *finalizeContext) SetTerminationResult(v interface{}) {
+	p.ensure(updCtxFinalize)
+	p.s.defResult = v
+}
+
+func (p *finalizeContext) GetError() error {
+	p.ensure(updCtxFinalize)
+	return p.err
+}
+
+func (p *finalizeContext) executeFinalize(fn FinalizeFunc) (err error) {
+	p.setMode(updCtxFinalize)
+	defer func() {
+		p.discardAndCapture("finalizer handler", recover(), &err, FinalizerArea)
+	}()
+	err = p.err // ensure it will be included on panic
+	fn(p)
+	return err
 }

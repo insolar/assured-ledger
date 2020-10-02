@@ -60,7 +60,7 @@ func (p ExecutionAdapter) PrepareNotify(ctx ExecutionContext, fn AdapterNotifyFu
 		executor: p.executor, mode: adapterAsyncCallContext}
 }
 
-func (p ExecutionAdapter) SendFailureNotify(ctx FailureExecutionContext, fn AdapterNotifyFunc) {
+func (p ExecutionAdapter) SendNotify(ctx LimitedExecutionContext, fn AdapterNotifyFunc) {
 	if fn == nil {
 		panic(throw.IllegalValue())
 	}
