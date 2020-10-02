@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/server"
@@ -29,6 +30,7 @@ import (
 )
 
 func TestController_PartialDistribute(t *testing.T) {
+	instestlogger.SetTestOutput(t)
 	var (
 		numVirtual        = 10
 		numLightMaterials = 0
