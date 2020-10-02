@@ -9,8 +9,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/network/pulsenetwork"
-	"github.com/insolar/assured-ledger/ledger-core/server/internal/cloud"
 	"github.com/insolar/assured-ledger/ledger-core/server/internal/headless"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/cloud"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -20,6 +20,19 @@ type Server interface {
 
 func NewNode(cfg configuration.Configuration) Server {
 	return insapp.New(cfg, appFactory)
+}
+
+func NewControlledMultiServer(controller cloud.Controller, configProvider insapp.ConfigurationProvider) *insapp.Server {
+	multiFn := func(provider insapp.ConfigurationProvider) ([]configuration.Configuration, insapp.NetworkInitFunc) {
+		conf := provider.(*CloudConfigurationProvider)
+		return conf.GetAppConfigs(), controller.NetworkInitFunc
+	}
+
+	return insapp.NewMulti(
+		configProvider,
+		appFactory,
+		multiFn,
+	)
 }
 
 func NewMultiServer(configProvider *CloudConfigurationProvider) Server {

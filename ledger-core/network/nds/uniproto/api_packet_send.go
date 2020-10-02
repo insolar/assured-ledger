@@ -38,7 +38,6 @@ type PacketTemplate struct {
 type PayloadSerializerFunc func(nwapi.SerializationContext, *Packet, *iokit.LimitedWriter) error
 type PacketSerializerFunc func() (template PacketTemplate, dataSize uint, dataFn PayloadSerializerFunc)
 
-
 // NewSendingPacket creates a to-be-sent packet. Param (encrypter) is only required when encryption is needed.
 func NewSendingPacket(signer cryptkit.DataSigner, encrypter cryptkit.Encrypter) *SendingPacket {
 	p := &SendingPacket{encrypter: encrypter}
@@ -132,7 +131,7 @@ func (p *SendingPacket) NewTransportFunc(dataSize uint, fn PayloadSerializerFunc
 		payloadSize := packetSize - n - p.GetSignatureSize()
 
 		isRepeated := false
-		return dataSize, func(t l1.BasicOutTransport) (canRetry bool, err error) {
+		return packetSize, func(t l1.BasicOutTransport) (canRetry bool, err error) {
 			if checkFn != nil && !checkFn() {
 				return false, nil
 			}
@@ -150,7 +149,7 @@ func (p *SendingPacket) NewTransportFunc(dataSize uint, fn PayloadSerializerFunc
 
 	payloadSize := packetSize - uint(len(preBuf)) - p.GetSignatureSize()
 
-	return dataSize, func(t l1.BasicOutTransport) (bool, error) {
+	return packetSize, func(t l1.BasicOutTransport) (bool, error) {
 		if checkFn != nil && !checkFn() {
 			return false, nil
 		}

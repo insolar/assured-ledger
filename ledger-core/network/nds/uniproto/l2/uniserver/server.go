@@ -257,9 +257,7 @@ func (p *UnifiedServer) receiveSessionless(local, remote nwapi.Address, b []byte
 func (p *UnifiedServer) connectSessionfulListen(local, remote nwapi.Address, conn io.ReadWriteCloser, w l1.OneWayTransport, err error) bool {
 	if !p.ptf.listen.IsActive() {
 		// can't accept incoming connections until listen initializer is finished
-		if conn != nil {
-			_ = conn.Close()
-		}
+		_ = conn.Close()
 		return true
 	}
 	return p.connectSessionful(local, remote, conn, w, err)

@@ -6,6 +6,7 @@
 package msgdelivery
 
 import (
+	"sync"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
@@ -35,7 +36,7 @@ type UnitProtoServer struct {
 	hostId     nwapi.HostID
 	service    Service
 	ingoing    nwapi.Address
-	outgoing   []nwapi.Address
+	outgoing   sync.Map
 	key        cryptkit.SigningKey
 	dispatcher *uniserver.Dispatcher
 	manager    *uniserver.PeerManager
@@ -65,7 +66,14 @@ func (h *UnitProtoServersHolder) createService(
 	config uniserver.ServerConfig,
 	receiverFn ReceiverFunc,
 ) (*UnitProtoServer, error) {
-	controller := NewController(Protocol, TestDeserializationFactory{}, receiverFn, nil, h.log)
+	return h.createServiceWithProfile(NewUnitProtoServerProfile(config), receiverFn)
+}
+
+func (h *UnitProtoServersHolder) createServiceWithProfile(
+	profile *UnitProtoServerProfile,
+	receiverFn ReceiverFunc,
+) (*UnitProtoServer, error) {
+	controller := NewController(Protocol, profile.getDesFactory(), receiverFn, profile.getResolverFn(), h.log)
 
 	var dispatcher uniserver.Dispatcher
 	dispatcher.SetMode(uniproto.AllowAll)
@@ -73,36 +81,56 @@ func (h *UnitProtoServersHolder) createService(
 	dispatcher.Seal()
 
 	srv := uniserver.NewUnifiedServer(&dispatcher, h.log)
-	srv.SetConfig(config)
+	srv.SetConfig(profile.getConfig())
 
 	// add self hostId mapping
 	hostId := nwapi.HostID(len(h.servers) + 1)
 	serv := &UnitProtoServer{
-		outgoing: make([]nwapi.Address, 0),
+		hostId:     hostId,
+		service:    controller.NewFacade(),
+		key:        newSkKey(),
+		dispatcher: &dispatcher,
 	}
+	h.servers = append(h.servers, serv)
 
 	peerFn := func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
 		reg := func(idx int, s *UnitProtoServer) (nwapi.Address, error) {
 			id := idx + 1
 			peer.SetNodeID(nwapi.ShortNodeID(id))
 			peer.SetSignatureKey(s.key)
+
 			return nwapi.NewHostID(nwapi.HostID(id)), nil
 		}
 
-		for idx, s := range h.servers {
-			for _, a := range s.outgoing {
-				if a == peer.GetPrimary() {
-					return reg(idx, s)
+		var addr *nwapi.Address
+
+	outer:
+		for {
+			for idx, s := range h.servers {
+				s.outgoing.Range(func(key, value interface{}) bool {
+					key0 := key.(nwapi.Address)
+					if key0 == peer.GetPrimary() {
+						add0, _ := reg(idx, s)
+						addr = &add0
+						return false
+					}
+					return true
+				})
+
+				if addr != nil {
+					break outer
 				}
-			}
-			if s.ingoing == peer.GetPrimary() {
-				return reg(idx, s)
+				if addr == nil {
+					if s.ingoing == peer.GetPrimary() {
+						add0, _ := reg(idx, s)
+						addr = &add0
+						break outer
+					}
+				}
 			}
 		}
 
-		peer.SetSignatureKey(newSkKey())
-
-		return nwapi.Address{}, nil
+		return *addr, nil
 	}
 
 	// provider for intercept outgoing connections
@@ -116,7 +144,7 @@ func (h *UnitProtoServersHolder) createService(
 					OutTransportFactory: factory,
 					regAddr: func(addr nwapi.Address) {
 						// save all outgoing addresses for future matching address -> hostId
-						serv.outgoing = append(serv.outgoing, addr)
+						serv.outgoing.Store(addr, nil)
 					},
 				}
 			})
@@ -138,7 +166,13 @@ func (h *UnitProtoServersHolder) createService(
 		return nil, err
 	}
 
+	serv.manager = manager
+	serv.ingoing = primaryAddr
+
 	for _, s := range h.servers {
+		if s == serv {
+			break
+		}
 		_, err = manager.Manager().ConnectPeer(s.manager.Local().GetPrimary())
 		if err != nil {
 			return nil, err
@@ -147,20 +181,8 @@ func (h *UnitProtoServersHolder) createService(
 		if err != nil {
 			return nil, err
 		}
-		_, err = s.manager.AddHostID(primaryAddr, hostId)
-		if err != nil {
-			return nil, err
-		}
 	}
 
-	serv.service = controller.NewFacade()
-	serv.key = newSkKey()
-	serv.dispatcher = &dispatcher
-	serv.manager = manager
-	serv.ingoing = primaryAddr
-	serv.hostId = hostId
-
-	h.servers = append(h.servers, serv)
 	return serv, nil
 }
 
@@ -186,4 +208,40 @@ func (r regAddrOutTransportFactory) ConnectTo(address nwapi.Address) (l1.OneWayT
 	}
 
 	return t, err
+}
+
+type UnitProtoServerProfile struct {
+	config       uniserver.ServerConfig
+	provider     uniserver.AllTransportProvider
+	desFactory   nwapi.DeserializationFactory
+	idWithPortFn func(nwapi.Address) bool
+	resolverFn   ResolverFunc
+}
+
+func NewUnitProtoServerProfile(config uniserver.ServerConfig) *UnitProtoServerProfile {
+	return &UnitProtoServerProfile{config: config}
+}
+
+func (p *UnitProtoServerProfile) getConfig() uniserver.ServerConfig {
+	return p.config
+}
+
+func (p *UnitProtoServerProfile) getProvider() uniserver.AllTransportProvider {
+	return p.provider
+}
+
+func (p *UnitProtoServerProfile) getDesFactory() nwapi.DeserializationFactory {
+	if p.desFactory != nil {
+		return p.desFactory
+	}
+
+	return &TestDeserializationFactory{}
+}
+
+func (p *UnitProtoServerProfile) getIdWithPortFn() func(nwapi.Address) bool {
+	return p.idWithPortFn
+}
+
+func (p *UnitProtoServerProfile) getResolverFn() ResolverFunc {
+	return p.resolverFn
 }

@@ -25,7 +25,9 @@ FROM debian:buster-slim
 WORKDIR /go/src/github.com/insolar/assured-ledger
 RUN  set -eux; \
      groupadd -r insolar --gid=999; \
-     useradd -r -g insolar --uid=999 --shell=/bin/bash insolar
+     useradd -r -g insolar --uid=999 --shell=/bin/bash insolar; \
+     apt-get update; \
+     apt-get install -y curl
 COPY --from=build /go/src/github.com/insolar/assured-ledger/application/api/spec/api-exported.yaml /app/api-exported.yaml
 
 COPY --from=build \
