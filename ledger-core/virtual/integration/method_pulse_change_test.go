@@ -598,7 +598,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			// VDelegatedRequestFinished
 			{
 				finished := rms.VDelegatedRequestFinished{
-					CallType:     rms.CallTypeMethod,
+					CallType:     rms.CallTypeConstructor,
 					CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 					Callee:       rms.NewReference(object),
 					CallOutgoing: rms.NewReference(outgoingP1),
