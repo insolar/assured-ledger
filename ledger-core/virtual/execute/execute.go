@@ -808,8 +808,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 }
 
 func (s *SMExecute) stepTranscribeOutgoingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
-
-	entries := []validation.TranscriptEntry{}
+	entries := make([]validation.TranscriptEntry, 0)
 	if !s.incomingAddedToTranscript {
 		entries = append(entries, s.incomingTranscriptEntry())
 	}
@@ -941,7 +940,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		panic(throw.IllegalValue())
 	}
 
-	tEntries := []validation.TranscriptEntry{}
+	tEntries := make([]validation.TranscriptEntry, 0)
 
 	if !s.incomingAddedToTranscript {
 		tEntries = append(tEntries, s.incomingTranscriptEntry())
@@ -975,6 +974,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 		state.Transcript.Add(tEntries...)
 		s.transcript.Add(tEntries...)
+		s.incomingAddedToTranscript = true
 	}
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
@@ -1124,7 +1124,7 @@ func MakeDescriptor(
 	}
 
 	objectRefBytes := object.AsBytes()
-	println("WTF: memory: ", hex.Dump(memory), " prev: ", prevStateIDBytes, " object ref: ", hex.Dump(objectRefBytes) )
+	println("WTF: memory: ", hex.Dump(memory), " prev: ", prevStateIDBytes, " object ref: ", hex.Dump(objectRefBytes))
 
 	stateHash := append(memory, objectRefBytes...)
 	stateHash = append(stateHash, prevStateIDBytes...)
