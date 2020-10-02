@@ -355,12 +355,6 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			utils.AssertVStateReport_ProvidedContentBodyEqual(t, content, report.ProvidedContent)
 			return false
 		})
-		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			assert.Equal(t, object, report.Object.GetValue())
-			assert.Equal(t, currPulse, report.AsOf)
-			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
-			return false
-		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
 			assert.Equal(t, object, request.Callee.GetValue())
 			assert.Zero(t, request.DelegationSpec)
@@ -386,6 +380,23 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
 			assert.Equal(t, object, finished.Callee.GetValue())
 			assert.NotEmpty(t, finished.DelegationSpec)
+
+			assert.NotEmpty(t, finished.PendingTranscript.Entries)
+			request, ok := finished.PendingTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
+			assert.True(t, ok)
+			assert.Equal(t, object, request.Request.Callee.GetValue())
+
+			result, ok := finished.PendingTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+			assert.True(t, ok)
+			assert.NotEmpty(t, result.ObjectState.GetValue())
+			assert.Equal(t, request.Request.CallOutgoing.GetValue(), result.Reason.GetValue())
+
+			if request.Request.CallFlags.GetInterference() == isolation.CallTolerable {
+				require.NotEmpty(t, finished.LatestState)
+				assert.Equal(t, []byte("new memory"), finished.LatestState.State.GetBytes())
+			} else {
+				assert.Empty(t, finished.LatestState)
+			}
 			return false
 		})
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
@@ -457,7 +468,6 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		require.Equal(t, 3, typedChecker.VDelegatedCallRequest.Count())
 		require.Equal(t, 3, typedChecker.VDelegatedRequestFinished.Count())
 		require.Equal(t, 3, typedChecker.VCallResult.Count())
-		assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 	}
 
 	mc.Finish()
