@@ -48,9 +48,9 @@ func (p *ParcelPacket) PreparePacket() (packet uniproto.PacketTemplate, dataSize
 	dataSize = uint(ShortShipmentIDByteSize)
 
 	switch p.ParcelType {
-	case nwapi.CompletePayload:
+	case nwapi.CompletePayload: // , nwapi.HeadOnlyPayload
 		//
-	case nwapi.HeadOnlyPayload:
+	case nwapi.PartialPayload:
 		if p.BodyScale == 0 {
 			panic(throw.IllegalState())
 		}
@@ -100,7 +100,7 @@ func (p *ParcelPacket) DeserializePayload(ctx nwapi.DeserializationContext, pack
 	pt := PacketType(packet.Header.GetPacketType())
 	switch pt {
 	case DeliveryParcelHead:
-		p.ParcelType = nwapi.HeadOnlyPayload
+		p.ParcelType = nwapi.PartialPayload
 	case DeliveryParcelComplete:
 		p.ParcelType = nwapi.CompletePayload
 	default:
