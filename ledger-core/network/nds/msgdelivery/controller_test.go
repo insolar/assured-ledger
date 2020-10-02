@@ -188,7 +188,7 @@ func TestShipToHeadAndBody(t *testing.T) {
 	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
 	defer h.stop()
 
-	payloadLen := 1024 * 64
+	payloadLen := 1024 * 1024 * 64
 	bytes := rndBytes(payloadLen)
 	head := TestString{string(bytes[:64])}
 	body := TestString{string(bytes)}
@@ -591,7 +591,7 @@ func TestRejectBody(t *testing.T) {
 	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
 	defer h.stop()
 
-	payloadLen := 1024 * 1024 * 512
+	payloadLen := 1024 * 512
 	bytes := rndBytes(payloadLen)
 	head := TestString{string(bytes[:64])}
 	body := TestString{string(bytes)}
