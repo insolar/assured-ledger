@@ -355,18 +355,15 @@ func (g *Base) discoveryMiddleware(handler network.RequestHandler) network.Reque
 	}
 }
 
-func (g *Base) hasCollision(shortId node.ShortNodeID) bool {
+func (g *Base) hasCollision(shortID node.ShortNodeID) bool {
 	na := g.NodeKeeper.FindAnyLatestNodeSnapshot()
-	if na == nil {
-		return shortId == g.localStatic.GetStaticNodeID()
+	if na != nil {
+		nodes := na.GetPopulation().GetProfiles()
+		if len(nodes) > 1 {
+			return network.CheckShortIDCollision(nodes, shortID)
+		}
 	}
-
-	nodes := na.GetPopulation().GetProfiles()
-	if len(nodes) > 1 {
-		return network.CheckShortIDCollision(nodes, shortId)
-	} else {
-		return shortId == g.localStatic.GetStaticNodeID()
-	}
+	return shortID == g.localStatic.GetStaticNodeID()
 }
 
 func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
