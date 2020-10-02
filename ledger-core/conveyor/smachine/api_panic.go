@@ -19,7 +19,8 @@ const (
 	_ SlotPanicArea = iota
 	InternalArea
 	ErrorHandlerArea
-	StateArea
+	FinalizerArea
+	StepArea
 	SubroutineArea
 	BargeInArea
 	AsyncCallArea
@@ -33,7 +34,7 @@ func (v SlotPanicArea) CanRecoverByHandler() bool {
 	return v.IsDetached()
 }
 
-func (v SlotPanicArea) CanRecoverBySubroutine() bool {
+func (v SlotPanicArea) CanRecoverBySubroutineExit() bool {
 	return v >= ErrorHandlerArea
 }
 

@@ -75,12 +75,12 @@ func (v Adapter) PrepareNotify(ctx smachine.ExecutionContext, callFn func(Servic
 	})
 }
 
-func (v Adapter) SendFailureNotify(ctx smachine.FailureExecutionContext, callFn func(Service)) {
+func (v Adapter) SendNotify(ctx smachine.LimitedExecutionContext, callFn func(Service)) {
 	if callFn == nil {
 		panic(throw.IllegalValue())
 	}
 
-	v.adapter.SendFailureNotify(ctx, func(context.Context, interface{}) {
+	v.adapter.SendNotify(ctx, func(context.Context, interface{}) {
 		callFn(v.service)
 	})
 }

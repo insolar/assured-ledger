@@ -41,9 +41,9 @@ func (s *StateMachine3) State0(ctx smachine.ExecutionContext) smachine.StateUpda
 
 func (s *StateMachine3) State1(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.count&1 == 1 {
-		ctx.SetDefaultTerminationResult(s.count)
+		ctx.SetTerminationResult(s.count)
 		return ctx.Stop()
 	}
-	//return ctx.Stop()
+	// return ctx.Stop()
 	panic("stop by panic")
 }

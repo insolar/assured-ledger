@@ -114,9 +114,9 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, worker
 						case level == 0:
 							break
 						case ms != nil:
-							slot._popTillSubroutine(ms.childMarker)
+							slot._popTillSubroutine(ms.childMarker, worker.asDetachable())
 						default:
-							slot._popTillSubroutine(subroutineMarker{})
+							slot._popTillSubroutine(subroutineMarker{}, worker.asDetachable())
 						}
 					case !m.applyStateUpdate(slot, stateUpdate, worker):
 						panic(throw.IllegalState())
