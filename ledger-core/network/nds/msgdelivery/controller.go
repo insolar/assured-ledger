@@ -151,7 +151,7 @@ func (p *Controller) pullBody(from ReturnAddress, rq ShipmentRequest) error {
 	case cycle > from.expires:
 		//
 	case !from.canPull:
-		// TODO maybe return error>>
+		// call ReceiveFn with nil value - as there is no body available
 	default:
 		return p.sendBodyRq(from, rq)
 	}
