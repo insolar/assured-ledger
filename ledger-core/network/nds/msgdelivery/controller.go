@@ -314,12 +314,13 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 	case nwapi.CompletePayload:
 		rq, ok := p.stater.RemoveRq(dPeer, payload.ParcelID)
 
-		if !ok && duplicate {
-			dPeer.addReject(payload.ParcelID)
+		switch {
+		case !ok:
+			if duplicate {
+				dPeer.addReject(payload.ParcelID)
+			}
 			return nil
-		}
-
-		if ok && !rq.isValid() {
+		case !rq.isValid():
 			dPeer.addReject(payload.ParcelID)
 			if fn := rq.requestRejectedFn(); fn != nil {
 				fn()
@@ -335,7 +336,7 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 		}
 		return receiveFn(retAddr, payload.ParcelType, payload.Data)
 	default:
-		return throw.NotImplemented()
+		return throw.Impossible()
 	}
 }
 
