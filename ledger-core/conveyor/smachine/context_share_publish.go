@@ -20,6 +20,7 @@ func (p *slotContext) ensureForShareData() {
 	switch {
 	case p.mode >= updCtxInit:
 	case p.mode == updCtxFail:
+	case p.mode == updCtxFinalize:
 	default:
 		panic(throw.IllegalState())
 	}

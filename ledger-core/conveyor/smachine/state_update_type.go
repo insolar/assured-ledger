@@ -6,7 +6,6 @@
 package smachine
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -53,10 +52,6 @@ func newPanicStateUpdate(err error) StateUpdate {
 	return StateUpdateTemplate{t: &stateUpdateTypes[stateUpdPanic]}.newError(err)
 }
 
-// func newSubroutineAbortStateUpdate(step SlotStep) StateUpdate {
-// 	return StateUpdateTemplate{t: &stateUpdateTypes[stateUpdSubroutineAbort]}.newStepOnly(step)
-// }
-
 func recoverSlotPanicAsUpdate(update StateUpdate, msg string, recovered interface{}, prev error, area SlotPanicArea) StateUpdate {
 	switch {
 	case recovered != nil:
@@ -78,12 +73,11 @@ type SlotUpdateShortLoopFunc func(slot *Slot, stateUpdate StateUpdate, loopCount
 type StateUpdateType struct {
 	updKind stateUpdKind
 
-	/* Runs within a valid ExecutionContext / detachable */
-	shortLoop SlotUpdateShortLoopFunc
-	/* Runs within a valid ExecutionContext / detachable */
+	/* Runs within a valid ExecutionContext and under detachable worker */
 	prepare SlotUpdatePrepareFunc
-
-	/* Runs inside the Machine / non-detachable */
+	/* Runs without a valid ExecutionContext and under detachable worker */
+	shortLoop SlotUpdateShortLoopFunc
+	/* Runs under non-detachable worker */
 	apply SlotUpdateFunc
 
 	varVerify func(interface{})
@@ -121,6 +115,7 @@ const (
 	updCtxAsyncCallback
 
 	updCtxConstruction
+	updCtxFinalize
 	updCtxSubrStart
 	updCtxInit
 	updCtxExec
@@ -197,7 +192,7 @@ func (v StateUpdateType) Prepare(slot *Slot, stateUpdate *StateUpdate) {
 
 func (v StateUpdateType) Apply(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
 	if v.apply == nil {
-		return false, errors.New("not implemented")
+		return false, throw.NotImplemented()
 	}
 	return v.apply(slot, stateUpdate, worker, v.stepDeclaration)
 }

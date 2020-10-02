@@ -23,15 +23,6 @@ func (p *contextTemplate) getMarker() ContextMarker {
 	// ContextMarker(unsafe.Pointer(p)) ^ atomicCounter.AddUint32(1) << 16
 }
 
-func (p *contextTemplate) ensureAndPrepare(s *Slot, stateUpdate StateUpdate) StateUpdate {
-	stateUpdate.ensureMarker(p.getMarker())
-
-	sut := typeOfStateUpdateForPrepare(p.mode, stateUpdate)
-	sut.Prepare(s, &stateUpdate)
-
-	return stateUpdate
-}
-
 func (p *contextTemplate) setMode(mode updCtxMode) {
 	if mode == updCtxInactive {
 		panic(throw.IllegalValue())
@@ -101,6 +92,15 @@ type slotContext struct {
 	w DetachableSlotWorker
 }
 
+func (p *slotContext) ensureAndPrepare(s *Slot, stateUpdate StateUpdate) StateUpdate {
+	stateUpdate.ensureMarker(p.getMarker())
+
+	sut := typeOfStateUpdateForPrepare(p.mode, stateUpdate)
+	sut.Prepare(s, &stateUpdate)
+
+	return stateUpdate
+}
+
 func (p *slotContext) clone(mode updCtxMode) slotContext {
 	p.ensureValid()
 	return slotContext{s: p.s, w: p.w, contextTemplate: contextTemplate{mode: mode}}
@@ -145,14 +145,19 @@ func (p *slotContext) SetDefaultFlags(flags StepFlags) {
 	}
 }
 
-func (p *slotContext) SetDefaultTerminationResult(v interface{}) {
+func (p *slotContext) SetTerminationResult(v interface{}) {
 	p.ensureAtLeast(updCtxInit)
 	p.s.defResult = v
 }
 
-func (p *slotContext) GetDefaultTerminationResult() interface{} {
+func (p *slotContext) GetTerminationResult() interface{} {
 	p.ensureAtLeast(updCtxInit)
 	return p.s.defResult
+}
+
+func (p *slotContext) SetFinalizer(fn FinalizeFunc) {
+	p.ensureAtLeast(updCtxInit)
+	p.s.defFinalize = fn
 }
 
 func (p *slotContext) OverrideDynamicBoost(boosted bool) {
@@ -247,7 +252,7 @@ func (p *slotContext) InitChildExt(fn CreateFunc, defValues CreateDefaultValues,
 }
 
 func (p *slotContext) _newChild(fn CreateFunc, postInitFn PostInitFunc, defValues CreateDefaultValues) SlotLink {
-	p.ensureAny2(updCtxExec, updCtxFail)
+	p.ensureAny3(updCtxExec, updCtxFail, updCtxFinalize)
 	if fn == nil {
 		panic("illegal value")
 	}
@@ -354,7 +359,7 @@ func (p *slotContext) CallBargeIn(b BargeIn) bool {
 func (p *slotContext) CallSubroutine(ssm SubroutineStateMachine, migrateFn MigrateFunc, exitFn SubroutineExitFunc) StateUpdate {
 	p.ensureAny2(updCtxExec, updCtxMigrate)
 	nextStep := p.s.prepareSubroutineStart(ssm, exitFn, migrateFn)
-	return p.template(stateUpdSubroutineStart).newStepOnly(nextStep)
+	return p.template(stateUpdSubroutineBegin).newStepOnly(nextStep)
 }
 
 func (p *slotContext) Check(link SyncLink) BoolDecision {
