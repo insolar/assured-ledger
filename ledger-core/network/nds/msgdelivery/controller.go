@@ -318,8 +318,8 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 		case !ok:
 			if duplicate {
 				dPeer.addReject(payload.ParcelID)
+				return nil
 			}
-			return nil
 		case !rq.isValid():
 			dPeer.addReject(payload.ParcelID)
 			if fn := rq.requestRejectedFn(); fn != nil {

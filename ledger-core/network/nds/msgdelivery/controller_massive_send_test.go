@@ -13,14 +13,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
-	"github.com/stretchr/testify/require"
 )
 
 func TestMassiveSend(t *testing.T) {
-	//TODO https://insolar.atlassian.net/browse/PLAT-826
+	// TODO https://insolar.atlassian.net/browse/PLAT-826
 	// workaround with set max value for case above
 	maxReceiveExceptions = math.MaxInt64
 	defer func() {
