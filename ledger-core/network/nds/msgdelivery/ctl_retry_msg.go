@@ -101,10 +101,7 @@ func (p *msgSender) CheckState(id retries.RetryID) retries.RetryState {
 }
 
 func (p *msgSender) get(shid ShipmentID) *msgShipment {
-	if msg := p.tracks.get(shid); msg != nil {
-		return msg
-	}
-	return nil
+	return p.tracks.get(shid)
 }
 
 func (p *msgSender) Remove(ids []retries.RetryID) {

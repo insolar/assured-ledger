@@ -10,12 +10,13 @@ import (
 	"io"
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-
-	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
 var _ cryptkit.DataSigner = TestDataSigner{}
@@ -208,11 +209,26 @@ func (TestDeserializationByteFactory) DeserializePayloadFrom(ctx nwapi.Deseriali
 
 /****************************************/
 
+var _ uniserver.MiniLogger = &TestLogAdapter{}
+
 type TestLogAdapter struct {
-	t testing.TB
+	t       testing.TB
+	stopped atomickit.Bool
 }
 
-func (t TestLogAdapter) LogError(err error) {
+func (t *TestLogAdapter) stop() {
+	t.stopped.CompareAndFlip(false)
+}
+
+func (t *TestLogAdapter) isStopped() bool {
+	return t.stopped.Load()
+}
+
+func (t *TestLogAdapter) LogError(err error) {
+	if t.isStopped() {
+		return
+	}
+
 	t.t.Helper()
 	msg := "error " + throw.ErrorWithStack(err)
 	if sv, ok := throw.GetSeverity(err); ok && sv.IsWarn() {
@@ -222,6 +238,6 @@ func (t TestLogAdapter) LogError(err error) {
 	}
 }
 
-func (t TestLogAdapter) LogTrace(m interface{}) {
+func (t *TestLogAdapter) LogTrace(m interface{}) {
 	t.t.Log(m)
 }

@@ -13,14 +13,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
-	"github.com/stretchr/testify/require"
 )
 
 func TestMassiveSend(t *testing.T) {
-	//TODO https://insolar.atlassian.net/browse/PLAT-826
+	// TODO https://insolar.atlassian.net/browse/PLAT-826
 	// workaround with set max value for case above
 	maxReceiveExceptions = math.MaxInt64
 	defer func() {
@@ -100,6 +101,19 @@ func TestMassiveSend(t *testing.T) {
 	}()
 
 	time.Sleep(time.Second * 10)
+
+	if received := totalCount.Load(); received > 0 {
+		t.Logf("Not all message received, sended:%d reseived:%d", numberShipments, received)
+		for i := 0; i < 10; {
+			t.Logf("Await iteration %d", i)
+			if totalCount.Load() > 0 {
+				time.Sleep(time.Second * 10)
+				i++
+			} else {
+				break
+			}
+		}
+	}
 
 	if n := totalCount.Load(); n > 0 {
 		sentMap.Range(func(key, value interface{}) bool {
