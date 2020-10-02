@@ -989,12 +989,6 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool { return false })
 	typedChecker.VStateReport.Set(func(res *rms.VStateReport) bool { return false })
-	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-		assert.Equal(t, objectGlobal, report.Object.GetValue())
-		assert.Equal(t, p, report.AsOf)
-		assert.Len(t, report.ObjectTranscript.Entries, 0)
-		return false
-	})
 	typedChecker.VStateRequest.Set(func(res *rms.VStateRequest) bool {
 		report := &rms.VStateReport{
 			Status:               rms.StateStatusReady,
@@ -1041,8 +1035,6 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, execDone)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-	require.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 
 	mc.Finish()
 }
@@ -1645,9 +1637,10 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 			return false
 		})
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			// todo: we should write VCallResult with 4-type error in transcript ?
 			assert.Equal(t, objectRef, report.Object.GetValue())
 			assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
-			assert.Len(t, report.ObjectTranscript.Entries, 0)
+			assert.NotEmpty(t, report.ObjectTranscript.Entries)
 			return false
 		})
 	}

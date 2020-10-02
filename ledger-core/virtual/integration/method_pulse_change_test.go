@@ -160,6 +160,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
 					assert.Equal(t, object, report.Object.GetValue())
 					assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
+					// todo: we should write VCallResult with 4-type error in transcript ?
 					// assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 					return false
 				})
