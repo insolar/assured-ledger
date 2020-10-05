@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package rms;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "github.com/insolar/assured-ledger/ledger-core/insproto/ins.proto";
+import "rms.proto";
+
+option (insproto.notation_all) = true;
+option (insproto.zeroable_all) = true;
+option (gogoproto.goproto_enum_prefix_all) = false;
+
+option (insproto.context_all) = "MessageVisitor";
+option (insproto.context_method_all) = "Visit";
+option (insproto.message_ctx_apply_all) = "Message";
+option (insproto.register_all) = "RegisterMessageType";
+option (insproto.projection_names) = "Head";
+
+option (gogoproto.goproto_getters_all) = true;
+option (gogoproto.equal_all) = true;
+
+enum CallType {
+	CallTypeInvalid = 0; // zero value in Go
+	CallTypeInboundAPI = 1;
+	CallTypeOutboundAPI = 2;
+	CallTypeMethod = 3;
+	CallTypeConstructor = 4;
+	CallTypeNotify = 5;
+	CallTypeSAGA = 6;
+	CallTypeParallel = 7;
+	CallTypeSchedule = 8;
+}
+
+message CallDelegationToken {
+	option (insproto.id) = 1010;
+
+	uint32 TokenTypeAndFlags = 20 [(gogoproto.casttype) = "CallDelegationTokenType"];
+	Reference Approver = 21;
+	Reference DelegateTo = 22;
+	uint32 PulseNumber = 23 [(gogoproto.casttype) = "PulseNumber"];
+	Reference Callee = 24;
+	Reference Caller = 25;
+	Reference Outgoing = 26;
+	Binary ApproverSignature = 27;
+}
+

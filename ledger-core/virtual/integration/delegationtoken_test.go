@@ -171,13 +171,20 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 				MeMock.Return(jetCaller).
 				QueryRoleMock.Return([]reference.Global{jetCaller}, nil)
 
-			pl := utils.GenerateVCallRequestConstructor(server)
+			var (
+				plWrapper = utils.GenerateVCallRequestConstructor(server)
+				pl        = plWrapper.Get()
+
+				outgoing = plWrapper.GetOutgoing()
+				caller   = pl.Caller.GetValue()
+				callee   = pl.Callee.GetValue()
+			)
 
 			var (
 				delegationToken rms.CallDelegationToken
 			)
 
-			delegationToken = server.DelegationToken(pl.CallOutgoing.GetValue(), pl.Caller.GetValue(), pl.Callee.GetValue())
+			delegationToken = server.DelegationToken(outgoing, caller, callee)
 			switch {
 			case test.fakeCaller:
 				delegationToken.Caller.Set(server.RandomGlobalWithPulse())
@@ -189,7 +196,7 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 
 			pl.DelegationSpec = delegationToken
 
-			server.SendPayload(ctx, pl)
+			server.SendPayload(ctx, &pl)
 			server.WaitIdleConveyor()
 
 			assert.True(t, errorFound)
@@ -428,7 +435,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 				assert.Equal(t, delegationToken.DelegateTo, expectedToken.DelegateTo)
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			typedChecker.VDelegatedCallResponse.Set(func(response *rms.VDelegatedCallResponse) bool {
 				assert.Equal(t, object, response.Callee.GetValue())
 				utils.AssertCallDelegationTokenEqual(t, &expectedToken, &response.ResponseDelegationSpec)

@@ -26,6 +26,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
@@ -201,6 +203,10 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 				suite.finishActivePending(ctx, reqName)
 			}
 
+			executeDone := synckit.ClosedChannel()
+			if len(test.start) != 0 {
+				executeDone = suite.server.Journal.WaitStopOf(&execute.SMExecute{}, len(test.start))
+			}
 			for _, tolerance := range test.start {
 				suite.startNewPending(ctx, t, tolerance)
 			}
@@ -212,6 +218,12 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 
 			suite.releaseNewlyCreatedPendings()
 			expectedPublished += len(test.start) * 2 // pending finished + result
+			expectedPublished += len(test.start) * 3 // register messages on lmn
+			for _, start := range test.start {
+				if start == isolation.CallIntolerable {
+					expectedPublished -= 1
+				}
+			}
 			suite.waitMessagePublications(ctx, t, expectedPublished)
 
 			// request state again
@@ -222,6 +234,9 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 			suite.addPayloadAndWaitIdle(ctx, &reportRequest)
 
 			expectedPublished++
+
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, suite.server.Journal.WaitAllAsyncCallsDone())
 			suite.waitMessagePublications(ctx, t, expectedPublished)
 		})
 	}
@@ -408,7 +423,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 	checks stateReportCheckPendingCountersAndPulsesTestChecks,
 ) {
 
-	typedChecker := s.server.PublisherMock.SetTypedChecker(ctx, s.mc, s.server)
+	typedChecker := s.server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, s.mc, s.server)
 	typedChecker.VStateReport.Set(func(rep *rms.VStateReport) bool {
 		assert.Equal(t, s.getPulse(4), rep.AsOf)
 		assert.Equal(t, s.getObject(), rep.Object.GetValue())
