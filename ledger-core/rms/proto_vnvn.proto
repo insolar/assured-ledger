@@ -290,6 +290,7 @@ message VCachedMemoryResponse {
     }
 
     Reference Object = 21;
+    Reference Class = 22;
     Reference StateID = 50;
     Status CallStatus = 51;
     Reference Node = 52;
@@ -344,7 +345,6 @@ message VObjectTranscriptReport {
 
     uint32 AsOf = 1800 [(gogoproto.casttype) = "PulseNumber"];
     Reference Object = 1801;
-    Reference Class = 1804;
 
     repeated Transcript PendingTranscripts = 1802;
 
@@ -354,7 +354,6 @@ message VObjectTranscriptReport {
 message VObjectValidationReport {
     option (insproto.id) = 1017;
     Reference Object = 21;
-    Reference Class = 22;
     uint32 In = 55 [(gogoproto.casttype) = "PulseNumber"];
     Reference Validated = 50;
 }

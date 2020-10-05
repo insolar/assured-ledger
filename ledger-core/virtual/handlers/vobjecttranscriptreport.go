@@ -148,7 +148,7 @@ func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) s
 
 func (s *SMVObjectTranscriptReport) stepGetMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	subSM := &statemachine.SMGetCachedMemory{
-		Object: s.object, State: s.objState.GetLocal(), Class: s.Payload.Class.GetValue(),
+		Object: s.object, State: s.objState.GetLocal(),
 	}
 	return ctx.CallSubroutine(subSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		if subSM.Result == nil {
@@ -380,7 +380,6 @@ func (s *SMVObjectTranscriptReport) stepAdvanceToNextRequest(ctx smachine.Execut
 func (s *SMVObjectTranscriptReport) stepSendValidationReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	msg := rms.VObjectValidationReport{
 		Object:    rms.NewReference(s.object),
-		Class:     rms.NewReference(s.Payload.Class.GetValue()),
 		In:        s.pulseSlot.PulseNumber(),
 		Validated: rms.NewReference(s.validatedState),
 	}

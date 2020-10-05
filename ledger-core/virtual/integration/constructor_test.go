@@ -896,13 +896,6 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 			assert.Zero(t, report.DelegationSpec)
 			return false
 		})
-		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			assert.Equal(t, objectRef, report.Object.GetValue())
-			assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), report.AsOf)
-			require.Len(t, report.ObjectTranscript.Entries, 0)
-
-			return false
-		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
 			assert.Equal(t, objectRef, request.Callee.GetValue())
 			assert.Equal(t, outgoing, request.CallOutgoing.GetValue())
@@ -990,7 +983,6 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	assert.Equal(t, 2, typedChecker.VDelegatedCallRequest.Count())
 	assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
-	assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 
 	mc.Finish()
 }

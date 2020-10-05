@@ -101,10 +101,15 @@ func (s *SMVCachedMemoryRequest) stepBuildResult(ctx smachine.ExecutionContext) 
 			CallStatus: rms.CachedMemoryStateUnknown,
 		}
 	} else {
+		class, err := s.object.Class()
+		if err != nil {
+			ctx.Log().Error("failed to get class", err)
+		}
 		s.response = &rms.VCachedMemoryResponse{
 			Object:     s.Payload.Object,
 			StateID:    s.Payload.StateID,
 			CallStatus: rms.CachedMemoryStateFound,
+			Class:      rms.NewReference(class),
 			// Node:        s.object.HeadRef(),
 			// PrevStateID: s.object.StateID(),
 			Inactive: s.object.Deactivated(),

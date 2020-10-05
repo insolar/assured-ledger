@@ -26,7 +26,7 @@ T01_S013 --> T01_S014 : [entry==nil]
 T01_S013 --> T01_S014 : [!ok]
 T01_S013 --> T01_S014 : [!headRef.Equal()]
 T01_S013 --> T01_S014 : [stateHash.Compare()!=0]
-T01_S013 --> T01_S014 : [!equal]
+T01_S013 --> T01_S014 : ![(...).ObjectState.GetValue().GetLocal().Equal()]
 T01_S013 --> T01_S015
 state "stepExecuteOutgoing" as T01_S011
 T01_S011 : SMVObjectTranscriptReport
