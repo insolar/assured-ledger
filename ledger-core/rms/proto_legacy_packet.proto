@@ -116,7 +116,7 @@ message Permit {
 message PermitPayload {
     bytes JoinerPublicKey = 1;
 	int64 ExpireTimestamp = 2;
-    bytes ReconnectTo = 3 [(gogoproto.customtype) = "LegacyHost"];
+    bytes ReconnectTo = 3 [(gogoproto.customtype) = "LegacyHost", (gogoproto.nullable) = false];
     Reference AuthorityNodeRef = 4 [(gogoproto.nullable) = false];
 }
 
