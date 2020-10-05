@@ -25,10 +25,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
@@ -46,11 +49,11 @@ func TestVDelegatedCallRequest(t *testing.T) {
 	slotMachine.PrepareMockedMessageSender(mc)
 
 	var (
-		caller    = slotMachine.GenerateGlobal()
-		callee    = slotMachine.GenerateGlobal()
-		outgoing  = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
-		objectRef = reference.NewSelf(outgoing.GetLocal())
-		tokenKey  = DelegationTokenAwaitKey{outgoing}
+		caller   = slotMachine.GenerateGlobal()
+		callee   = slotMachine.GenerateGlobal()
+		outgoing = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+		tokenKey = DelegationTokenAwaitKey{outgoing}
+		meRef    = gen.UniqueGlobalRef()
 
 		migrationPulse pulse.Number
 
@@ -63,6 +66,8 @@ func TestVDelegatedCallRequest(t *testing.T) {
 				Callee:       rms.NewReference(callee),
 			},
 		}
+
+		objectRef = testutils.GetObjectReference(smExecute.Payload, meRef)
 	)
 
 	{
@@ -96,11 +101,26 @@ func TestVDelegatedCallRequest(t *testing.T) {
 
 	slotMachine.MessageSender.SendRole.Set(
 		func(_ context.Context, msg rmsreg.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messageSender.SendOption) error {
-			res, ok := msg.(*rms.VDelegatedCallRequest)
-			require.True(t, ok)
-			require.NotNil(t, res)
-			require.Equal(t, objectRef, object)
-			require.Equal(t, migrationPulse, pn)
+			switch res := msg.(type) {
+			case *rms.VDelegatedCallRequest:
+				require.NotNil(t, res)
+				require.Equal(t, objectRef, object)
+				require.Equal(t, migrationPulse, pn)
+			case *rms.LRegisterRequest:
+				key := lmn.ResultAwaitKey{
+					AnticipatedRef: res.AnticipatedRef,
+					RequiredFlag:   rms.RegistrationFlags_Fast,
+				}
+
+				_, bargeIn := slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(key)
+				bargeIn.CallWithParam(&rms.LRegisterResponse{
+					Flags:              rms.RegistrationFlags_Fast,
+					AnticipatedRef:     res.AnticipatedRef,
+					RegistrarSignature: rms.NewBytes([]byte("dummy")),
+				})
+			default:
+				require.FailNow(t, "unreachable")
+			}
 			return nil
 		})
 
