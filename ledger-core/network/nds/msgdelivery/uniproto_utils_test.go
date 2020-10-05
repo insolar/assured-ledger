@@ -159,7 +159,7 @@ func (h *UnitProtoServersHolder) createServiceWithProfile(
 	srv.SetPeerFactory(peerFn)
 	srv.SetSignatureFactory(TestVerifierFactory{})
 
-	srv.StartListen()
+	uniserver.RetryStartListenForTests(srv, 3)
 	dispatcher.NextPulse(h.initialPulseNumber)
 
 	manager := srv.PeerManager()
