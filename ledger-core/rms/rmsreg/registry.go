@@ -30,9 +30,9 @@ func SetRegistry(r *TypeRegistry) {
 var unmarshalerType = reflect.TypeOf((*unmarshaler)(nil)).Elem()
 
 type TypeRegistry struct {
-	mutex     sync.RWMutex
-	commons   map[uint64]reflect.Type
-	specials  map[string]map[uint64]reflect.Type
+	mutex    sync.RWMutex
+	commons  map[uint64]reflect.Type
+	specials map[string]map[uint64]reflect.Type
 
 	digester  cryptkit.DataDigester
 	digesters map[uint64]cryptkit.DataDigester
@@ -204,6 +204,10 @@ func UnmarshalAs(b []byte, obj interface{}, skipFn UnknownCallbackFunc) error {
 }
 
 func UnmarshalAsType(b []byte, vType reflect.Type, skipFn UnknownCallbackFunc) (interface{}, error) {
+	if vType.Kind() == reflect.Ptr {
+		vType = vType.Elem()
+	}
+
 	obj := reflect.New(vType).Interface()
 	if err := UnmarshalAs(b, obj, skipFn); err != nil {
 		return nil, err
