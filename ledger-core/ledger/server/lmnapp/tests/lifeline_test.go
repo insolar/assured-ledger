@@ -32,7 +32,7 @@ type generatorNewLifeline struct {
 func (p *generatorNewLifeline) makeSet(reasonRef reference.Holder) inspectsvc.RegisterRequestSet {
 
 	rb, rootRec := p.recBuilder.MakeLineStart(&rms.RLifelineStart{
-		Str: strconv.Itoa(int(p.seqNo.Add(1))),
+		CallSiteMethod: strconv.Itoa(int(p.seqNo.Add(1))),
 	})
 	rootRec.OverrideRecordType = rms.TypeRLifelineStartPolymorphID
 	rootRec.OverrideReasonRef.Set(reasonRef)
