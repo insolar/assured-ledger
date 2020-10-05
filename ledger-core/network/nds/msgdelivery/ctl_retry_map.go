@@ -69,18 +69,25 @@ func (p *ttlMap) deleteAll(ids []retries.RetryID) {
 
 func (p *ttlMap) nextTTLCycle(currentCycle uint32) {
 	p.mutex.Lock()
-	defer p.mutex.Unlock()
 
 	p.ttl0 = p.ttl1
 	p.ttl1 = nil
-	if len(p.ttl0) > 16 {
-		p.ttl1 = make(map[ShipmentID]*msgShipment, len(p.ttl0)>>1)
+	if n := len(p.ttl0); n > 64 {
+		p.ttl1 = make(map[ShipmentID]*msgShipment, n>>1)
 	}
 
 	if len(p.ttlN) == 0 {
 		p.ttlN = nil
+		p.mutex.Unlock()
 		return
 	}
+
+	// this is to return from nextTTLCycle within a constant time
+	go p._nextTTLCycle(currentCycle)
+}
+
+func (p *ttlMap) _nextTTLCycle(currentCycle uint32) {
+	defer p.mutex.Unlock()
 
 	for id, msg := range p.ttlN {
 		switch {

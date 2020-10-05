@@ -7,7 +7,6 @@ package smachine
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -273,7 +272,7 @@ func (m *SlotMachine) stopPage(slotPage []Slot, w FixedSlotWorker) (isPageEmptyO
 
 		switch isEmpty, isStarted, _ := slot._tryStartSlot(1); {
 		case isEmpty:
-			//continue
+			// continue
 		case isStarted:
 			m.recycleSlot(slot, w)
 		default:
@@ -761,67 +760,14 @@ func (m *SlotMachine) applyStateUpdate(slot *Slot, stateUpdate StateUpdate, w Fi
 }
 
 func (m *SlotMachine) handleSlotUpdateError(slot *Slot, worker FixedSlotWorker, stateUpdate StateUpdate, isPanic bool, err error) bool {
-	canRecover := false
-	area := StateArea
-	var slotError SlotPanicError
-	if errors.As(err, &slotError) && slotError.Area != 0 {
-		area = slotError.Area
+	switch ok, wakeup, err := slot.handleError(worker.asDetachable(), stateUpdate, isPanic, err); {
+	case !ok:
+		m.recycleSlotWithError(slot, worker, err)
+		return false
+	case wakeup:
+		m.updateSlotQueue(slot, worker, activateSlot)
 	}
-
-	canRecover = area.CanRecoverByHandler()
-
-	eh := slot.getErrorHandler()
-	for repeated, ms := false, slot.stateStack; ; ms = ms.stateStack {
-		action := ErrorHandlerDefault
-		if eh != nil {
-			fc := failureContext{isPanic: isPanic, area: area, canRecover: canRecover, err: err, result: slot.defResult}
-
-			ok := false
-			if ok, action, err = fc.executeFailure(eh); ok {
-				// only change result on success of the handler
-				slot.defResult = fc.result
-			} else {
-				action = ErrorHandlerDefault
-			}
-		}
-
-		switch {
-		case !repeated:
-			switch action {
-			case ErrorHandlerRecover, ErrorHandlerRecoverAndWakeUp:
-				switch {
-				case !canRecover:
-					slot.logStepError(errorHandlerRecoverDenied, stateUpdate, area, err)
-				case action == ErrorHandlerRecoverAndWakeUp:
-					slot.activateSlot(worker)
-					fallthrough
-				default:
-					slot.logStepError(ErrorHandlerRecover, stateUpdate, area, err)
-					return true
-				}
-			case ErrorHandlerMute:
-				slot.logStepError(ErrorHandlerMute, stateUpdate, area, err)
-			default:
-				slot.logStepError(ErrorHandlerDefault, stateUpdate, area, err)
-			}
-
-			if slot.hasSubroutine() && area.CanRecoverBySubroutine() {
-				slot.prepareSubroutineExit(err)
-				m.updateSlotQueue(slot, worker, activateSlot)
-				return true
-			}
-		case action == ErrorHandlerRecover || action == ErrorHandlerRecoverAndWakeUp:
-			slot.logStepError(errorHandlerRecoverDenied, stateUpdate, area, err)
-		}
-		if ms == nil {
-			break
-		}
-		eh = ms.defErrorHandler
-		repeated = true
-	}
-
-	m.recycleSlotWithError(slot, worker, err)
-	return false
+	return true
 }
 
 func (m *SlotMachine) logCritical(link StepLink, msg string, err error) {

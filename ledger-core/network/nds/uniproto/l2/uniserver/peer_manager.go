@@ -49,6 +49,7 @@ type PeerManager struct {
 
 // PeerQuotaFactoryFunc is invoked to create a transfer rate quota for a peer. Quota applies to all connections of the peer. Can return nil.
 type PeerQuotaFactoryFunc = func([]nwapi.Address) ratelimiter.RWRateQuota
+
 // PeerMapperFunc is invoked after a new peer is registered to check if this peek has to be merged with another one.
 type PeerMapperFunc = func(*Peer) (remapTo nwapi.Address, err error)
 
@@ -140,7 +141,12 @@ func (p *PeerManager) HasAddress(a nwapi.Address) bool {
 func (p *PeerManager) Local() *Peer {
 	p.peerMutex.RLock()
 	defer p.peerMutex.RUnlock()
-	return p.peers.peers[0]
+
+	if len(p.peers.peers) > 0 {
+		return p.peers.peers[0]
+	}
+
+	return &Peer{}
 }
 
 // GetPrimary returns primary address of a peer registered with the given address or alias. Will return zero value when not found.
@@ -394,8 +400,8 @@ func (p *PeerManager) GetLocalDataDecrypter() (cryptkit.Decrypter, error) {
 
 func (p *PeerManager) Manager() uniproto.PeerManager {
 	return facadePeerManager{
-		peerManager:    p,
-		maxSmall:       uniproto.MaxNonExcessiveLength,
+		peerManager: p,
+		maxSmall:    uniproto.MaxNonExcessiveLength,
 	}
 }
 
@@ -404,8 +410,8 @@ func (p *PeerManager) Manager() uniproto.PeerManager {
 var _ uniproto.PeerManager = &facadePeerManager{}
 
 type facadePeerManager struct {
-	peerManager    *PeerManager
-	maxSmall       uint16
+	peerManager *PeerManager
+	maxSmall    uint16
 }
 
 func (v facadePeerManager) ConnectPeer(address nwapi.Address) (uniproto.Peer, error) {

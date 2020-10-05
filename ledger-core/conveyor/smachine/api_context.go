@@ -14,6 +14,7 @@ type InitFunc func(ctx InitializationContext) StateUpdate
 type StateFunc func(ctx ExecutionContext) StateUpdate
 type CreateFunc func(ctx ConstructionContext) StateMachine
 type MigrateFunc func(ctx MigrationContext) StateUpdate
+type FinalizeFunc func(ctx FinalizationContext)
 type PostInitFunc func()
 type AsyncResultFunc func(ctx AsyncResultContext)
 type ErrorHandlerFunc func(ctx FailureContext)
@@ -182,10 +183,14 @@ type InOrderStepContext interface {
 	SetDefaultErrorHandler(ErrorHandlerFunc)
 	// SetDefaultFlags sets default flags that are merged when SlotStep is set.
 	SetDefaultFlags(StepFlags)
-	// SetDefaultTerminationResult sets a default value to be passed to TerminationHandlerFunc when the slot stops.
-	SetDefaultTerminationResult(interface{})
-	// GetDefaultTerminationResult returns a value from the last SetDefaultTerminationResult().
-	GetDefaultTerminationResult() interface{}
+	// SetTerminationResult sets a default value to be passed to TerminationHandlerFunc when the slot stops.
+	SetTerminationResult(interface{})
+	// GetTerminationResult returns a value from the last SetDefaultTerminationResult().
+	GetTerminationResult() interface{}
+
+	// SetFinalizer sets a finalization handler. It will be applied on regular stop or on errors, but it won't be called on SlotMachine stop.
+	// NB! ErrorHandler is not applied to FinalizeFunc. FinalizeFunc is applied after ErrorHandler.
+	SetFinalizer(FinalizeFunc)
 
 	// OverrideDynamicBoost sets boost mark that provides higher priority on scheduling and sync queues. Overrides automatic boost.
 	OverrideDynamicBoost(bool)
@@ -368,7 +373,7 @@ const (
 type MigrationContext interface {
 	PostInitStepContext
 
-	/* AffectedStep is a step this SM is at during migration */
+	// AffectedStep is a step this SM is at during this migration. Will return zero value when the step belongs to a subroutine, not to this SM.
 	AffectedStep() SlotStep
 
 	// SkipMultipleMigrations indicates that multiple pending migrations can be skipped / do not need to be applied individually
@@ -439,8 +444,6 @@ type interruptContext interface {
 	// Log returns a slot logger for this context. It is only valid while this context is valid.
 	Log() Logger
 
-	AffectedStep() SlotStep
-
 	JumpExt(SlotStep) StateUpdate
 	Jump(StateFunc) StateUpdate
 	RestoreStep(SlotStep) StateUpdate
@@ -453,6 +456,9 @@ type interruptContext interface {
 
 type BargeInContext interface {
 	interruptContext
+
+	// AffectedStep is a step this SM is at during this barge-in. Will return zero value when the step belongs to a subroutine, not to this SM.
+	AffectedStep() SlotStep
 
 	// IsAtOriginalStep returns true when SM step wasn't change since barge-in creation
 	IsAtOriginalStep() bool
@@ -481,8 +487,8 @@ type SubroutineStartContext interface {
 	SetSubroutineCleanupMode(SubroutineCleanupMode)
 }
 
-var _ FailureExecutionContext = ExecutionContext(nil) // MUST be assignable
-type FailureExecutionContext interface {
+var _ LimitedExecutionContext = ExecutionContext(nil) // MUST be assignable
+type LimitedExecutionContext interface {
 	SharedStateContext
 	minimalSynchronizationContext
 
@@ -492,14 +498,25 @@ type FailureExecutionContext interface {
 	InitChild(CreateFunc) SlotLink
 }
 
-type FailureContext interface {
-	FailureExecutionContext
+type FinalizationContext interface {
+	LimitedExecutionContext
 
-	// AffectedStep is a step the slot is at
-	AffectedStep() SlotStep
+	// GetTerminationResult returns a last value set by SetTerminationResult()
+	GetTerminationResult() interface{}
 
-	// GetError returns a reason of the failure
+	// SetTerminationResult sets a value to be passed to TerminationHandlerFunc.
+	SetTerminationResult(interface{})
+
+	// GetError returns an error when finalization was caused by an error.
 	GetError() error
+}
+
+type FailureContext interface {
+	FinalizationContext
+
+	// UnsafeAffectedStep is a step the slot is at. Returns (_, false) when the step belongs to a subroutine, not to this SM.
+	// ATTENTION! A subroutine's step should only be used for diagnostic purpose.
+	UnsafeAffectedStep() (SlotStep, bool)
 
 	// IsPanic is false when the error was initiated by ctx.Error(). When true, then GetError() should be SlotPanicError
 	IsPanic() bool
@@ -511,14 +528,10 @@ type FailureContext interface {
 	// A panic inside async call / callback can be recovered.
 	CanRecover() bool
 
-	// GetDefaultTerminationResult returns a last value set by SetDefaultTerminationResult()
-	GetDefaultTerminationResult() interface{}
-
-	// SetTerminationResult sets a value to be passed to TerminationHandlerFunc.
-	// By default - termination result on error will be GetError()
-	SetTerminationResult(interface{})
-
 	// SetAction chooses an action to be applied.
 	// Recovery actions will be ignored when CanRecover() is false.
-	SetAction(action ErrorHandlerAction)
+	SetAction(ErrorHandlerAction)
+
+	// UnsetFinalizer is an equivalent InOrderStepContext.SetFinalizer(nil).
+	UnsetFinalizer()
 }

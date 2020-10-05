@@ -238,6 +238,10 @@ func (p LazyValue) UnmarshalAsType(vType reflect.Type, skipFn rmsreg.UnknownCall
 		return nil, nil
 	}
 
+	if vType.Kind() == reflect.Ptr {
+		vType = vType.Elem()
+	}
+
 	v := reflect.New(vType).Interface()
 	if err := p.unmarshalAsAny(v, skipFn); err != nil {
 		return nil, err
@@ -261,7 +265,7 @@ func (p LazyValue) UnmarshalCustom(registry *rmsreg.TypeRegistry, skipFn rmsreg.
 	switch {
 	case err != nil:
 	case !t.Implements(typeGoGoSerializable):
-		err = throw.E("incompatible with GoGoSerializable", struct { Type reflect.Type }{ t })
+		err = throw.E("incompatible with GoGoSerializable", struct{ Type reflect.Type }{t})
 
 	case t.Implements(typeBasicMessage):
 		payloads := RecordPayloads{}
@@ -313,10 +317,10 @@ func (p LazyValue) unmarshalAsAny(v interface{}, skipFn rmsreg.UnknownCallbackFu
 
 	// try to get polymorph id
 	if id, _, err2 := protokit.DecodePolymorphFromBytes(p.value, false); err2 == nil {
-		err = throw.WithDetails(err, struct{ ID uint64 }{id })
+		err = throw.WithDetails(err, struct{ ID uint64 }{id})
 	}
 
-	return throw.WithDetails(err, struct{ Type reflect.Type }{ reflect.TypeOf(v) })
+	return throw.WithDetails(err, struct{ Type reflect.Type }{reflect.TypeOf(v)})
 }
 
 func (p LazyValue) ProtoSize() int {
@@ -331,7 +335,7 @@ func (p LazyValue) MarshalToSizedBuffer(b []byte) (int, error) {
 	if len(b) < len(p.value) {
 		return 0, io.ErrShortBuffer
 	}
-	return copy(b[len(b) - len(p.value):], p.value), nil
+	return copy(b[len(b)-len(p.value):], p.value), nil
 }
 
 func (p LazyValue) MarshalText() ([]byte, error) {

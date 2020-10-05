@@ -122,7 +122,7 @@ func (p *executionContext) UseShared(a SharedDataAccessor) SharedAccessReport {
 func (p *executionContext) executeNextStep() (stateUpdate StateUpdate, sut StateUpdateType, asyncCallCount uint16) {
 	p.setMode(updCtxExec)
 	defer func() {
-		stateUpdate = p.discardAndUpdate("execution", recover(), stateUpdate, StateArea)
+		stateUpdate = p.discardAndUpdate("execution", recover(), stateUpdate, StepArea)
 	}()
 
 	current := p.s.step
