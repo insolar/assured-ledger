@@ -11,6 +11,7 @@ import (
 	"io"
 	"math"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -196,13 +197,17 @@ func (p *UnifiedServer) StartNoListen() {
 }
 
 func (p *UnifiedServer) StartListen() {
+	if err := p.TryStartListen(); err != nil {
+		panic(err)
+	}
+}
+
+func (p *UnifiedServer) TryStartListen() error {
 	if !p.ptf.HasTransports() {
 		p.StartNoListen()
 	}
 
-	if err := p.ptf.Listen(); err != nil {
-		panic(err)
-	}
+	return p.ptf.Listen()
 }
 
 func (p *UnifiedServer) PeerManager() *PeerManager {
@@ -314,4 +319,19 @@ func (p *DefaultTransportProvider) CreateSessionfulProvider(binding nwapi.Addres
 		return l1.NewTLS(binding, preference, tlsCfg)
 	}
 	return l1.NewTCP(binding, preference)
+}
+
+func RetryStartListenForTests(p *UnifiedServer, retryCount int) {
+	for i := 0;; i++ {
+		switch err := p.TryStartListen(); {
+		case err == nil:
+			return
+		case strings.Contains(err.Error(), "An attempt was made to access a socket in a way forbidden by its access permissions"):
+			if i > retryCount {
+				panic(err)
+			}
+		default:
+			panic(err)
+		}
+	}
 }

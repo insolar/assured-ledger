@@ -74,38 +74,52 @@ func (p *peerTransportFactory) HasTransports() bool {
 	return p.udpProvider != nil && p.tcpProvider != nil
 }
 
-func (p *peerTransportFactory) Listen() (err error) {
+func (p *peerTransportFactory) Listen() error {
 	switch {
 	case p.udpProvider == nil:
 		panic(throw.IllegalState())
 	case p.tcpProvider == nil:
 		panic(throw.IllegalState())
+	case p.listen.IsActive():
+		panic(throw.IllegalState())
 	}
 
-	if p.listen.DoStart(func() {
-		if max := p.udpProvider.MaxByteSize(); max < p.maxSessionlessSize {
-			p.maxSessionlessSize = max
+	if max := p.udpProvider.MaxByteSize(); max < p.maxSessionlessSize {
+		p.maxSessionlessSize = max
+	}
+
+	tcpListen, localAddr, err := p.tcpProvider.CreateListeningFactory(p.tcpIncomingFn)
+	if err != nil {
+		return err
+	}
+	var udpListen l1.OutTransportFactory
+
+	defer func() {
+		_ = iokit.SafeClose(tcpListen)
+		_ = iokit.SafeClose(udpListen)
+	}()
+
+	if p.updateLocalAddr == nil {
+		udpListen, _, err = p.udpProvider.CreateListeningFactory(p.udpIncomingFn)
+	} else {
+		udpListen, err = p.udpProvider.CreateListeningFactoryWithAddress(p.udpIncomingFn, localAddr)
+	}
+
+	if err != nil {
+		return err
+	}
+	if !p.listen.DoStart(func() {
+		if p.updateLocalAddr != nil {
+			p.updateLocalAddr(localAddr)
 		}
 
-		var localAddr nwapi.Address
-		if p.tcpListen, localAddr, err = p.tcpProvider.CreateListeningFactory(p.tcpIncomingFn); err != nil {
-			return
-		}
-
-		if p.updateLocalAddr == nil {
-			p.udpListen, _, err = p.udpProvider.CreateListeningFactory(p.udpIncomingFn)
-			return
-		}
-
-		p.updateLocalAddr(localAddr)
-
-		if p.udpListen, err = p.udpProvider.CreateListeningFactoryWithAddress(p.udpIncomingFn, localAddr); err != nil {
-			return
-		}
+		p.tcpListen = tcpListen
+		p.udpListen = udpListen
+		tcpListen, udpListen = nil, nil
 	}) {
-		return
+		panic(throw.IllegalState())
 	}
-	return throw.IllegalState()
+	return nil
 }
 
 func (p *peerTransportFactory) closeNotListen(err error) error {
