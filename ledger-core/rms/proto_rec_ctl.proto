@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package rms;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "github.com/insolar/assured-ledger/ledger-core/insproto/ins.proto";
+import "rms.proto";
+import "proto_records.proto";
+
+option (insproto.notation_all) = true;
+option (gogoproto.goproto_getters_all) = true;
+option (gogoproto.equal_all) = true;
+
+message RCtlPlashStart {
+    option (insproto.id) = 100;
+
+    reserved 1 to 39, 1792 to max;
+
+    uint32 Version = 40;
+    // pulse
+    // population
+    // jetTree?
+}
+
+message RCtlPlashSummary {
+    option (insproto.id) = 101;
+
+    reserved 1 to 39, 1792 to max;
+}
+
+message RCtlDropSummary {
+    option (insproto.id) = 102;
+
+    reserved 1 to 39, 1792 to max;
+
+    RCtlDropReport DropReport = 40;
+    Binary ReportProducerSignature = 41;
+
+    fixed64 FilToMklLoc = 44 [(gogoproto.casttype)="StorageLocator"]; // fixed size elements, []Digest
+    uint32  FilToMklSize = 45;
+    uint32  FilToMklCount = 46;
+}
+
+message RCtlSectionSummary {
+    option (insproto.id) = 104;
+
+    reserved 1 to 39, 1792 to max;
+
+    fixed64 RecToFilLoc = 40 [(gogoproto.casttype)="StorageLocator"]; // fixed size elements, []Ordinal
+    uint32  RecToFilSize = 41;
+    fixed64 FilToJetLoc = 42 [(gogoproto.casttype)="StorageLocator"]; // fixed size elements, []jet.ID
+    uint32  FilToJetSize = 43;
+}
+
+message RCtlFilamentUpdate {
+    option (insproto.id) = 105;
+
+    reserved 1 to 39, 1792 to max;
+
+    // Prev
+    // Root
+}
+
+message RCtlFilamentEntry {
+    reserved 1 to 18, 20 to 39, 1792 to max;
+    // LastKnownPN is an in-place MUTABLE field
+    fixed32 LastKnownPN = 19 [(gogoproto.casttype)="PulseNumber", (insproto.zeroable)=false];
+
+    RLineRecap LineRecap = 41;
+    Binary RecapProducerSignature = 42;
+
+    RStateReport LineReport = 43;
+    Binary ReportProducerSignature = 44;
+}
+
+message RCtlDropReport {
+    option (insproto.id) = 0;
+
+    fixed32 PulseNumber = 40 [(gogoproto.casttype)="PulseNumber"];
+    fixed64 JetLegID = 41 [(gogoproto.casttype)="JetLegID"];
+    Binary MerkleRoot = 42;
+
+    fixed32 PrevPulseNumber = 50 [(gogoproto.casttype)="PulseNumber"];
+    fixed64 PrevJetLegID = 51 [(gogoproto.casttype)="JetLegID"];
+    Binary PrevMerkleRoot = 52;
+
+    // pulse
+    // population
+    Reference ProducedBy = 60;
+
+    // TODO DelegationToken
+}
+
+message RStateReport {
+    option (insproto.id) = 0;
+    // partial (ledger-only) version of VStateReport
+}

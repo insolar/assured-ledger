@@ -81,11 +81,6 @@ message RunnableState {
     Reference ProofRef = 23; // for Validated and Finalized levels
 }
 
-message RPrevDropReport {
-    option (insproto.id) = 0;
-    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
-}
-
 message RLineActivate {
     option (insproto.id) = 20;
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
@@ -161,4 +156,3 @@ message ROutboundRequest {
     // Add custom fields here
     string Str = 40;
 }
-
