@@ -227,6 +227,13 @@ func (v StateUpdateTemplate) newNoArg() StateUpdate {
 
 type StepPrepareFunc func()
 
+func (v StateUpdateTemplate) newNonNilStep(slotStep SlotStep) StateUpdate {
+	if slotStep.Transition == nil {
+		panic(throw.IllegalValue())
+	}
+	return v.newStep(slotStep, nil)
+}
+
 func (v StateUpdateTemplate) newStep(slotStep SlotStep, prepare StepPrepareFunc) StateUpdate {
 	v.ensureTemplate(updParamStep | updParamVar)
 	return StateUpdate{

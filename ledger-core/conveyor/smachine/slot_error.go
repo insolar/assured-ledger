@@ -17,10 +17,16 @@ func (s *Slot) handleError(worker DetachableSlotWorker, stateUpdate StateUpdate,
 		area = slotError.Area
 	}
 
-	for {
+	for isCallerSM := false; ; isCallerSM = true {
 		action := ErrorHandlerDefault
 		if eh := s.getErrorHandler(); eh != nil {
-			fc := failureContext{isPanic: isPanic, area: area, canRecover: area.CanRecoverByHandler(), err: err}
+			fc := failureContext{
+				isPanic: isPanic,
+				canRecover: area.CanRecoverByHandler(),
+				area: area,
+				err: err,
+				callerSM: isCallerSM,
+			}
 
 			ok := false
 			if ok, action, err = fc.executeFailure(eh); !ok {
