@@ -373,7 +373,7 @@ const (
 type MigrationContext interface {
 	PostInitStepContext
 
-	/* AffectedStep is a step this SM is at during migration */
+	// AffectedStep is a step this SM is at during this migration. Will return zero value when the step belongs to a subroutine, not to this SM.
 	AffectedStep() SlotStep
 
 	// SkipMultipleMigrations indicates that multiple pending migrations can be skipped / do not need to be applied individually
@@ -444,8 +444,6 @@ type interruptContext interface {
 	// Log returns a slot logger for this context. It is only valid while this context is valid.
 	Log() Logger
 
-	AffectedStep() SlotStep
-
 	JumpExt(SlotStep) StateUpdate
 	Jump(StateFunc) StateUpdate
 	RestoreStep(SlotStep) StateUpdate
@@ -458,6 +456,9 @@ type interruptContext interface {
 
 type BargeInContext interface {
 	interruptContext
+
+	// AffectedStep is a step this SM is at during this barge-in. Will return zero value when the step belongs to a subroutine, not to this SM.
+	AffectedStep() SlotStep
 
 	// IsAtOriginalStep returns true when SM step wasn't change since barge-in creation
 	IsAtOriginalStep() bool
@@ -513,8 +514,9 @@ type FinalizationContext interface {
 type FailureContext interface {
 	FinalizationContext
 
-	// AffectedStep is a step the slot is at
-	AffectedStep() SlotStep
+	// UnsafeAffectedStep is a step the slot is at. Returns (_, false) when the step belongs to a subroutine, not to this SM.
+	// ATTENTION! A subroutine's step should only be used for diagnostic purpose.
+	UnsafeAffectedStep() (SlotStep, bool)
 
 	// IsPanic is false when the error was initiated by ctx.Error(). When true, then GetError() should be SlotPanicError
 	IsPanic() bool
