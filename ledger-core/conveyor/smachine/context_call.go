@@ -307,12 +307,23 @@ func (c *adapterNotifyRequest) DelayedSend() CallConditionalBuilder {
 
 // WARNING! can be called OUTSIDE of context validity (for DelayedSend)
 func (c *adapterNotifyRequest) _startAsync() {
-	if c.isLogging {
-		logger, _ := c.ctx._newLoggerAsync()
-		logger.adapterCall(StepLoggerAdapterNotifyCall, c.adapterID, 0, nil)
-	}
+	c.SendFunc()()
+}
+
+func (c *adapterNotifyRequest) SendFunc() func() {
 	goCtx := c.ctx._getLoggerCtx()
-	c.executor.SendNotify(goCtx, c.fn)
+	if !c.isLogging {
+		return func() {
+			c.executor.SendNotify(goCtx, c.fn)
+		}
+	}
+
+	logger, _ := c.ctx._newLoggerAsync()
+
+	return func() {
+		logger.adapterCall(StepLoggerAdapterNotifyCall, c.adapterID, 0, nil)
+		c.executor.SendNotify(goCtx, c.fn)
+	}
 }
 
 /* ============================================================== */
