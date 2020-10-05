@@ -6,10 +6,9 @@
 package msgdelivery
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/msgdelivery/retries"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-
-	"github.com/insolar/assured-ledger/ledger-core/network/nds/msgdelivery/retries"
 )
 
 func newRetryRqWorker(sender *stateSender, parallel, postponed int) *retryRqWorker {
@@ -114,7 +113,11 @@ func (p *retryRqWorker) processRq(rq rqShipment, repeatFn func(retries.RetryID))
 
 func (p *retryRqWorker) pushPostponed(rq rqShipment, repeatFn func(retries.RetryID)) {
 	if prev := p.postponed[p.write]; !prev.rq.isEmpty() {
-		p.sender.RemoveByID(prev.rq.id)
+		if prev.repeatFn != nil {
+			prev.repeatFn(retries.RetryID(prev.rq.id))
+		} else {
+			p.sender.RemoveByID(prev.rq.id)
+		}
 	}
 	p.postponed[p.write] = postponedRq{rq, repeatFn}
 	if p.write++; p.write >= int32(len(p.postponed)) {
