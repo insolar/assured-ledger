@@ -170,7 +170,7 @@ func (p *slotContext) OverrideDynamicBoost(boosted bool) {
 }
 
 func (p *slotContext) JumpExt(step SlotStep) StateUpdate {
-	return p.template(stateUpdNext).newStep(step, nil)
+	return p.template(stateUpdNext).newNonNilStep(step)
 }
 
 func (p *slotContext) RestoreStep(step SlotStep) StateUpdate {
@@ -178,7 +178,7 @@ func (p *slotContext) RestoreStep(step SlotStep) StateUpdate {
 }
 
 func (p *slotContext) Jump(fn StateFunc) StateUpdate {
-	return p.template(stateUpdNext).newStep(SlotStep{Transition: fn}, nil)
+	return p.template(stateUpdNext).newNonNilStep(SlotStep{Transition: fn})
 }
 
 func (p *slotContext) Stop() StateUpdate {
@@ -210,8 +210,11 @@ func (p *slotContext) WakeUp() StateUpdate {
 	return p.template(stateUpdWakeup).newNoArg()
 }
 
-func (p *slotContext) AffectedStep() SlotStep {
-	p.ensureAny3(updCtxMigrate, updCtxBargeIn, updCtxFail)
+func (p *slotContext) affectedStep(blockedBySubr bool) SlotStep {
+	if blockedBySubr {
+		return SlotStep{}
+	}
+
 	r := p.s.step
 	r.Flags |= StepResetAllFlags
 

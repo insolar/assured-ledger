@@ -230,13 +230,13 @@ func (m *SlotMachine) executeBargeIn(link StepLink, worker DetachableSlotWorker,
 }
 
 func (v BargeInWithParam) _execute(slot *Slot, w DetachableSlotWorker, resultFn BargeInCallbackFunc) StateUpdate {
-	_, isValid := slot.checkSubroutineMarker(v.marker)
+	isCurrent, isValid := slot.checkSubroutineMarker(v.marker)
 	if !isValid {
 		return StateUpdate{}
 	}
 
 	_, atExactStep := v.link.isValidAndAtExactStep()
-	bc := bargingInContext{slotContext{s: slot, w: w}, atExactStep}
+	bc := bargingInContext{slotContext{s: slot, w: w}, atExactStep, !isCurrent}
 	stateUpdate := bc.executeBargeIn(resultFn)
 
 	return slot.forceSubroutineUpdate(stateUpdate, v.marker, w)
@@ -261,7 +261,7 @@ func (m *SlotMachine) executeBargeInDirect(link StepLink, fn BargeInCallbackFunc
 	slot.touchAfterInactive()
 
 	_, atExactStep := link.isValidAndAtExactStep()
-	bc := bargingInContext{slotContext{s: slot, w: worker.asDetachable()}, atExactStep}
+	bc := bargingInContext{slotContext{s: slot, w: worker.asDetachable()}, atExactStep, slot.hasSubroutine()}
 	stateUpdate := bc.executeBargeInDirect(fn)
 	stateUpdate = slot.forceTopSubroutineUpdate(stateUpdate, bc.w)
 	needsStop = false

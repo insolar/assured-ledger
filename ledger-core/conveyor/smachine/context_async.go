@@ -46,6 +46,12 @@ var _ BargeInContext = &bargingInContext{}
 type bargingInContext struct {
 	slotContext
 	atOriginal bool
+	callerSM bool
+}
+
+func (p *bargingInContext) AffectedStep() SlotStep {
+	p.ensure(updCtxBargeIn)
+	return p.affectedStep(p.callerSM)
 }
 
 func (p *bargingInContext) IsAtOriginalStep() bool {

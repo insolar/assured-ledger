@@ -130,6 +130,12 @@ type migrationContext struct {
 	slotContext
 	fixedWorker  FixedSlotWorker
 	skipMultiple bool
+	callerSM     bool
+}
+
+func (p *migrationContext) AffectedStep() SlotStep {
+	p.ensure(updCtxMigrate)
+	return p.affectedStep(p.callerSM)
 }
 
 func (p *migrationContext) SkipMultipleMigrations() {
@@ -158,6 +164,12 @@ type failureContext struct {
 	area       SlotPanicArea
 	isPanic    bool
 	canRecover bool
+	callerSM   bool
+}
+
+func (p *failureContext) UnsafeAffectedStep() (SlotStep, bool) {
+	p.ensure(updCtxFail)
+	return p.affectedStep(false), !p.callerSM
 }
 
 func (p *failureContext) GetTerminationResult() interface{} {
