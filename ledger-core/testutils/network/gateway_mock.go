@@ -26,12 +26,6 @@ type GatewayMock struct {
 	beforeAutherCounter uint64
 	AutherMock          mGatewayMockAuther
 
-	funcBeforeRun          func(ctx context.Context, d1 pulse.Data)
-	inspectFuncBeforeRun   func(ctx context.Context, d1 pulse.Data)
-	afterBeforeRunCounter  uint64
-	beforeBeforeRunCounter uint64
-	BeforeRunMock          mGatewayMockBeforeRun
-
 	funcBootstrapper          func() (b1 mm_network.Bootstrapper)
 	inspectFuncBootstrapper   func()
 	afterBootstrapperCounter  uint64
@@ -107,9 +101,6 @@ func NewGatewayMock(t minimock.Tester) *GatewayMock {
 	}
 
 	m.AutherMock = mGatewayMockAuther{mock: m}
-
-	m.BeforeRunMock = mGatewayMockBeforeRun{mock: m}
-	m.BeforeRunMock.callArgs = []*GatewayMockBeforeRunParams{}
 
 	m.BootstrapperMock = mGatewayMockBootstrapper{mock: m}
 
@@ -284,194 +275,6 @@ func (m *GatewayMock) MinimockAutherInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAuther != nil && mm_atomic.LoadUint64(&m.afterAutherCounter) < 1 {
 		m.t.Error("Expected call to GatewayMock.Auther")
-	}
-}
-
-type mGatewayMockBeforeRun struct {
-	mock               *GatewayMock
-	defaultExpectation *GatewayMockBeforeRunExpectation
-	expectations       []*GatewayMockBeforeRunExpectation
-
-	callArgs []*GatewayMockBeforeRunParams
-	mutex    sync.RWMutex
-}
-
-// GatewayMockBeforeRunExpectation specifies expectation struct of the Gateway.BeforeRun
-type GatewayMockBeforeRunExpectation struct {
-	mock   *GatewayMock
-	params *GatewayMockBeforeRunParams
-
-	Counter uint64
-}
-
-// GatewayMockBeforeRunParams contains parameters of the Gateway.BeforeRun
-type GatewayMockBeforeRunParams struct {
-	ctx context.Context
-	d1  pulse.Data
-}
-
-// Expect sets up expected params for Gateway.BeforeRun
-func (mmBeforeRun *mGatewayMockBeforeRun) Expect(ctx context.Context, d1 pulse.Data) *mGatewayMockBeforeRun {
-	if mmBeforeRun.mock.funcBeforeRun != nil {
-		mmBeforeRun.mock.t.Fatalf("GatewayMock.BeforeRun mock is already set by Set")
-	}
-
-	if mmBeforeRun.defaultExpectation == nil {
-		mmBeforeRun.defaultExpectation = &GatewayMockBeforeRunExpectation{}
-	}
-
-	mmBeforeRun.defaultExpectation.params = &GatewayMockBeforeRunParams{ctx, d1}
-	for _, e := range mmBeforeRun.expectations {
-		if minimock.Equal(e.params, mmBeforeRun.defaultExpectation.params) {
-			mmBeforeRun.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmBeforeRun.defaultExpectation.params)
-		}
-	}
-
-	return mmBeforeRun
-}
-
-// Inspect accepts an inspector function that has same arguments as the Gateway.BeforeRun
-func (mmBeforeRun *mGatewayMockBeforeRun) Inspect(f func(ctx context.Context, d1 pulse.Data)) *mGatewayMockBeforeRun {
-	if mmBeforeRun.mock.inspectFuncBeforeRun != nil {
-		mmBeforeRun.mock.t.Fatalf("Inspect function is already set for GatewayMock.BeforeRun")
-	}
-
-	mmBeforeRun.mock.inspectFuncBeforeRun = f
-
-	return mmBeforeRun
-}
-
-// Return sets up results that will be returned by Gateway.BeforeRun
-func (mmBeforeRun *mGatewayMockBeforeRun) Return() *GatewayMock {
-	if mmBeforeRun.mock.funcBeforeRun != nil {
-		mmBeforeRun.mock.t.Fatalf("GatewayMock.BeforeRun mock is already set by Set")
-	}
-
-	if mmBeforeRun.defaultExpectation == nil {
-		mmBeforeRun.defaultExpectation = &GatewayMockBeforeRunExpectation{mock: mmBeforeRun.mock}
-	}
-
-	return mmBeforeRun.mock
-}
-
-//Set uses given function f to mock the Gateway.BeforeRun method
-func (mmBeforeRun *mGatewayMockBeforeRun) Set(f func(ctx context.Context, d1 pulse.Data)) *GatewayMock {
-	if mmBeforeRun.defaultExpectation != nil {
-		mmBeforeRun.mock.t.Fatalf("Default expectation is already set for the Gateway.BeforeRun method")
-	}
-
-	if len(mmBeforeRun.expectations) > 0 {
-		mmBeforeRun.mock.t.Fatalf("Some expectations are already set for the Gateway.BeforeRun method")
-	}
-
-	mmBeforeRun.mock.funcBeforeRun = f
-	return mmBeforeRun.mock
-}
-
-// BeforeRun implements network.Gateway
-func (mmBeforeRun *GatewayMock) BeforeRun(ctx context.Context, d1 pulse.Data) {
-	mm_atomic.AddUint64(&mmBeforeRun.beforeBeforeRunCounter, 1)
-	defer mm_atomic.AddUint64(&mmBeforeRun.afterBeforeRunCounter, 1)
-
-	if mmBeforeRun.inspectFuncBeforeRun != nil {
-		mmBeforeRun.inspectFuncBeforeRun(ctx, d1)
-	}
-
-	mm_params := &GatewayMockBeforeRunParams{ctx, d1}
-
-	// Record call args
-	mmBeforeRun.BeforeRunMock.mutex.Lock()
-	mmBeforeRun.BeforeRunMock.callArgs = append(mmBeforeRun.BeforeRunMock.callArgs, mm_params)
-	mmBeforeRun.BeforeRunMock.mutex.Unlock()
-
-	for _, e := range mmBeforeRun.BeforeRunMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return
-		}
-	}
-
-	if mmBeforeRun.BeforeRunMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmBeforeRun.BeforeRunMock.defaultExpectation.Counter, 1)
-		mm_want := mmBeforeRun.BeforeRunMock.defaultExpectation.params
-		mm_got := GatewayMockBeforeRunParams{ctx, d1}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmBeforeRun.t.Errorf("GatewayMock.BeforeRun got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		return
-
-	}
-	if mmBeforeRun.funcBeforeRun != nil {
-		mmBeforeRun.funcBeforeRun(ctx, d1)
-		return
-	}
-	mmBeforeRun.t.Fatalf("Unexpected call to GatewayMock.BeforeRun. %v %v", ctx, d1)
-
-}
-
-// BeforeRunAfterCounter returns a count of finished GatewayMock.BeforeRun invocations
-func (mmBeforeRun *GatewayMock) BeforeRunAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmBeforeRun.afterBeforeRunCounter)
-}
-
-// BeforeRunBeforeCounter returns a count of GatewayMock.BeforeRun invocations
-func (mmBeforeRun *GatewayMock) BeforeRunBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmBeforeRun.beforeBeforeRunCounter)
-}
-
-// Calls returns a list of arguments used in each call to GatewayMock.BeforeRun.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmBeforeRun *mGatewayMockBeforeRun) Calls() []*GatewayMockBeforeRunParams {
-	mmBeforeRun.mutex.RLock()
-
-	argCopy := make([]*GatewayMockBeforeRunParams, len(mmBeforeRun.callArgs))
-	copy(argCopy, mmBeforeRun.callArgs)
-
-	mmBeforeRun.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockBeforeRunDone returns true if the count of the BeforeRun invocations corresponds
-// the number of defined expectations
-func (m *GatewayMock) MinimockBeforeRunDone() bool {
-	for _, e := range m.BeforeRunMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.BeforeRunMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterBeforeRunCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcBeforeRun != nil && mm_atomic.LoadUint64(&m.afterBeforeRunCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockBeforeRunInspect logs each unmet expectation
-func (m *GatewayMock) MinimockBeforeRunInspect() {
-	for _, e := range m.BeforeRunMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to GatewayMock.BeforeRun with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.BeforeRunMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterBeforeRunCounter) < 1 {
-		if m.BeforeRunMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to GatewayMock.BeforeRun")
-		} else {
-			m.t.Errorf("Expected call to GatewayMock.BeforeRun with params: %#v", *m.BeforeRunMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcBeforeRun != nil && mm_atomic.LoadUint64(&m.afterBeforeRunCounter) < 1 {
-		m.t.Error("Expected call to GatewayMock.BeforeRun")
 	}
 }
 
@@ -2459,8 +2262,6 @@ func (m *GatewayMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAutherInspect()
 
-		m.MinimockBeforeRunInspect()
-
 		m.MinimockBootstrapperInspect()
 
 		m.MinimockCancelNodeStateInspect()
@@ -2506,7 +2307,6 @@ func (m *GatewayMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAutherDone() &&
-		m.MinimockBeforeRunDone() &&
 		m.MinimockBootstrapperDone() &&
 		m.MinimockCancelNodeStateDone() &&
 		m.MinimockEphemeralModeDone() &&

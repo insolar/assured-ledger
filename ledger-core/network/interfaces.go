@@ -111,7 +111,6 @@ type Gatewayer interface {
 type Gateway interface {
 	NewGateway(context.Context, State) Gateway
 
-	BeforeRun(context.Context, pulse.Data)
 	Run(context.Context, pulse.Data)
 
 	GetState() State

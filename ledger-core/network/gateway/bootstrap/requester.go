@@ -47,8 +47,8 @@ func NewRequester(options *network.Options) Requester {
 }
 
 type requester struct {
-	HostNetwork         network.HostNetwork    `inject:""`
-	CryptographyService cryptography.Service   `inject:""`
+	HostNetwork         network.HostNetwork  `inject:""`
+	CryptographyService cryptography.Service `inject:""`
 
 	options *network.Options
 	retry   int
@@ -222,7 +222,7 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *rms.Permit, candidat
 		Permit:           permit,
 	}
 
-	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Bootstrap, req, permit.Payload.ReconnectTo)
+	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Bootstrap, req, &permit.Payload.ReconnectTo)
 	if err != nil {
 		return nil, throw.W(err, "Error sending Bootstrap request")
 	}
@@ -247,7 +247,7 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *rms.Permit, candidat
 	case rms.BootstrapResponseCode_Reject:
 		return respData, throw.New("Bootstrap request rejected")
 	case rms.BootstrapResponseCode_Retry:
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * 2)
 		ac.retry++
 		if ac.retry > bootstrapRetryCount {
 			ac.retry = 0
@@ -268,7 +268,7 @@ func (ac *requester) UpdateSchedule(ctx context.Context, permit *rms.Permit, pul
 		Permit:        permit,
 	}
 
-	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.UpdateSchedule, req, permit.Payload.ReconnectTo)
+	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.UpdateSchedule, req, &permit.Payload.ReconnectTo)
 	if err != nil {
 		return nil, throw.W(err, "Error sending UpdateSchedule request")
 	}
@@ -283,7 +283,7 @@ func (ac *requester) UpdateSchedule(ctx context.Context, permit *rms.Permit, pul
 
 func (ac *requester) Reconnect(ctx context.Context, h *legacyhost.Host, permit *rms.Permit) (*rms.ReconnectResponse, error) {
 	req := &rms.ReconnectRequest{
-		ReconnectTo: *permit.Payload.ReconnectTo,
+		ReconnectTo: permit.Payload.ReconnectTo,
 		Permit:      permit,
 	}
 
