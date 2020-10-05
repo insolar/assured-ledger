@@ -29,7 +29,7 @@ func TestInitViaCTMethod(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VStateRequest.Set(func(request *rms.VStateRequest) bool {
 		for _, flag := range []rms.StateRequestContentFlags{
 			rms.RequestLatestValidatedState,

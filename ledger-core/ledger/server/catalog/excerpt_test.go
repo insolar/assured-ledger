@@ -23,9 +23,9 @@ func TestExcerptTagSize(t *testing.T) {
 func TestExcerptReadFromLazy(t *testing.T) {
 	msg := rms.LRegisterRequest{}
 	rec := rms.ROutboundRequest{
-		PrevRef:    rms.NewReference(gen.UniqueGlobalRef()),
-		RootRef:    rms.NewReference(gen.UniqueGlobalRef()),
-		Str:        "abc",
+		PrevRef:        rms.NewReference(gen.UniqueGlobalRef()),
+		RootRef:        rms.NewReference(gen.UniqueGlobalRef()),
+		CallSiteMethod: "abc",
 	}
 	msg.Set(&rec)
 
@@ -54,16 +54,16 @@ func TestExcerptReadFromLazy(t *testing.T) {
 
 func TestExcerptReadPartial(t *testing.T) {
 	rec := rms.ROutboundRequest{
-		PrevRef:    rms.NewReference(gen.UniqueGlobalRef()),
-		RootRef:    rms.NewReference(gen.UniqueGlobalRef()),
-		Str:        "abc",
+		PrevRef:        rms.NewReference(gen.UniqueGlobalRef()),
+		RootRef:        rms.NewReference(gen.UniqueGlobalRef()),
+		CallSiteMethod: "abc",
 	}
 
 	b, err := rec.Marshal()
 	require.NoError(t, err)
 
 	// Make the last field broken
-	b = b[:len(b) - 1]
+	b = b[:len(b)-1]
 
 	// Ensure it is broken
 	_, _, err = rmsreg.Unmarshal(b)
@@ -80,4 +80,3 @@ func TestExcerptReadPartial(t *testing.T) {
 	require.True(t, excerpt.RedirectRef.IsEmpty())
 	require.True(t, excerpt.RecordBodyHash.IsEmpty())
 }
-
