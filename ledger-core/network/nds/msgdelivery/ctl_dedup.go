@@ -186,21 +186,27 @@ func (p *receiveDeduplicator) _addToReceivedAndTrim() {
 	}
 
 	p.minReceived++
-	if !p.hasReceived(p.minReceived) {
+
+	nextMin := p.minReceived + 1
+	if !p.hasReceived(nextMin) {
 		return
 	}
 
-	p.minReceived++
+	p.minReceived = nextMin
 	for {
 		delete(p.received, p.minReceived)
-		p.minReceived++
+		nextMin := p.minReceived + 1
+
 		switch {
-		case p.minReceived == p.maxReceived:
+		case nextMin == p.maxReceived:
+			p.minReceived = nextMin
 			p.received = nil
 			return
-		case !p.hasReceived(p.minReceived):
+		case !p.hasReceived(nextMin):
 			return
 		}
+
+		p.minReceived = nextMin
 	}
 }
 
