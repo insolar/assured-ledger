@@ -322,11 +322,14 @@ func (p *DefaultTransportProvider) CreateSessionfulProvider(binding nwapi.Addres
 }
 
 func RetryStartListenForTests(p *UnifiedServer, retryCount int) {
-	for i := 0; i < retryCount + 1; i++ {
+	for i := 0;; i++ {
 		switch err := p.TryStartListen(); {
 		case err == nil:
 			return
 		case strings.Contains(err.Error(), "An attempt was made to access a socket in a way forbidden by its access permissions"):
+			if i > retryCount {
+				panic(err)
+			}
 		default:
 			panic(err)
 		}
