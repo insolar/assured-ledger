@@ -142,6 +142,7 @@ func GenerateVCallRequestMethod(server *Server) *rms.VCallRequest {
 		CallSiteMethod: "Method",
 		CallSequence:   1,
 		CallOutgoing:   rms.NewReference(server.BuildRandomOutgoingWithPulse()),
+		CallReason:     rms.NewReference(server.BuildRandomOutgoingWithPulse()),
 		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 }

@@ -21,11 +21,9 @@ func CounterIncrement(ctx smachine.ExecutionContext, link smachine.SharedDataLin
 	}
 
 	accessor := link.PrepareAccess(func(i interface{}) (wakeup bool) {
-		obj, ok := i.(*SafeResponseCounter)
+		obj := i.(*SafeResponseCounter)
 
 		switch {
-		case !ok:
-			panic(throw.IllegalState())
 		case obj.count < 0:
 			panic(throw.IllegalState())
 		default:
@@ -41,17 +39,15 @@ func CounterIncrement(ctx smachine.ExecutionContext, link smachine.SharedDataLin
 	case smachine.NotPassed:
 		return ctx.Sleep().ThenRepeat()
 	default:
-		panic(throw.IllegalValue())
+		panic(throw.Impossible())
 	}
 }
 
 func CounterDecrement(ctx smachine.ExecutionContext, link smachine.SharedDataLink) smachine.StateUpdate {
 	accessor := link.PrepareAccess(func(i interface{}) (wakeup bool) {
-		obj, ok := i.(*SafeResponseCounter)
+		obj := i.(*SafeResponseCounter)
 
 		switch {
-		case !ok:
-			panic(throw.IllegalState())
 		case obj.count < 0:
 			panic(throw.IllegalState())
 		default:
@@ -67,7 +63,7 @@ func CounterDecrement(ctx smachine.ExecutionContext, link smachine.SharedDataLin
 	case smachine.NotPassed:
 		return ctx.Sleep().ThenRepeat()
 	default:
-		panic(throw.IllegalValue())
+		panic(throw.Impossible())
 	}
 
 }
@@ -100,6 +96,6 @@ func CounterAwaitZero(ctx smachine.ExecutionContext, link smachine.SharedDataLin
 	case smachine.NotPassed:
 		return ctx.Sleep().ThenRepeat()
 	default:
-		panic(throw.IllegalValue())
+		panic(throw.Impossible())
 	}
 }

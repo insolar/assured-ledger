@@ -31,12 +31,12 @@ type Mock struct {
 	closed          bool
 }
 
-type MinimalSender interface {
+type BasicSender interface {
 	SendMessage(context.Context, *message.Message)
 }
 
 type Sender interface {
-	MinimalSender
+	BasicSender
 	SendPayload(ctx context.Context, pl rmsreg.GoGoSerializable)
 }
 
@@ -74,14 +74,14 @@ func (p *Mock) WaitCount(count int, timeout time.Duration) bool {
 	}
 }
 
-func (p *Mock) SetResendMode(ctx context.Context, sender MinimalSender) {
+func (p *Mock) SetResendMode(ctx context.Context, sender BasicSender) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
 	p.checker = checker.NewResend(ctx, sender)
 }
 
-func (p *Mock) SetTypedChecker(ctx context.Context, t minimock.Tester, sender MinimalSender) *checker.Typed {
+func (p *Mock) SetTypedChecker(ctx context.Context, t minimock.Tester, sender BasicSender) *checker.Typed {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 

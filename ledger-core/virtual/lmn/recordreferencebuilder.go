@@ -65,7 +65,7 @@ func (s RecordReferenceBuilder) AnticipatedRefFromRecord(object reference.Global
 		panic(throw.IllegalValue())
 	}
 
-	var data = make([]byte, 0)
+	var data = make([]byte, sRec.ProtoSize())
 	_, err := sRec.MarshalTo(data)
 	if err != nil {
 		panic(throw.W(err, "Fail to serialize record"))

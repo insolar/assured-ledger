@@ -109,6 +109,7 @@ func (jc *Coordinator) VirtualExecutorForObject(objID reference.Holder, pn pulse
 	return ref, nil
 }
 
+// TODO: when we'll add a LME we need to unify LightExecutorForObject (and implement) and VirtualExecutorForObject
 func (jc *Coordinator) LightExecutorForObject(objID reference.Holder, pn pulse.Number) (reference.Global, error) {
 	pc, err := jc.PulseAccessor.TimeBeat(pn)
 	switch {

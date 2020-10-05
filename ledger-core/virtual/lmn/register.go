@@ -316,34 +316,7 @@ func (s *SubSMRegister) getOutboundRecord() *rms.ROutboundRequest {
 		panic(throw.IllegalState())
 	}
 
-	return &rms.ROutboundRequest{
-		CallType:                s.Outgoing.CallType,
-		CallFlags:               s.Outgoing.CallFlags,
-		CallAsOf:                s.Outgoing.CallAsOf,
-		Caller:                  s.Outgoing.Caller,
-		Callee:                  s.Outgoing.Callee,
-		CallSiteDeclaration:     s.Outgoing.CallSiteDeclaration,
-		CallSiteMethod:          s.Outgoing.CallSiteMethod,
-		CallSequence:            s.Outgoing.CallSequence,
-		CallReason:              s.Outgoing.CallReason,
-		RootTX:                  s.Outgoing.RootTX,
-		CallTX:                  s.Outgoing.CallTX,
-		ExpenseCenter:           s.Outgoing.ExpenseCenter,
-		ResourceCenter:          s.Outgoing.ResourceCenter,
-		DelegationSpec:          s.Outgoing.DelegationSpec,
-		ProducerSignature:       s.Outgoing.ProducerSignature,
-		RegistrarSignature:      s.Outgoing.RegistrarSignature,
-		RegistrarDelegationSpec: s.Outgoing.RegistrarDelegationSpec,
-		CallRequestFlags:        s.Outgoing.CallRequestFlags,
-		KnownCalleeIncoming:     s.Outgoing.KnownCalleeIncoming,
-		TXExpiry:                s.Outgoing.TXExpiry,
-		SecurityContext:         s.Outgoing.SecurityContext,
-		TXContext:               s.Outgoing.TXContext,
-		Arguments:               s.Outgoing.Arguments, // TODO: move later to RecordBody
-
-		RootRef: rms.NewReference(s.Object),
-		PrevRef: rms.NewReference(prevRef),
-	}
+	return s.getCommonOutboundRecord(s.Outgoing, prevRef)
 }
 
 func (s *SubSMRegister) getOutboundRetryableRequest() *rms.ROutboundRetryableRequest {
@@ -359,72 +332,51 @@ func (s *SubSMRegister) getLifelineRecord() *rms.RLifelineStart {
 		panic(throw.IllegalState())
 	}
 
-	return &rms.RLifelineStart{
-		CallType:                s.Incoming.CallType,
-		CallFlags:               s.Incoming.CallFlags,
-		CallAsOf:                s.Incoming.CallAsOf,
-		Caller:                  s.Incoming.Caller,
-		Callee:                  s.Incoming.Callee,
-		CallSiteDeclaration:     s.Incoming.CallSiteDeclaration,
-		CallSiteMethod:          s.Incoming.CallSiteMethod,
-		CallSequence:            s.Incoming.CallSequence,
-		CallReason:              s.Incoming.CallReason,
-		RootTX:                  s.Incoming.RootTX,
-		CallTX:                  s.Incoming.CallTX,
-		ExpenseCenter:           s.Incoming.ExpenseCenter,
-		ResourceCenter:          s.Incoming.ResourceCenter,
-		DelegationSpec:          s.Incoming.DelegationSpec,
-		ProducerSignature:       s.Incoming.ProducerSignature,
-		RegistrarSignature:      s.Incoming.RegistrarSignature,
-		RegistrarDelegationSpec: s.Incoming.RegistrarDelegationSpec,
-		CallRequestFlags:        s.Incoming.CallRequestFlags,
-		KnownCalleeIncoming:     s.Incoming.KnownCalleeIncoming,
-		TXExpiry:                s.Incoming.TXExpiry,
-		SecurityContext:         s.Incoming.SecurityContext,
-		TXContext:               s.Incoming.TXContext,
-		Arguments:               s.Incoming.Arguments, // TODO: move later to RecordBody
+	return s.getCommonOutboundRecord(s.Incoming, reference.Global{})
+}
+
+func (s *SubSMRegister) getCommonOutboundRecord(msg *rms.VCallRequest, prevRef reference.Global) *rms.ROutboundRequest {
+	record := &rms.ROutboundRequest{
+		CallType:            msg.CallType,
+		CallFlags:           msg.CallFlags,
+		CallAsOf:            msg.CallAsOf,
+		Caller:              msg.Caller,
+		Callee:              msg.Callee,
+		CallSiteDeclaration: msg.CallSiteDeclaration,
+		CallSiteMethod:      msg.CallSiteMethod,
+		CallSequence:        msg.CallSequence,
+		CallReason:          msg.CallReason,
+		RootTX:              msg.RootTX,
+		CallTX:              msg.CallTX,
+		ExpenseCenter:       msg.ExpenseCenter,
+		ResourceCenter:      msg.ResourceCenter,
+		DelegationSpec:      msg.DelegationSpec,
+		TXExpiry:            msg.TXExpiry,
+		SecurityContext:     msg.SecurityContext,
+		TXContext:           msg.TXContext,
+
+		Arguments: msg.Arguments, // TODO: move later to RecordBody
 	}
+
+	if !prevRef.IsEmpty() {
+		record.RootRef.Set(s.Object)
+		record.PrevRef.Set(prevRef)
+	}
+
+	return record
 }
 
 func (s *SubSMRegister) getInboundRecord() *rms.RInboundRequest {
 	switch {
 	case s.Incoming == nil:
 		panic(throw.IllegalState())
-	case s.LastFilamentRef.IsEmpty():
+	case s.LastLifelineRef.IsEmpty():
 		panic(throw.IllegalState())
 	case s.Object.IsEmpty():
 		panic(throw.IllegalState())
 	}
 
-	return &rms.RInboundRequest{
-		RootRef: rms.NewReference(s.Object),
-		PrevRef: rms.NewReference(s.LastFilamentRef),
-
-		CallType:                s.Incoming.CallType,
-		CallFlags:               s.Incoming.CallFlags,
-		CallAsOf:                s.Incoming.CallAsOf,
-		Caller:                  s.Incoming.Caller,
-		Callee:                  s.Incoming.Callee,
-		CallSiteDeclaration:     s.Incoming.CallSiteDeclaration,
-		CallSiteMethod:          s.Incoming.CallSiteMethod,
-		CallSequence:            s.Incoming.CallSequence,
-		CallReason:              s.Incoming.CallReason,
-		RootTX:                  s.Incoming.RootTX,
-		CallTX:                  s.Incoming.CallTX,
-		ExpenseCenter:           s.Incoming.ExpenseCenter,
-		ResourceCenter:          s.Incoming.ResourceCenter,
-		DelegationSpec:          s.Incoming.DelegationSpec,
-		ProducerSignature:       s.Incoming.ProducerSignature,
-		RegistrarSignature:      s.Incoming.RegistrarSignature,
-		RegistrarDelegationSpec: s.Incoming.RegistrarDelegationSpec,
-		CallRequestFlags:        s.Incoming.CallRequestFlags,
-		KnownCalleeIncoming:     s.Incoming.KnownCalleeIncoming,
-		CallOutgoing:            s.Incoming.CallOutgoing,
-		TXExpiry:                s.Incoming.TXExpiry,
-		SecurityContext:         s.Incoming.SecurityContext,
-		TXContext:               s.Incoming.TXContext,
-		Arguments:               s.Incoming.Arguments, // TODO: move later to RecordBody
-	}
+	return s.getCommonOutboundRecord(s.Incoming, s.LastFilamentRef)
 }
 
 func (s *SubSMRegister) getLineInboundRecord() *rms.RLineInboundRequest {
@@ -437,35 +389,7 @@ func (s *SubSMRegister) getLineInboundRecord() *rms.RLineInboundRequest {
 		panic(throw.IllegalState())
 	}
 
-	return &rms.RLineInboundRequest{
-		RootRef: rms.NewReference(s.Object),
-		PrevRef: rms.NewReference(s.LastLifelineRef),
-
-		CallType:                s.Incoming.CallType,
-		CallFlags:               s.Incoming.CallFlags,
-		CallAsOf:                s.Incoming.CallAsOf,
-		Caller:                  s.Incoming.Caller,
-		Callee:                  s.Incoming.Callee,
-		CallSiteDeclaration:     s.Incoming.CallSiteDeclaration,
-		CallSiteMethod:          s.Incoming.CallSiteMethod,
-		CallSequence:            s.Incoming.CallSequence,
-		CallReason:              s.Incoming.CallReason,
-		RootTX:                  s.Incoming.RootTX,
-		CallTX:                  s.Incoming.CallTX,
-		ExpenseCenter:           s.Incoming.ExpenseCenter,
-		ResourceCenter:          s.Incoming.ResourceCenter,
-		DelegationSpec:          s.Incoming.DelegationSpec,
-		ProducerSignature:       s.Incoming.ProducerSignature,
-		RegistrarSignature:      s.Incoming.RegistrarSignature,
-		RegistrarDelegationSpec: s.Incoming.RegistrarDelegationSpec,
-		CallRequestFlags:        s.Incoming.CallRequestFlags,
-		KnownCalleeIncoming:     s.Incoming.KnownCalleeIncoming,
-		CallOutgoing:            s.Incoming.CallOutgoing,
-		TXExpiry:                s.Incoming.TXExpiry,
-		SecurityContext:         s.Incoming.SecurityContext,
-		TXContext:               s.Incoming.TXContext,
-		Arguments:               s.Incoming.Arguments, // TODO: move later to RecordBody
-	}
+	return s.getCommonOutboundRecord(s.Incoming, s.LastLifelineRef)
 }
 
 func (s *SubSMRegister) stepRegisterLifeline(ctx smachine.ExecutionContext) smachine.StateUpdate {

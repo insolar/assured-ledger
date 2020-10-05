@@ -933,6 +933,11 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 func (s *SMExecute) stepWaitSafeAnswersRelease(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	ctx.Release(s.globalSemaphore.PartialLink())
 
+	if s.isIntolerableCallChangeState() {
+		s.prepareExecutionError(throw.E("intolerable call trying to change object state"))
+		return ctx.Jump(s.stepSendCallResult)
+	}
+
 	// waiting for all save responses to be there
 	return ctx.Jump(s.stepWaitSafeAnswers)
 }
@@ -945,13 +950,7 @@ func (s *SMExecute) stepWaitSafeAnswers(ctx smachine.ExecutionContext) smachine.
 	}
 
 	// now it's time to write result
-	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-		if !ctx.Acquire(s.globalSemaphore.PartialLink()).IsPassed() {
-			return ctx.Sleep().ThenRepeat()
-		}
-
-		return ctx.Jump(s.stepSaveExecutionResult)
-	})
+	return ctx.Jump(s.stepSaveExecutionResult)
 }
 
 func (s *SMExecute) stepSaveExecutionResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -967,9 +966,8 @@ func (s *SMExecute) stepSaveExecutionResult(ctx smachine.ExecutionContext) smach
 }
 
 func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.isIntolerableCallChangeState() {
-		s.prepareExecutionError(throw.E("intolerable call trying to change object state"))
-		return ctx.Jump(s.stepSendCallResult)
+	if !ctx.Acquire(s.globalSemaphore.PartialLink()).IsPassed() {
+		return ctx.Sleep().ThenRepeat()
 	}
 
 	if s.deactivate {
@@ -1305,10 +1303,6 @@ func (s *SMExecute) constructSubSMRegister(v RegisterVariant) lmn.SubSMRegister 
 	subroutineSM.Object = s.execution.Object
 	subroutineSM.LastLifelineRef = s.lmnLastLifelineRef
 	subroutineSM.LastFilamentRef = s.lmnLastFilamentRef
-
-	if s.lmnLastFilamentRef.IsEmpty() {
-		subroutineSM.LastFilamentRef = subroutineSM.LastLifelineRef
-	}
 
 	return subroutineSM
 }
