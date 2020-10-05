@@ -279,7 +279,6 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 	}
 
 	peerID := packet.Header.SourceID
-
 	if payload.ReturnID != 0 {
 		retID := AsShipmentID(peerID, payload.ReturnID)
 		if msg := p.sender.get(retID); msg != nil {
