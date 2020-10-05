@@ -60,8 +60,8 @@ type SMExecute struct {
 
 	// execution step
 	executionNewState   *execution.Update
-	outgoingResultBytes []byte
-	outgoingResult      *rms.VCallResult
+	outgoingResult      []byte
+	outgoingVCallResult *rms.VCallResult
 	deactivate          bool
 	run                 runner.RunState
 	newObjectDescriptor descriptor.Object
@@ -701,7 +701,7 @@ func (s *SMExecute) prepareOutgoingError(err error) {
 		panic(throw.W(err, "can't create error result"))
 	}
 
-	s.outgoingResultBytes = resultWithErr
+	s.outgoingResult = resultWithErr
 }
 
 func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -769,8 +769,8 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			}
 
 			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-				s.outgoingResultBytes = res.ReturnArguments.GetBytes()
-				s.outgoingResult = res
+				s.outgoingResult = res.ReturnArguments.GetBytes()
+				s.outgoingVCallResult = res
 
 				return ctx.WakeUp()
 			}
@@ -862,7 +862,7 @@ func (s *SMExecute) stepTakeLockAfterOutgoing(ctx smachine.ExecutionContext) sma
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	outgoingResult := s.outgoingResultBytes
+	outgoingResult := s.outgoingResult
 	switch s.executionNewState.Outgoing.(type) {
 	case execution.CallConstructor, execution.CallMethod:
 		if outgoingResult == nil {
@@ -871,7 +871,7 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 	}
 
 	if s.outgoingAddedToTranscript {
-		if s.outgoingResult == nil {
+		if s.outgoingVCallResult == nil {
 			panic(throw.IllegalValue())
 		}
 
@@ -879,7 +879,7 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 			Reason: s.execution.Outgoing,
 			Custom: validation.TranscriptEntryOutgoingResult{
 				OutgoingResult: reference.Global{},
-				CallResult:     *s.outgoingResult,
+				CallResult:     *s.outgoingVCallResult,
 			},
 		}
 
@@ -897,7 +897,7 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 	s.outgoingSentCounter = 0
 	s.outgoingObject = reference.Global{}
 	s.outgoing = nil
-	s.outgoingResultBytes = []byte{}
+	s.outgoingResult = []byte{}
 	ctx.SetDefaultMigration(s.migrateDuringExecution)
 
 	s.executionNewState = nil
