@@ -6,9 +6,11 @@
 package msgdelivery
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/network/nds/msgdelivery/retries"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/msgdelivery/retries"
 )
 
 func TestTTLMap(t *testing.T) {
@@ -68,6 +70,7 @@ func TestTTLMap(t *testing.T) {
 	ttlMap.put(&sh2, 0)
 
 	ttlMap.nextTTLCycle(1)
+	ttlMap.sinkAfterCycle()
 
 	require.Equal(t, 1, len(ttlMap.ttl0))
 	require.Equal(t, 1, len(ttlMap.ttl1))
@@ -77,24 +80,34 @@ func TestTTLMap(t *testing.T) {
 
 	for i := 1; i < 41; i++ {
 		ttlMap.nextTTLCycle(uint32(i))
+		ttlMap.sinkAfterCycle()
 		require.Equal(t, 1, len(ttlMap.ttlN))
 	}
 
 	ttlMap.nextTTLCycle(41)
+	ttlMap.sinkAfterCycle()
 
 	require.Equal(t, 0, len(ttlMap.ttl0))
 	require.Equal(t, 1, len(ttlMap.ttl1))
 	require.Equal(t, 0, len(ttlMap.ttlN))
 
 	ttlMap.nextTTLCycle(42)
+	ttlMap.sinkAfterCycle()
 
 	require.Equal(t, 1, len(ttlMap.ttl0))
 	require.Equal(t, 0, len(ttlMap.ttl1))
 	require.Equal(t, 0, len(ttlMap.ttlN))
 
 	ttlMap.nextTTLCycle(43)
+	ttlMap.sinkAfterCycle()
 
 	require.Equal(t, 0, len(ttlMap.ttl0))
 	require.Equal(t, 0, len(ttlMap.ttl1))
 	require.Equal(t, 0, len(ttlMap.ttlN))
+}
+
+//nolint
+func (p *ttlMap) sinkAfterCycle() {
+	p.mutex.Lock() // make sure that processing is done
+	p.mutex.Unlock()
 }

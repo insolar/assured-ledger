@@ -7,7 +7,6 @@ package msgdelivery
 
 import (
 	"sync"
-	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l1"
@@ -18,28 +17,29 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
-func NewUnitProtoServersHolder(log uniserver.MiniLogger) *UnitProtoServersHolder {
+func NewUnitProtoServersHolder(log TestLogAdapter) *UnitProtoServersHolder {
 	return &UnitProtoServersHolder{
 		servers:            make([]*UnitProtoServer, 0),
-		log:                log,
+		log:                &log,
 		initialPulseNumber: pulse.NewOnePulseRange(pulse.NewFirstPulsarData(5, longbits.Bits256{})),
 	}
 }
 
 type UnitProtoServersHolder struct {
 	servers            []*UnitProtoServer
-	log                uniserver.MiniLogger
+	log                *TestLogAdapter
 	initialPulseNumber pulse.Range
 }
 
 type UnitProtoServer struct {
-	hostId     nwapi.HostID
-	service    Service
-	ingoing    nwapi.Address
-	outgoing   sync.Map
-	key        cryptkit.SigningKey
-	dispatcher *uniserver.Dispatcher
-	manager    *uniserver.PeerManager
+	hostId         nwapi.HostID
+	service        Service
+	ingoing        nwapi.Address
+	outgoing       sync.Map
+	key            cryptkit.SigningKey
+	dispatcher     *uniserver.Dispatcher
+	manager        *uniserver.PeerManager
+	uniprotoServer *uniserver.UnifiedServer
 }
 
 func (s *UnitProtoServer) directAddress() DeliveryAddress {
@@ -55,10 +55,13 @@ func (h *UnitProtoServersHolder) server(idx int) *UnitProtoServer {
 }
 
 func (h *UnitProtoServersHolder) stop() {
-	// TODO workaround for avoid race on receive package and stop dispatcher
-	time.Sleep(1 * time.Second)
+	h.log.stop()
+
 	for _, s := range h.servers {
 		s.dispatcher.Stop()
+	}
+	for _, s := range h.servers {
+		s.uniprotoServer.Stop()
 	}
 }
 
@@ -86,10 +89,11 @@ func (h *UnitProtoServersHolder) createServiceWithProfile(
 	// add self hostId mapping
 	hostId := nwapi.HostID(len(h.servers) + 1)
 	serv := &UnitProtoServer{
-		hostId:     hostId,
-		service:    controller.NewFacade(),
-		key:        newSkKey(),
-		dispatcher: &dispatcher,
+		hostId:         hostId,
+		service:        controller.NewFacade(),
+		key:            newSkKey(),
+		dispatcher:     &dispatcher,
+		uniprotoServer: srv,
 	}
 	h.servers = append(h.servers, serv)
 

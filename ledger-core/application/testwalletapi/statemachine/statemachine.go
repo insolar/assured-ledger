@@ -146,7 +146,7 @@ func (s *SMTestAPICall) stepProcessResult(ctx smachine.ExecutionContext) smachin
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	ctx.SetDefaultTerminationResult(s.responsePayload)
+	ctx.SetTerminationResult(s.responsePayload)
 	return ctx.Stop()
 }
 

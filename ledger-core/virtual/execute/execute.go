@@ -167,6 +167,10 @@ func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 }
 
 func (s *SMExecute) stepCheckRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.pulseSlot.State() != conveyor.Present {
+		panic(throw.IllegalState())
+	}
+
 	switch s.Payload.CallType {
 	case rms.CallTypeConstructor:
 	case rms.CallTypeMethod:
