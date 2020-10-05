@@ -53,17 +53,6 @@ func (g *Complete) GetState() network.State {
 	return network.CompleteNetworkState
 }
 
-func (g *Complete) BeforeRun(ctx context.Context, pulse pulse.Data) {
-	// if !pulse.PulseEpoch.IsTimeEpoch() {
-	// 	panic(throw.IllegalState())
-	// }
-	//
-	// err := g.PulseManager.CommitFirstPulseChange(pulse)
-	// if err != nil {
-	// 	inslogger.FromContext(ctx).Panicf("failed to set start pulse: %d, %s", pulse.PulseNumber, err.Error())
-	// }
-}
-
 // GetCert method generates cert by requesting signs from discovery nodes
 func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Global) (nodeinfo.Certificate, error) {
 	pKey, role, err := g.getNodeInfo(ctx, registeredNodeRef)
