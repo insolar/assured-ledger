@@ -10,7 +10,7 @@ import (
 )
 
 type DropReport struct {
-	ReportRec *rms.RPrevDropReport
+	ReportRec *rms.RCtlDropReport
 }
 
 func (v DropReport) IsZero() bool {

@@ -8,23 +8,29 @@ package ctlsec
 import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type PlashSummaryWriter struct {
+type SectionSummaryWriter struct {
+	section          ledger.SectionID
+
 	recordToFilament []ledger.Ordinal
 	filamentHeads    []FilamentHead
 	// merkleLog        []cryptkit.Digest // TODO
 
-	summary          rms.ControlCatalogSummary
+	summary          rms.RCtlSectionSummary
 	receptacles      [4]bundle.PayloadReceptacle
 	dirIndex         ledger.DirectoryIndex
 }
 
-func (p *PlashSummaryWriter) ReadCatalog(dirtyReader bundle.DirtyReader, dropCount int) error {
-	directoryPages := dirtyReader.GetDirectoryEntries(ledger.DefaultEntrySection)
+func (p *SectionSummaryWriter) ReadCatalog(dirtyReader bundle.DirtyReader, section ledger.SectionID) error {
+	if section == ledger.ControlSection {
+		panic(throw.IllegalValue())
+	}
+	p.section = section
+
+	directoryPages := dirtyReader.GetDirectoryEntries(section)
 
 	lastPage := len(directoryPages) - 1
 	pageSize := cap(directoryPages[0])
@@ -58,8 +64,10 @@ func (p *PlashSummaryWriter) ReadCatalog(dirtyReader bundle.DirtyReader, dropCou
 
 				filMap[entryOrd] = len(p.filamentHeads)
 				p.filamentHeads = append(p.filamentHeads, FilamentHead{
-					Head:         entryOrd,
-					FilamentInfo: entry.Fil,
+					Head:  entryOrd,
+					Last:  entry.Fil.Link,
+					JetID: entry.Fil.JetID,
+					Flags: entry.Fil.Flags,
 				})
 				if head == entryOrd {
 					// head to itself
@@ -76,7 +84,7 @@ func (p *PlashSummaryWriter) ReadCatalog(dirtyReader bundle.DirtyReader, dropCou
 			}
 
 			switch {
-			case fil.Link >= entryOrd:
+			case fil.Last >= entryOrd:
 				return throw.Impossible()
 			case fil.JetID != entry.Fil.JetID:
 				return throw.Impossible()
@@ -85,7 +93,7 @@ func (p *PlashSummaryWriter) ReadCatalog(dirtyReader bundle.DirtyReader, dropCou
 			case fil.Flags & ledger.FilamentClose != 0:
 				return throw.Impossible()
 			}
-			fil.Link = entryOrd
+			fil.Last = entryOrd
 			p.recordToFilament[entryOrd] = head
 		}
 	}
@@ -94,7 +102,11 @@ func (p *PlashSummaryWriter) ReadCatalog(dirtyReader bundle.DirtyReader, dropCou
 }
 
 // PrepareWrite implementation should be much lighter, but there is only one summary written, so it doesn't matter much
-func (p *PlashSummaryWriter) PrepareWrite(snapshot bundle.Snapshot) error {
+func (p *SectionSummaryWriter) PrepareWrite(snapshot bundle.Snapshot) error {
+	if p.section == ledger.ControlSection {
+		panic(throw.IllegalState())
+	}
+
 	cp, err := snapshot.GetPayloadSection(ledger.ControlSection)
 	if err != nil {
 		return err
@@ -102,8 +114,8 @@ func (p *PlashSummaryWriter) PrepareWrite(snapshot bundle.Snapshot) error {
 
 	{
 		sz := ordinalList(p.recordToFilament).Size()
-		p.summary.RecToFilamentSize = uint32(sz)
-		p.receptacles[0], p.summary.RecToFilamentLoc, err = cp.AllocatePayloadStorage(sz, ledger.SameAsBodyExtensionID)
+		p.summary.RecToFilSize = uint32(sz)
+		p.receptacles[0], p.summary.RecToFilLoc, err = cp.AllocatePayloadStorage(sz, ledger.SameAsBodyExtensionID)
 		if err != nil {
 			return err
 		}
@@ -111,8 +123,8 @@ func (p *PlashSummaryWriter) PrepareWrite(snapshot bundle.Snapshot) error {
 
 	{
 		sz := filamentHeads(p.filamentHeads).Size()
-		p.summary.FilamentHeadsSize = uint32(sz)
-		p.receptacles[1], p.summary.FilamentHeadsLoc, err = cp.AllocatePayloadStorage(sz, ledger.SameAsBodyExtensionID)
+		p.summary.FilToJetSize = uint32(sz)
+		p.receptacles[1], p.summary.FilToJetLoc, err = cp.AllocatePayloadStorage(sz, ledger.SameAsBodyExtensionID)
 		if err != nil {
 			return err
 		}
@@ -126,7 +138,8 @@ func (p *PlashSummaryWriter) PrepareWrite(snapshot bundle.Snapshot) error {
 	}
 
 	p.dirIndex = cd.GetNextDirectoryIndex()
-	de := bundle.DirectoryEntry{ Key: reference.Global{}, } // TODO key
+
+	de := bundle.DirectoryEntry{ Key: CtlSectionRef(p.section) }
 	p.receptacles[3], de.Loc, err = cd.AllocateEntryStorage(p.summary.ProtoSize())
 	if err != nil {
 		return err
@@ -135,7 +148,7 @@ func (p *PlashSummaryWriter) PrepareWrite(snapshot bundle.Snapshot) error {
 	return cd.AppendDirectoryEntry(p.dirIndex, de)
 }
 
-func (p *PlashSummaryWriter) ApplyWrite() ([]ledger.DirectoryIndex, error) {
+func (p *SectionSummaryWriter) ApplyWrite() ([]ledger.DirectoryIndex, error) {
 
 	if r := p.receptacles[0]; r != nil {
 		if _, err := r.WriteTo(ordinalList(p.recordToFilament)); err != nil {
@@ -157,4 +170,4 @@ func (p *PlashSummaryWriter) ApplyWrite() ([]ledger.DirectoryIndex, error) {
 	return []ledger.DirectoryIndex{p.dirIndex}, nil
 }
 
-func (p *PlashSummaryWriter) ApplyRollback() {}
+func (p *SectionSummaryWriter) ApplyRollback() {}

@@ -50,6 +50,8 @@ type plashAssistant struct {
 	status atomickit.Uint32
 	commit sync.Mutex // LOCK: Spans across methods
 	merkle merkler.ForkingCalculator
+
+	ctlWriter ctlsec.WriteAssistant
 }
 
 func (p *plashAssistant) setNextPlash(next *plashAssistant) {
@@ -108,7 +110,7 @@ func (p *plashAssistant) CancelPulseChange() {
 func (p *plashAssistant) CommitPulseChange() {
 	p.commitPulseChange()
 
-	go p.startSummary()
+	go p.writeSectionSummaries()
 }
 
 func (p *plashAssistant) commitPulseChange() {
@@ -260,22 +262,54 @@ func (p *plashAssistant) getDropsOfJet(id jet.ExactID) (result []jet.DropID) {
 	return result
 }
 
+func (p *plashAssistant) init(localDropCount int) {
+	p.ctlWriter.Init(p.writer, localDropCount)
+}
+
+func (p *plashAssistant) writeStartAndSharedData() {
+	p.ctlWriter.WritePlashStart(p.pulseData, p.population)
+}
+
+func (p *plashAssistant) writeSectionSummaries() {
+	// RCtlPlashStart
+
+	// RCtlSectionSummary[]
+	// RCtlFilamentEntry[]
+	// RCtlDropSummary[]
+
+	// RCtlPlashSummary
+
+	p.ctlWriter.WriteSectionSummary(p.dirtyReader, ledger.DefaultEntrySection)
+}
+
 func (p *plashAssistant) appendToDropSummary(id jet.DropID, summary lineage.LineSummary) error {
+	if err := p.ctlWriter.WriteLineSummary(id, summary.LineRecap, summary.LineReport); err != nil {
+		return err
+	}
+
+	for _, fil := range summary.Filaments {
+		if err := p.ctlWriter.WriteFilamentSummary(id, fil); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func (p *plashAssistant) finalizeDropSummary(id jet.DropID) (catalog.DropReport, error) {
-	return catalog.DropReport{}, nil
-}
-
-func (p *plashAssistant) startSummary() {
-	sw := &ctlsec.PlashSummaryWriter{}
-	sw.ReadCatalog(p.dirtyReader, len(p.dropAssists))
-
-	p.writer.WriteBundle(sw, nil)
+	rep, err := p.ctlWriter.WriteDropSummary(id)
+	switch {
+	case err != nil:
+		return catalog.DropReport{}, err
+	case p.ctlWriter.HasAllDropReports():
+		go p.finalizeSummary()
+	}
+	return rep, nil
 }
 
 func (p *plashAssistant) finalizeSummary()  {
+	if err := p.ctlWriter.WritePlashSummary(); err != nil {
+		panic(err)
+	}
 	// // underlying writer will be marked read only as soon as all writing bundles are completed / discarded
 	// // but CommitPulseChange will be released immediately after putting the closure into the write chain
 	// // and any further calls to WaitWriteBundles() or to WriteBundle() will wait for this closure to complete.
@@ -285,4 +319,3 @@ func (p *plashAssistant) finalizeSummary()  {
 	// 	}
 	// })
 }
-

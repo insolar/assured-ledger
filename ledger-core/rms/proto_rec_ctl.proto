@@ -17,15 +17,24 @@ message RCtlPlashStart {
     reserved 1 to 39, 1792 to max;
 
     uint32 Version = 40;
-    // pulse
-    // population
-    // jetTree?
+    Reference NodeRef = 41;
+    Reference PulseData = 42;
+    Reference PulseEpochData = 43;
+    Reference PopulationRef = 44;
+    Binary Population = 45;
+//    Binary JetTree = 46;
 }
 
 message RCtlPlashSummary {
     option (insproto.id) = 101;
 
     reserved 1 to 39, 1792 to max;
+
+    Binary MerkleRoot = 40;
+    Binary MerkleProducerSignature = 41;
+
+    repeated uint32 SectionSummaryOrd = 50 [(gogoproto.casttype)="CatalogOrdinal"];
+    repeated uint32 DropSummaryOrd = 51 [(gogoproto.casttype)="CatalogOrdinal"];
 }
 
 message RCtlDropSummary {
@@ -36,15 +45,19 @@ message RCtlDropSummary {
     RCtlDropReport DropReport = 40;
     Binary ReportProducerSignature = 41;
 
-    fixed64 FilToMklLoc = 44 [(gogoproto.casttype)="StorageLocator"]; // fixed size elements, []Digest
-    uint32  FilToMklSize = 45;
-    uint32  FilToMklCount = 46;
+    fixed64 MerkleLogLoc = 44 [(gogoproto.casttype)="StorageLocator"]; // fixed size elements
+    uint32  MerkleLogSize = 45;
+    uint32  MerkleLogCount = 46;
+
+    // CatalogOrdinal[]
 }
 
 message RCtlSectionSummary {
     option (insproto.id) = 104;
 
     reserved 1 to 39, 1792 to max;
+
+    // SectionID
 
     fixed64 RecToFilLoc = 40 [(gogoproto.casttype)="StorageLocator"]; // fixed size elements, []Ordinal
     uint32  RecToFilSize = 41;

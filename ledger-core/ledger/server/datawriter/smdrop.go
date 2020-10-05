@@ -90,7 +90,7 @@ func (p *SMDropBuilder) getPassiveDeadline(startedAt time.Time, pulseDelta uint1
 
 func (p *SMDropBuilder) stepWaitPrevDrop(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	// TODO this is a temporary stub
-	p.prevReport.ReportRec = &rms.RPrevDropReport{}
+	p.prevReport.ReportRec = &rms.RCtlDropReport{}
 	if !p.prevReport.IsZero() {
 		return ctx.Jump(p.stepDropStart)
 	}
@@ -131,6 +131,7 @@ func (p *SMDropBuilder) stepWaitPast(ctx smachine.ExecutionContext) smachine.Sta
 
 func (p *SMDropBuilder) migratePresent(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(p.migratePast)
+	ctx.SetDefaultFlags(smachine.StepPriority)
 	return ctx.Jump(p.stepFinalize)
 }
 

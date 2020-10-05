@@ -189,18 +189,30 @@ func (p *SMLine) migratePresent(ctx smachine.MigrationContext) smachine.StateUpd
 	p.sd.disableAccess()
 
 	// make sure that the drop is blocked until all lines will issue a summary
+	// but we don't need to wait here
 	ctx.Acquire(p.sd.dropFinalizeSync)
 
 	ctx.SetDefaultMigration(nil)
+	ctx.SetDefaultFlags(smachine.StepPriority)
 	return ctx.Jump(p.stepFinalize)
 }
 
 func (p *SMLine) stepFinalize(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	summary := p.sd.data.CreateSummary()
-	p.sd.adapter.PrepareNotify(ctx, func(svc buildersvc.Service) {
-		svc.AppendToDropSummary(p.sd.jetDropID, summary)
-	}).Send()
+	if summary.IsZero() {
+		// nothing was added - it was a deactivated line
+		return ctx.Stop()
+	}
 
+	p.sd.adapter.PrepareAsync(ctx, func(svc buildersvc.Service) smachine.AsyncResultFunc {
+		svc.AppendToDropSummary(p.sd.jetDropID, summary)
+		return nil
+	}).Start()
+
+	return ctx.Sleep().ThenJump(p.stepDone)
+}
+
+func (p *SMLine) stepDone(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Stop()
 }
 

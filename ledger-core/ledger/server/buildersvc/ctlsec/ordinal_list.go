@@ -10,12 +10,14 @@ import (
 	"sort"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 )
 
 type FilamentHead struct {
 	Head  ledger.Ordinal
-	bundle.FilamentInfo
+	Last  ledger.Ordinal
+	JetID jet.ID
+	Flags ledger.DirectoryEntryFlags
 }
 
 type ordinalList []ledger.Ordinal
@@ -42,11 +44,11 @@ func (v filamentHeads) Write(b []byte) (n int, err error) {
 	for _, h := range v {
 		binary.LittleEndian.PutUint32(b[n:], uint32(h.Head))
 		n += 4
-		binary.LittleEndian.PutUint32(b[n:], uint32(h.FilamentInfo.Link))
+		binary.LittleEndian.PutUint32(b[n:], uint32(h.Last))
 		n += 4
-		binary.LittleEndian.PutUint16(b[n:], uint16(h.FilamentInfo.JetID))
+		binary.LittleEndian.PutUint16(b[n:], uint16(h.JetID))
 		n += 2
-		binary.LittleEndian.PutUint16(b[n:], uint16(h.FilamentInfo.Flags))
+		binary.LittleEndian.PutUint16(b[n:], uint16(h.Flags))
 		n += 2
 	}
 	return n, err

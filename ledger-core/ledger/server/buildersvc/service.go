@@ -206,7 +206,7 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 		pa.dropAssists[jetID] = da
 	}
 
-	// TODO write down shared data?
+	pa.init(len(result))
 
 	var prevPlash *plashAssistant
 
@@ -228,6 +228,7 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 	if prevPlash != nil {
 		go prevPlash.setNextPlash(pa)
 	}
+	pa.writeStartAndSharedData()
 
 	return pa, result
 }
