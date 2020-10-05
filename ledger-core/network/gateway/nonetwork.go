@@ -64,7 +64,8 @@ func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Data) {
 
 	time.Sleep(g.pause())
 	if g.isDiscovery {
-		time.Sleep(time.Second * time.Duration(rand.Intn(10)))
+		rand.Seed(time.Now().UnixNano())
+		time.Sleep(time.Second * time.Duration(rand.Intn(20)))
 		g.Gatewayer.SwitchState(ctx, network.DiscoveryBootstrap, pulse)
 	} else {
 		g.Gatewayer.SwitchState(ctx, network.JoinerBootstrap, pulse)

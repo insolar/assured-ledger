@@ -93,7 +93,7 @@ type Base struct {
 
 	mu             sync.Mutex
 	reconnectNodes []profiles.ActiveNode
-	pulse          pulse.Number
+	localRedirect  bool
 }
 
 // NewGateway creates new gateway on top of existing
@@ -278,7 +278,6 @@ func (g *Base) UpdateState(ctx context.Context, pu beat.Beat) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.reconnectNodes = pu.Online.GetProfiles()
-	g.pulse = pu.PulseNumber
 }
 
 // Auther casts us to Auther or obtain it in another way
@@ -416,9 +415,7 @@ func (g *Base) getDiscoveryCount() int {
 		nodes = na.GetPopulation().GetProfiles()
 	}
 
-	discoveryCount := len(network.FindDiscoveriesInNodeList(nodes, g.CertificateManager.GetCertificate()))
-	// todo if 0 then 1 ??
-	return discoveryCount
+	return len(network.FindDiscoveriesInNodeList(nodes, g.CertificateManager.GetCertificate()))
 }
 
 func (g *Base) reconnectToLocal() (*legacyhost.Host, error) {
@@ -430,49 +427,36 @@ func (g *Base) reconnectToLocal() (*legacyhost.Host, error) {
 }
 
 func (g *Base) getReconnectHost() (*legacyhost.Host, error) {
-	// if !g.isJoinAssistant {
-	// 	fmt.Println("AuthRedirect local")
-	// 	return g.reconnectToLocal()
-	// }
-
 	var (
-		// nodes         []nodeinfo.NetworkNode
 		reconnectHost *legacyhost.Host
 		err           error
 	)
 
 	ch := make(chan *legacyhost.Host)
-	timeoutCtx, _ := context.WithTimeout(context.Background(), time.Second*10)
+	go func() {
+		var h *legacyhost.Host
+		var n profiles.ActiveNode
 
-	go func(ctx context.Context) {
-		for {
-			var h *legacyhost.Host
-			var n profiles.ActiveNode
+		g.mu.Lock()
+		defer g.mu.Unlock()
+		if len(g.reconnectNodes) > 0 {
+			n, g.reconnectNodes = g.reconnectNodes[0], g.reconnectNodes[1:]
+			h, err = legacyhost.NewHostNS(nodeinfo.NodeAddr(n), nodeinfo.NodeRef(n), n.GetNodeID())
 
-			g.mu.Lock()
-			if len(g.reconnectNodes) > 0 {
-				n, g.reconnectNodes = g.reconnectNodes[0], g.reconnectNodes[1:]
-				// randNode := nodes[rand.Intn(len(nodes))] // todo round robin //
-				h, err = legacyhost.NewHostNS(nodeinfo.NodeAddr(n), nodeinfo.NodeRef(n), n.GetNodeID())
-
-				fmt.Printf("AuthRedirect: %s\n", h.String())
-			} else if g.pulse.IsUnknown() {
-				h, err = g.reconnectToLocal()
-				fmt.Printf("AuthRedirect local: %s\n", h.String())
-			}
-			g.mu.Unlock()
-			// if err != nil {
-			ch <- h
-			close(ch)
-			return
-			// }
-			// time.Sleep(time.Second)
+			fmt.Printf("AuthRedirect: %s\n", h)
+		} else if !g.localRedirect {
+			h, err = g.reconnectToLocal()
+			fmt.Printf("AuthRedirect local: %s\n", h)
+			g.localRedirect = true
 		}
-	}(timeoutCtx)
+
+		ch <- h
+		close(ch)
+	}()
 
 	select {
 	case reconnectHost = <-ch:
-	case <-timeoutCtx.Done():
+	case <-time.After(time.Second * 10):
 		err = throw.W(err, "failed to get reconnectHost timeout")
 	}
 
