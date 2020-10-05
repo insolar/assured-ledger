@@ -1,0 +1,39 @@
+@startuml
+state "Init" as T01_S001
+T01_S001 : SMGetCachedMemory
+[*] --> T01_S001
+T01_S001 --> T01_S002
+state "s.memoryCache" as T01_S003 <<sdlreceive>>
+T01_S003 : DUPLICATE
+state "s.messageSender" as T01_S006 <<sdlreceive>>
+state "stepProcess" as T01_S002
+T01_S002 : SMGetCachedMemory
+T01_S002 --> T01_S003 : PrepareAsync(ctx)
+T01_S002 --[dashed]> T01_S004 : Sleep
+state "stepProcess.2" as T01_S004
+T01_S004 : SMGetCachedMemory
+T01_S004 --[dashed]> T01_S004 : [!done]\nSleep
+T01_S004 --> T01_S005 : [s.Result==nil]
+T01_S004 --> [*]
+state "stepProcessResponse" as T01_S008
+T01_S008 : SMGetCachedMemory
+T01_S008 --> [*] : [rms.CachedMemoryStateMissing]\nError
+T01_S008 --> T01_S003 : PrepareAsync(ctx).WithoutAutoWakeUp()
+T01_S008 --> [*]
+state "stepRequestMemory" as T01_S005
+T01_S005 : SMGetCachedMemory
+T01_S005 --> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
+T01_S005 --> T01_S006 : PrepareAsync(ctx).WithoutAutoWakeUp()
+T01_S005 --[dashed]> T01_S007 : Sleep
+state "stepRequestMemory.2" as T01_S007
+T01_S007 : SMGetCachedMemory
+T01_S007 --[dashed]> T01_S007 : [s.response==nil]\nSleep
+T01_S007 --> T01_S008
+state "GetInitStateFor" as T00_S001
+T00_S001 : dSMGetCachedMemory
+[*] --> T00_S001
+state "s.Init" as T00_U001
+T00_U001 : dSMGetCachedMemory
+T00_U001 : UNKNOWN 
+T00_S001 --> T00_U001
+@enduml

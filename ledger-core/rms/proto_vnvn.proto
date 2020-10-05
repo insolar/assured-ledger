@@ -217,6 +217,8 @@ message VDelegatedRequestFinished {
     CallDelegationToken DelegationSpec = 26;
 
     ObjectState LatestState = 29 [(gogoproto.nullable) = true];
+
+    Transcript PendingTranscript = 30;
 }
 
 message VDelegatedCallRequest {
@@ -296,8 +298,43 @@ message VCachedMemoryResponse {
     Binary Memory = 54;
 }
 
-message VObjectTranscriptReport {
+message Transcript {
     option (insproto.id) = 1015;
+
+    message TranscriptEntryIncomingRequest {
+        option (insproto.id) = 101501;
+
+        Reference ObjectMemory = 1800;
+        Reference Incoming = 1801;
+        VCallRequest Request = 1802;
+    }
+    message TranscriptEntryOutgoingRequest {
+        option (insproto.id) = 101502;
+
+        Reference Request = 1800;
+        Reference Reason = 1801;
+    }
+    message TranscriptEntryOutgoingResult {
+        option (insproto.id) = 101503;
+
+        Reference OutgoingResult = 1800;
+        VCallResult CallResult = 1801;
+        Reference Reason = 1802;
+    }
+    message TranscriptEntryIncomingResult {
+        option (insproto.id) = 101504;
+
+        Reference IncomingResult = 1800;
+        Reference ObjectState = 1801;
+        Reference Reason = 1802;
+    }
+
+    // stub
+    repeated Any Entries = 1800;
+}
+
+message VObjectTranscriptReport {
+    option (insproto.id) = 1016;
 
     //*** Start of predefined section ***//
     reserved 1 to 18, 20 to 1799;
@@ -307,47 +344,17 @@ message VObjectTranscriptReport {
 
     uint32 AsOf = 1800 [(gogoproto.casttype) = "PulseNumber"];
     Reference Object = 1801;
+    Reference Class = 1804;
 
-    message TranscriptEntryIncomingRequest {
-        option (insproto.id) = 101501;
+    repeated Transcript PendingTranscripts = 1802;
 
-        Reference ObjectMemory = 1800;
-        Reference Incoming = 1801;
-        bytes Request = 1802; // fixme: waiting for messages to move to RMS package
-    }
-    message TranscriptEntryOutgoingRequest {
-        option (insproto.id) = 101502;
-
-        Reference Outgoing = 1800;
-    }
-    message TranscriptEntryOutgoingResult {
-        option (insproto.id) = 101503;
-
-        Reference OutgoingResult = 1800;
-        bytes CallResult = 1801; // fixme: waiting for messages to move to RMS package
-    }
-    message TranscriptEntryIncomingResult {
-        option (insproto.id) = 101504;
-
-        Reference IncomingResult = 1800;
-        Reference ObjectState = 1801;
-    }
-
-    message Transcript {
-        option (insproto.id) = 0;
-
-        // stub
-        repeated Any Entries = 1800;
-    }
-
-    repeated Transcript PendingTranscripts = 1803;
-
-    Transcript ObjectTranscript = 1804;
+    Transcript ObjectTranscript = 1803;
 }
 
 message VObjectValidationReport {
-    option (insproto.id) = 1016;
+    option (insproto.id) = 1017;
     Reference Object = 21;
+    Reference Class = 22;
     uint32 In = 55 [(gogoproto.casttype) = "PulseNumber"];
     Reference Validated = 50;
 }

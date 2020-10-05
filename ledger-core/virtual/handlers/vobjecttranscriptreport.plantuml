@@ -3,14 +3,76 @@ state "Init" as T01_S001
 T01_S001 : SMVObjectTranscriptReport
 [*] --> T01_S001
 T01_S001 --> T01_S002
+state "s.messageSender" as T01_S017 <<sdlreceive>>
+state "s.runner" as T01_S008 <<sdlreceive>>
+T01_S008 : DUPLICATE
+state "stepAdvanceToNextRequest" as T01_S015
+T01_S015 : SMVObjectTranscriptReport
+T01_S015 --> T01_S016 : [s.counter==len()]
+T01_S015 --> T01_S002
+state "stepExecuteContinue" as T01_S012
+T01_S012 : SMVObjectTranscriptReport
+state T01_U001 <<fork>>
+T01_S012 --> T01_U001
+T01_U001 --> T01_S008 : PrepareExecutionContinue(ctx)
+T01_U001 --[dashed]> T01_S009
+state "stepExecuteDecideNextStep" as T01_S010
+T01_S010 : SMVObjectTranscriptReport
+T01_S010 --> T01_S011 : [execution.OutgoingCall]
+T01_S010 --> T01_S013
+state "stepExecuteFinish" as T01_S013
+T01_S013 : SMVObjectTranscriptReport
+T01_S013 --> T01_S014 : [entry==nil]
+T01_S013 --> T01_S014 : [!ok]
+T01_S013 --> T01_S014 : [!headRef.Equal()]
+T01_S013 --> T01_S014 : [stateHash.Compare()!=0]
+T01_S013 --> T01_S014 : [!equal]
+T01_S013 --> T01_S015
+state "stepExecuteOutgoing" as T01_S011
+T01_S011 : SMVObjectTranscriptReport
+T01_S011 --> T01_S014 : [entry==nil]
+T01_S011 --> T01_S014 : [!ok]
+T01_S011 --> T01_S014 : [entry==nil]
+T01_S011 --> T01_S014 : [!ok]
+T01_S011 --> T01_S012
+state "stepExecuteStart" as T01_S007
+T01_S007 : SMVObjectTranscriptReport
+state T01_U002 <<fork>>
+T01_S007 --> T01_U002
+T01_U002 --> T01_S008 : PrepareExecutionStart(ctx)
+T01_U002 --[dashed]> T01_S009
+state "stepGetMemory" as T01_S003
+T01_S003 : SMVObjectTranscriptReport
+T01_S003 --> T01_S004 : CallSubroutine
+state "stepGetMemory.2" as T01_S005
+T01_S005 : SMVObjectTranscriptReport
+T01_S005 --> T01_S006
+state "stepGetMemory.subSM.1" as T01_S004 <<sdlreceive>>
+T01_S004 --> T01_S005
+state "stepIncomingRequest" as T01_S006
+T01_S006 : SMVObjectTranscriptReport
+T01_S006 --> T01_S007
 state "stepProcess" as T01_S002
 T01_S002 : SMVObjectTranscriptReport
+T01_S002 --> T01_S014 : [entry==nil]
+T01_S002 --> T01_S006 : [s.objState.IsEmpty()]
+T01_S002 --> T01_S003 : [(...).Transcript_TranscriptEntryIncomingRequest]
 T01_S002 --> [*]
+state "stepSendValidationReport" as T01_S016
+T01_S016 : SMVObjectTranscriptReport
+T01_S016 --> T01_S017 : PrepareAsync(ctx).WithoutAutoWakeUp()
+T01_S016 --> [*]
+state "stepValidationFailed" as T01_S014
+T01_S014 : SMVObjectTranscriptReport
+state "stepWaitExecutionResult" as T01_S009
+T01_S009 : SMVObjectTranscriptReport
+T01_S009 --[dashed]> T01_S009 : [s.executionNewState==nil]\nSleep
+T01_S009 --> T01_S010
 state "GetInitStateFor" as T00_S001
 T00_S001 : dSMVObjectTranscriptReport
 [*] --> T00_S001
-state "s.Init" as T00_U001
-T00_U001 : dSMVObjectTranscriptReport
-T00_U001 : UNKNOWN 
-T00_S001 --> T00_U001
+state "s.Init" as T00_U003
+T00_U003 : dSMVObjectTranscriptReport
+T00_U003 : UNKNOWN 
+T00_S001 --> T00_U003
 @enduml

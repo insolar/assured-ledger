@@ -9,6 +9,7 @@ package execute
 
 import (
 	"context"
+	"encoding/hex"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -36,6 +37,7 @@ import (
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/validation"
 )
 
 /* -------- Utilities ------------- */
@@ -58,7 +60,8 @@ type SMExecute struct {
 
 	// execution step
 	executionNewState   *execution.Update
-	outgoingResult      []byte
+	outgoingResultBytes []byte
+	outgoingResult      *rms.VCallResult
 	deactivate          bool
 	run                 runner.RunState
 	newObjectDescriptor descriptor.Object
@@ -84,6 +87,10 @@ type SMExecute struct {
 	stepAfterTokenGet   smachine.SlotStep
 
 	findCallResponse *rms.VFindCallResponse
+
+	incomingAddedToTranscript bool
+	outgoingAddedToTranscript bool
+	transcript                validation.Transcript
 }
 
 /* -------- Declaration ------------- */
@@ -117,26 +124,36 @@ func (s *SMExecute) GetStateMachineDeclaration() smachine.StateMachineDeclaratio
 	return dSMExecuteInstance
 }
 
+func ExecContextFromRequest(request *rms.VCallRequest) execution.Context {
+	res := execution.Context{
+		Request: request,
+	}
+	if request.CallType == rms.CallTypeConstructor {
+		res.Object = reference.NewSelf(request.CallOutgoing.GetValue().GetLocal())
+	} else {
+		res.Object = request.Callee.GetValue()
+	}
+
+	res.Incoming = reference.NewRecordOf(request.Callee.GetValue(), request.CallOutgoing.GetValue().GetLocal())
+	res.Outgoing = request.CallOutgoing.GetValue()
+
+	res.Isolation = contract.MethodIsolation{
+		Interference: request.CallFlags.GetInterference(),
+		State:        request.CallFlags.GetState(),
+	}
+	return res
+}
+
 func (s *SMExecute) prepareExecution(ctx context.Context) {
+	s.execution = ExecContextFromRequest(s.Payload)
+
 	s.execution.Context = ctx
-	s.execution.Sequence = 0
-	s.execution.Request = s.Payload
 	s.execution.Pulse = s.pulseSlot.PulseData()
 
 	if s.Payload.CallType == rms.CallTypeConstructor {
 		s.isConstructor = true
-		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing.GetValue().GetLocal())
-	} else {
-		s.execution.Object = s.Payload.Callee.GetValue()
 	}
-
-	s.execution.Incoming = reference.NewRecordOf(s.Payload.Callee.GetValue(), s.Payload.CallOutgoing.GetValue().GetLocal())
-	s.execution.Outgoing = s.Payload.CallOutgoing.GetValue()
-
-	s.execution.Isolation = contract.MethodIsolation{
-		Interference: s.Payload.CallFlags.GetInterference(),
-		State:        s.Payload.CallFlags.GetState(),
-	}
+	s.transcript = validation.NewTranscript()
 }
 
 func (s *SMExecute) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
@@ -684,7 +701,7 @@ func (s *SMExecute) prepareOutgoingError(err error) {
 		panic(throw.W(err, "can't create error result"))
 	}
 
-	s.outgoingResult = resultWithErr
+	s.outgoingResultBytes = resultWithErr
 }
 
 func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -752,7 +769,8 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			}
 
 			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-				s.outgoingResult = res.ReturnArguments.GetBytes()
+				s.outgoingResultBytes = res.ReturnArguments.GetBytes()
+				s.outgoingResult = res
 
 				return ctx.WakeUp()
 			}
@@ -789,8 +807,48 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 	// someone else can process other requests while we  waiting for outgoing results
 	ctx.Release(s.globalSemaphore.PartialLink())
 
+	// FIXME: result can be processed faster than request
+	return ctx.Jump(s.stepTranscribeOutgoingRequest)
+}
+
+func (s *SMExecute) stepTranscribeOutgoingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	entries := make([]validation.TranscriptEntry, 0)
+	if !s.incomingAddedToTranscript {
+		entries = append(entries, s.incomingTranscriptEntry())
+	}
+
+	entries = append(entries, validation.TranscriptEntry{
+		Reason: s.execution.Outgoing,
+		Custom: validation.TranscriptEntryOutgoingRequest{
+			Request: s.outgoing.CallOutgoing.GetValue(),
+		},
+	})
+
+	action := func(state *object.SharedState) {
+		state.Transcript.Add(entries...)
+		s.outgoingAddedToTranscript = true
+	}
+	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+		return stepUpdate
+	}
+
+	s.incomingAddedToTranscript = true
+
+	s.transcript.Add(entries...)
+
 	// we'll wait for barge-in WakeUp here, not adapter
 	return ctx.Sleep().ThenJump(s.stepTakeLockAfterOutgoing)
+}
+
+func (s *SMExecute) incomingTranscriptEntry() validation.TranscriptEntry {
+	return validation.TranscriptEntry{
+		Reason: s.Payload.CallOutgoing.GetValue(),
+		Custom: validation.TranscriptEntryIncomingRequest{
+			ObjectMemory: s.objectMemoryRef(),
+			Incoming:     reference.Global{},
+			CallRequest:  *s.Payload,
+		},
+	}
 }
 
 func (s *SMExecute) stepTakeLockAfterOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -804,7 +862,7 @@ func (s *SMExecute) stepTakeLockAfterOutgoing(ctx smachine.ExecutionContext) sma
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	outgoingResult := s.outgoingResult
+	outgoingResult := s.outgoingResultBytes
 	switch s.executionNewState.Outgoing.(type) {
 	case execution.CallConstructor, execution.CallMethod:
 		if outgoingResult == nil {
@@ -812,11 +870,34 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 		}
 	}
 
+	if s.outgoingAddedToTranscript {
+		if s.outgoingResult == nil {
+			panic(throw.IllegalValue())
+		}
+
+		entry := validation.TranscriptEntry{
+			Reason: s.execution.Outgoing,
+			Custom: validation.TranscriptEntryOutgoingResult{
+				OutgoingResult: reference.Global{},
+				CallResult:     *s.outgoingResult,
+			},
+		}
+
+		action := func(state *object.SharedState) {
+			state.Transcript.Add(entry)
+		}
+		if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+			return stepUpdate
+		}
+
+		s.transcript.Add(entry)
+	}
+
 	// unset all outgoing fields in case we have new outgoing request
 	s.outgoingSentCounter = 0
 	s.outgoingObject = reference.Global{}
 	s.outgoing = nil
-	s.outgoingResult = []byte{}
+	s.outgoingResultBytes = []byte{}
 	ctx.SetDefaultMigration(s.migrateDuringExecution)
 
 	s.executionNewState = nil
@@ -863,27 +944,48 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		panic(throw.IllegalValue())
 	}
 
-	if s.migrationHappened || s.newObjectDescriptor == nil {
+	tEntries := make([]validation.TranscriptEntry, 0)
+
+	if !s.incomingAddedToTranscript {
+		tEntries = append(tEntries, s.incomingTranscriptEntry())
+	}
+	tEntries = append(tEntries, validation.TranscriptEntry{
+		Reason: s.execution.Outgoing,
+		Custom: validation.TranscriptEntryIncomingResult{
+			IncomingResult: reference.Global{},
+			ObjectMemory:   s.newObjectMemoryRef(),
+		},
+	})
+
+	if s.migrationHappened {
+		s.transcript.Add(tEntries...)
 		return ctx.Jump(s.stepSendCallResult)
 	}
 
-	s.updateMemoryCache(ctx, s.newObjectDescriptor)
-
 	action := func(state *object.SharedState) {
-		state.SetDescriptorDirty(s.newObjectDescriptor)
+		if s.newObjectDescriptor != nil {
+			state.SetDescriptorDirty(s.newObjectDescriptor)
 
-		switch state.GetState() {
-		case object.HasState:
-			// ok
-		case object.Empty, object.Missing:
-			state.SetState(object.HasState)
-		default:
-			panic(throw.IllegalState())
+			switch state.GetState() {
+			case object.HasState:
+				// ok
+			case object.Empty, object.Missing:
+				state.SetState(object.HasState)
+			default:
+				panic(throw.IllegalState())
+			}
 		}
-	}
 
+		state.Transcript.Add(tEntries...)
+		s.transcript.Add(tEntries...)
+		s.incomingAddedToTranscript = true
+	}
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
+	}
+
+	if s.newObjectDescriptor != nil {
+		s.updateMemoryCache(ctx, s.newObjectDescriptor)
 	}
 
 	return ctx.Jump(s.stepSendCallResult)
@@ -979,13 +1081,14 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 
 func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, lastState *rms.ObjectState) {
 	msg := rms.VDelegatedRequestFinished{
-		CallType:       s.Payload.CallType,
-		CallFlags:      s.Payload.CallFlags,
-		Callee:         rms.NewReference(s.execution.Object),
-		CallOutgoing:   rms.NewReference(s.execution.Outgoing),
-		CallIncoming:   rms.NewReference(s.execution.Incoming),
-		DelegationSpec: s.getToken(),
-		LatestState:    lastState,
+		CallType:          s.Payload.CallType,
+		CallFlags:         s.Payload.CallFlags,
+		Callee:            rms.NewReference(s.execution.Object),
+		CallOutgoing:      rms.NewReference(s.execution.Outgoing),
+		CallIncoming:      rms.NewReference(s.execution.Incoming),
+		DelegationSpec:    s.getToken(),
+		LatestState:       lastState,
+		PendingTranscript: s.transcript.GetRMSTranscript(nil),
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
@@ -998,20 +1101,41 @@ func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, 
 	}).WithoutAutoWakeUp().Start()
 }
 
-func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte, deactivated bool) descriptor.Object {
+func (s *SMExecute) makeNewDescriptor(
+	class reference.Global,
+	memory []byte,
+	deactivated bool,
+) descriptor.Object {
+	return MakeDescriptor(
+		s.execution.ObjectDescriptor,
+		s.execution.Object,
+		class, memory, deactivated,
+		s.pulseSlot.PulseData().GetPulseNumber(),
+	)
+}
+
+func MakeDescriptor(
+	prevDesc descriptor.Object,
+	object reference.Global,
+	class reference.Global,
+	memory []byte,
+	deactivated bool,
+	pn pulse.Number,
+) descriptor.Object {
 	var prevStateIDBytes []byte
-	objDescriptor := s.execution.ObjectDescriptor
-	if objDescriptor != nil {
-		prevStateIDBytes = objDescriptor.StateID().AsBytes()
+	if prevDesc != nil {
+		prevStateIDBytes = prevDesc.StateID().AsBytes()
 	}
 
-	objectRefBytes := s.execution.Object.AsBytes()
+	objectRefBytes := object.AsBytes()
+	println("WTF: memory: ", hex.Dump(memory), " prev: ", prevStateIDBytes, " object ref: ", hex.Dump(objectRefBytes))
+
 	stateHash := append(memory, objectRefBytes...)
 	stateHash = append(stateHash, prevStateIDBytes...)
 
-	stateID := NewStateID(s.pulseSlot.PulseData().GetPulseNumber(), stateHash)
+	stateID := NewStateID(pn, stateHash)
 	return descriptor.NewObject(
-		s.execution.Object,
+		object,
 		stateID,
 		class,
 		memory,
@@ -1148,4 +1272,30 @@ func (s *SMExecute) deduplicate(state *object.SharedState) (DeduplicationAction,
 	}
 
 	return ContinueExecute, nil, nil
+}
+
+func (s *SMExecute) objectMemoryRef() reference.Global {
+	switch s.Payload.CallType {
+	case rms.CallTypeConstructor:
+		return reference.Global{}
+	default:
+		desc := s.execution.ObjectDescriptor
+		if desc == nil {
+			panic(throw.Impossible())
+		}
+		return reference.NewRecordOf(desc.HeadRef(), desc.StateID())
+	}
+}
+
+func (s *SMExecute) newObjectMemoryRef() reference.Global {
+	var res reference.Global
+	if s.newObjectDescriptor != nil {
+		res = reference.NewRecordOf(
+			s.newObjectDescriptor.HeadRef(),
+			s.newObjectDescriptor.StateID(),
+		)
+	} else {
+		res = s.objectMemoryRef()
+	}
+	return res
 }

@@ -73,7 +73,8 @@ type Info struct {
 
 	objectState State
 
-	Transcript validation.Transcript
+	Transcript         validation.Transcript
+	PendingTranscripts []rms.Transcript
 }
 
 func (i *Info) IsReady() bool {
@@ -193,10 +194,11 @@ func NewStateMachineObject(objectReference reference.Global) *SMObject {
 	return &SMObject{
 		SharedState: SharedState{
 			Info: Info{
-				Reference:     objectReference,
-				KnownRequests: callregistry.NewWorkingTable(),
-				PendingTable:  callregistry.NewRequestTable(),
-				Transcript:    validation.NewTranscript(),
+				Reference:          objectReference,
+				KnownRequests:      callregistry.NewWorkingTable(),
+				PendingTable:       callregistry.NewRequestTable(),
+				Transcript:         validation.NewTranscript(),
+				PendingTranscripts: []rms.Transcript{},
 			},
 		},
 	}
@@ -460,6 +462,53 @@ func (sm *SMObject) stepPublishCallSummary(ctx smachine.ExecutionContext) smachi
 	}
 
 	ctx.ApplyAdjustment(sm.summaryDoneCtl.NewValue(true))
+
+	return ctx.Jump(sm.stepSendTranscriptReport)
+}
+
+func (sm *SMObject) stepSendTranscriptReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	filter := func(e validation.TranscriptEntry) bool {
+		st := sm.KnownRequests.GetList(isolation.CallTolerable).GetState(e.Reason)
+		if st == callregistry.RequestProcessing {
+			return false
+		}
+		st = sm.KnownRequests.GetList(isolation.CallIntolerable).GetState(e.Reason)
+		if st == callregistry.RequestProcessing {
+			return false
+		}
+
+		return true
+	}
+
+	rmsTranscript := sm.Transcript.GetRMSTranscript(filter)
+	if len(rmsTranscript.Entries) == 0 && len(sm.PendingTranscripts) == 0 {
+		return ctx.Jump(sm.stepFinalize)
+	}
+
+	if sm.descriptorDirty == nil {
+		panic(throw.Impossible())
+	}
+	class, err := sm.descriptorDirty.Class()
+	if err != nil {
+		ctx.Log().Error("failed to get class", err)
+	}
+
+	msg := rms.VObjectTranscriptReport{
+		AsOf:               sm.pulseSlot.PulseNumber(),
+		Object:             rms.NewReference(sm.Reference),
+		Class:              rms.NewReference(class),
+		ObjectTranscript:   rmsTranscript,
+		PendingTranscripts: sm.PendingTranscripts, // TODO filter by object
+	}
+
+	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
+		err := svc.SendRole(goCtx, &msg, affinity.DynamicRoleVirtualValidator, sm.Reference, sm.pulseSlot.PulseNumber())
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send state", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
 
 	return ctx.Jump(sm.stepFinalize)
 }

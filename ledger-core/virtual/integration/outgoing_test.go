@@ -162,6 +162,12 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			assert.Zero(t, report.DelegationSpec)
 			return false
 		})
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			assert.Equal(t, objectAGlobal, report.Object.GetValue())
+			assert.Equal(t, outgoingCallRef.GetLocal().Pulse(), report.AsOf)
+			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+			return false
+		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
 			assert.Equal(t, objectAGlobal, request.Callee.GetValue())
 
@@ -261,7 +267,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	assert.Equal(t, 2, typedChecker.VDelegatedCallRequest.Count())
 	assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
-
+	assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 	mc.Finish()
 }
 
@@ -361,6 +367,12 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			assert.Equal(t, objectRef, report.Object.GetValue())
 			assert.Equal(t, rms.StateStatusEmpty, report.Status)
 			assert.Zero(t, report.DelegationSpec)
+			return false
+		})
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			assert.Equal(t, objectRef, report.Object.GetValue())
+			assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
+			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
@@ -473,6 +485,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	assert.Equal(t, 2, typedChecker.VDelegatedCallRequest.Count())
 	assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
+	assert.Equal(t, 2, typedChecker.VObjectTranscriptReport.Count())
 
 	mc.Finish()
 }

@@ -157,6 +157,13 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 					assert.Zero(t, report.DelegationSpec)
 					return false
 				})
+				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+					assert.Equal(t, object, report.Object.GetValue())
+					assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
+					// todo: we should write VCallResult with 4-type error in transcript ?
+					// assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+					return false
+				})
 
 				typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
 					p2 := server.GetPulse().PulseNumber
@@ -195,6 +202,17 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
 					assert.Equal(t, object, finished.Callee.GetValue())
 					assert.Equal(t, expectedToken, finished.DelegationSpec)
+
+					assert.NotEmpty(t, finished.PendingTranscript.Entries)
+					request, ok := finished.PendingTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
+					assert.True(t, ok)
+					assert.Equal(t, object, request.Request.Callee.GetValue())
+					assert.Equal(t, outgoing, request.Request.CallOutgoing.GetValue())
+
+					result, ok := finished.PendingTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+					assert.True(t, ok)
+					assert.NotEmpty(t, result.ObjectState.GetValue())
+					assert.Equal(t, outgoing, result.Reason.GetValue())
 
 					if test.isolation == tolerableFlags() && test.withSideEffect {
 						require.NotEmpty(t, finished.LatestState)
@@ -242,13 +260,12 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 			{
 				assert.Equal(t, 1, typedChecker.VCallResult.Count())
 				assert.Equal(t, 1, typedChecker.VStateReport.Count())
+				assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 				assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
 
 				assert.Equal(t, test.countChangePulse, typedChecker.VDelegatedCallRequest.Count())
 			}
-
 			mc.Finish()
-
 		})
 	}
 }
@@ -364,6 +381,23 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
 			assert.Equal(t, object, finished.Callee.GetValue())
 			assert.NotEmpty(t, finished.DelegationSpec)
+
+			assert.NotEmpty(t, finished.PendingTranscript.Entries)
+			request, ok := finished.PendingTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
+			assert.True(t, ok)
+			assert.Equal(t, object, request.Request.Callee.GetValue())
+
+			result, ok := finished.PendingTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+			assert.True(t, ok)
+			assert.NotEmpty(t, result.ObjectState.GetValue())
+			assert.Equal(t, request.Request.CallOutgoing.GetValue(), result.Reason.GetValue())
+
+			if request.Request.CallFlags.GetInterference() == isolation.CallTolerable {
+				require.NotEmpty(t, finished.LatestState)
+				assert.Equal(t, []byte("new memory"), finished.LatestState.State.GetBytes())
+			} else {
+				assert.Empty(t, finished.LatestState)
+			}
 			return false
 		})
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
@@ -564,7 +598,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			// VDelegatedRequestFinished
 			{
 				finished := rms.VDelegatedRequestFinished{
-					CallType:     rms.CallTypeMethod,
+					CallType:     rms.CallTypeConstructor,
 					CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 					Callee:       rms.NewReference(object),
 					CallOutgoing: rms.NewReference(outgoingP1),

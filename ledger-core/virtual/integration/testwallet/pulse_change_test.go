@@ -90,6 +90,7 @@ func TestVirtual_CallMethodAfterMultiplePulseChanges(t *testing.T) {
 	typedChecker.VCallResult.SetResend(true)
 	typedChecker.VStateReport.SetResend(true)
 	typedChecker.VStateRequest.SetResend(true)
+	typedChecker.VObjectTranscriptReport.SetResend(true)
 
 	server.IncrementPulseAndWaitIdle(ctx)
 

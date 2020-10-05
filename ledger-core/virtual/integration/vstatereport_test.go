@@ -207,6 +207,7 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 
 			suite.createPulseP5(ctx)
 			expectedPublished++                      // expect StateReport
+			expectedPublished++                      // expect VObjectTranscriptReport
 			expectedPublished += 2 * len(test.start) // expect GetToken + FindRequest
 			suite.waitMessagePublications(ctx, t, expectedPublished)
 
@@ -428,6 +429,11 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 		)
 
 		return false // no resend msg
+	})
+	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+		assert.Equal(t, s.object, report.Object.GetValue())
+		assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+		return false
 	})
 	typedChecker.VDelegatedCallResponse.Set(func(del *rms.VDelegatedCallResponse) bool {
 		outgoingRef := del.ResponseDelegationSpec.Outgoing

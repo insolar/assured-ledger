@@ -15,13 +15,14 @@ T00_S009 --> [*] : [err!=nil]\nError
 T00_S009 --> [*] : [err!=nil]\nError
 T00_S009 --> T00_S010
 state "sm.messageSender" as T00_S004 <<sdlreceive>>
-state "stepFinalize" as T00_S011
-T00_S011 : SMObject
-T00_S011 --[dotted]> T00_S009
+T00_S004 : DUPLICATE
+state "stepFinalize" as T00_S012
+T00_S012 : SMObject
+T00_S012 --[dotted]> T00_S009
 state "sm.smFinalizer" as T00_U001
 T00_U001 : SMObject
 T00_U001 : UNKNOWN 
-T00_S011 --[dashed]> T00_U001 : Migrate: <nil>\nReplace
+T00_S012 --[dashed]> T00_U001 : Migrate: <nil>\nReplace
 state "stepGetState" as T00_S005
 T00_S005 : SMObject
 T00_S005 --[dotted]> T00_S009
@@ -42,6 +43,12 @@ T00_S003 : SMObject
 T00_S003 --[dotted]> T00_S009
 T00_S003 --> T00_S004 : PrepareAsync(ctx).WithoutAutoWakeUp()
 T00_S003 --> T00_S006
+state "stepSendTranscriptReport" as T00_S011
+T00_S011 : SMObject
+T00_S011 --[dotted]> T00_S009
+T00_S011 --> T00_S012 : [len()==0&&len()==0]
+T00_S011 --> T00_S004 : PrepareAsync(ctx).WithoutAutoWakeUp()
+T00_S011 --> T00_S012
 state "stepWaitIndefinitely" as T00_S008
 T00_S008 : SMObject
 T00_S008 --[dotted]> T00_S009

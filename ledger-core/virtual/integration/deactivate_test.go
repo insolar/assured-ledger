@@ -164,6 +164,12 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 					return false
 				})
+				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+					assert.Equal(t, objectGlobal, report.Object.GetValue())
+					// assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
+					assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+					return false
+				})
 				typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 					assert.Equal(t, objectGlobal, result.Callee.GetValue())
 
@@ -233,6 +239,8 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			{
 				server.IncrementPulse(ctx)
 
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
+				assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 				assert.Equal(t, 1, typedChecker.VStateReport.Count())
 			}
@@ -512,6 +520,12 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 			assert.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestValidatedState.State.GetBytes())
 			return false
 		})
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			assert.Equal(t, objectRef, report.Object.GetValue())
+			assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
+			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+			return false
+		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
 			assert.Equal(t, objectRef, request.Callee.GetValue())
 			assert.Equal(t, outgoing, request.CallOutgoing.GetValue())
@@ -567,7 +581,9 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 	synchronizeExecution.WakeUp()
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, oneExecutionEnded)
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
 
+	assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
@@ -967,6 +983,12 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 				assert.Nil(t, report.ProvidedContent)
 				return false
 			})
+			typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+				assert.Equal(t, objectRef, report.Object.GetValue())
+				assert.Equal(t, checkOutgoing.GetLocal().Pulse(), report.AsOf)
+				assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+				return false
+			})
 			typedChecker.VDelegatedCallResponse.Set(func(response *rms.VDelegatedCallResponse) bool {
 				assert.Equal(t, objectRef, response.Callee.GetValue())
 				require.NotEmpty(t, response.ResponseDelegationSpec)
@@ -1045,7 +1067,9 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			server.IncrementPulse(ctx)
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
 
+			assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 			assert.Equal(t, 1, typedChecker.VStateReport.Count())
 			assert.Equal(t, 1, typedChecker.VDelegatedCallResponse.Count())
 			assert.Equal(t, 1, typedChecker.VCallResult.Count())
