@@ -53,11 +53,6 @@ func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Data) {
 		return
 	}
 
-	// remember who is Me and who is joinAssistant
-	g.isDiscovery = network.OriginIsDiscovery(cert)
-	g.isJoinAssistant = network.OriginIsJoinAssistant(cert)
-	g.joinAssistant = network.JoinAssistant(cert)
-
 	if g.isJoinAssistant {
 		// Reset backoff if not insolar.JoinerBootstrap.
 		g.backoff = 0
@@ -69,6 +64,7 @@ func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Data) {
 
 	time.Sleep(g.pause())
 	if g.isDiscovery {
+		rand.Seed(time.Now().UnixNano())
 		time.Sleep(time.Second * time.Duration(rand.Intn(20)))
 		g.Gatewayer.SwitchState(ctx, network.DiscoveryBootstrap, pulse)
 	} else {
