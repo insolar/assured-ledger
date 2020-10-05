@@ -56,7 +56,7 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 
 	resultSignal := make(synckit.ClosableSignalChannel, 1)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, b, server)
 	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		resultSignal <- struct{}{}
 		return false
@@ -116,7 +116,7 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 
 	resultSignal := make(synckit.ClosableSignalChannel, 1)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, b, server)
 	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		resultSignal <- struct{}{}
 		return false
@@ -146,16 +146,11 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 
 	resultSignal := make(synckit.ClosableSignalChannel, 1)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, b, server)
 	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		resultSignal <- struct{}{}
 		return false
 	})
-
-	pl := *utils.GenerateVCallRequestConstructor(server)
-	pl.Callee.Set(server.RandomGlobalWithPulse())
-	pl.CallSiteMethod = "New"
-	pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
 
 	b.ReportAllocs()
 	b.StopTimer()
@@ -166,11 +161,10 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 		insconveyor.DisableLogStepInfoMarshaller = true
 		b.StopTimer()
 		for i := 0; i < b.N; i++ {
-			pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
-			msg := server.WrapPayload(&pl).Finalize()
+			pl := utils.GenerateVCallRequestConstructor(server).Get()
 
 			b.StartTimer()
-			server.SendMessage(ctx, msg)
+			server.SendPayload(ctx, &pl)
 			testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
 			b.StopTimer()
 		}
@@ -181,11 +175,10 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 		insconveyor.DisableLogStepInfoMarshaller = false
 		b.StopTimer()
 		for i := 0; i < b.N; i++ {
-			pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
-			msg := server.WrapPayload(&pl).Finalize()
+			pl := utils.GenerateVCallRequestConstructor(server).Get()
 
 			b.StartTimer()
-			server.SendMessage(ctx, msg)
+			server.SendPayload(ctx, &pl)
 			testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
 			b.StopTimer()
 		}

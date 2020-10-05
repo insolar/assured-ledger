@@ -6,7 +6,6 @@
 package execute
 
 import (
-	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -19,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
-	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
@@ -28,8 +26,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
@@ -43,13 +43,14 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 	)
 
 	slotMachine := virtualdebugger.New(ctx, t)
-	slotMachine.InitEmptyMessageSender(mc)
+	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
 	var (
-		class   = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
-		caller  = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
-		limiter = tool.NewRunnerLimiter(4)
+		class    = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		caller   = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		limiter  = tool.NewRunnerLimiter(4)
+		outgoing = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 
 		sharedState = &object.SharedState{
 			Info: object.Info{
@@ -59,26 +60,26 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 				OrderedExecute: limiter.NewChildSemaphore(1, "MutableExecution").SyncLink(),
 			},
 		}
+
+		smExecute = SMExecute{
+			Payload: &rms.VCallRequest{
+				CallType:     rms.CallTypeConstructor,
+				CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+				CallOutgoing: rms.NewReference(outgoing),
+
+				Caller:         rms.NewReference(caller),
+				Callee:         rms.NewReference(class),
+				CallSiteMethod: "New",
+			},
+			Meta: &rms.Meta{
+				Sender: rms.NewReference(caller),
+			},
+		}
+
+		meRef          = gen.UniqueGlobalRef()
+		objectRef      = testutils.GetObjectReference(smExecute.Payload, meRef)
+		catalogWrapper = object.NewCatalogMockWrapper(mc)
 	)
-
-	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
-	objectRef := reference.NewSelf(outgoing.GetLocal())
-
-	smExecute := SMExecute{
-		Payload: &rms.VCallRequest{
-			CallType:     rms.CallTypeConstructor,
-			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			CallOutgoing: rms.NewReference(outgoing),
-
-			Caller:         rms.NewReference(caller),
-			Callee:         rms.NewReference(class),
-			CallSiteMethod: "New",
-		},
-		Meta: &rms.Meta{
-			Sender: rms.NewReference(caller),
-		},
-	}
-	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
 		var (
@@ -97,6 +98,26 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		catalogWrapper.AddObject(objectRef, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
+
+	slotMachine.MessageSender.SendRole.SetCheckMessage(
+		func(msg rmsreg.GoGoSerializable) {
+			switch res := msg.(type) {
+			case *rms.LRegisterRequest:
+				key := lmn.ResultAwaitKey{
+					AnticipatedRef: res.AnticipatedRef,
+					RequiredFlag:   rms.RegistrationFlags_Fast,
+				}
+
+				_, bargeIn := slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(key)
+				bargeIn.CallWithParam(&rms.LRegisterResponse{
+					Flags:              rms.RegistrationFlags_Fast,
+					AnticipatedRef:     res.AnticipatedRef,
+					RegistrarSignature: rms.NewBytes([]byte("dummy")),
+				})
+			default:
+				require.FailNow(t, "unreachable")
+			}
+		})
 
 	slotMachine.Start()
 	defer slotMachine.Stop()
@@ -140,26 +161,27 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 				OrderedExecute: limiter.NewChildSemaphore(1, "MutableExecution").SyncLink(),
 			},
 		}
+
+		outgoing = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+
+		smExecute = SMExecute{
+			Payload: &rms.VCallRequest{
+				CallType:     rms.CallTypeConstructor,
+				CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+				CallOutgoing: rms.NewReference(outgoing),
+
+				Caller:         rms.NewReference(class),
+				Callee:         rms.NewReference(callee),
+				CallSiteMethod: "New",
+			},
+			Meta: &rms.Meta{
+				Sender: rms.NewReference(caller),
+			},
+		}
+		meRef          = gen.UniqueGlobalRef()
+		objectRef      = testutils.GetObjectReference(smExecute.Payload, meRef)
+		catalogWrapper = object.NewCatalogMockWrapper(mc)
 	)
-
-	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
-	objectRef := reference.NewSelf(outgoing.GetLocal())
-
-	smExecute := SMExecute{
-		Payload: &rms.VCallRequest{
-			CallType:     rms.CallTypeConstructor,
-			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			CallOutgoing: rms.NewReference(outgoing),
-
-			Caller:         rms.NewReference(class),
-			Callee:         rms.NewReference(callee),
-			CallSiteMethod: "New",
-		},
-		Meta: &rms.Meta{
-			Sender: rms.NewReference(caller),
-		},
-	}
-	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
 		var (
@@ -207,12 +229,34 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 	)
 
 	slotMachine := virtualdebugger.New(ctx, t)
-	slotMachine.InitEmptyMessageSender(mc)
+	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
+	slotMachine.MessageSender.SendRole.SetCheckMessage(
+		func(msg rmsreg.GoGoSerializable) {
+			switch res := msg.(type) {
+			case *rms.LRegisterRequest:
+				key := lmn.ResultAwaitKey{
+					AnticipatedRef: res.AnticipatedRef,
+					RequiredFlag:   rms.RegistrationFlags_Fast,
+				}
+
+				_, bargeIn := slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(key)
+				bargeIn.CallWithParam(&rms.LRegisterResponse{
+					Flags:              rms.RegistrationFlags_Fast,
+					AnticipatedRef:     res.AnticipatedRef,
+					RegistrarSignature: rms.NewBytes([]byte("dummy")),
+				})
+			default:
+				require.FailNow(t, "unreachable")
+			}
+		})
+
 	var (
-		class       = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
-		caller      = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		class  = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		caller = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		meRef  = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+
 		limiter     = tool.NewRunnerLimiter(4)
 		sharedState = &object.SharedState{
 			Info: object.Info{
@@ -222,26 +266,26 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 				OrderedExecute: limiter.NewChildSemaphore(1, "MutableExecution").SyncLink(),
 			},
 		}
+
+		outgoing = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+
+		smExecute = SMExecute{
+			Payload: &rms.VCallRequest{
+				CallType:     rms.CallTypeConstructor,
+				CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+				CallOutgoing: rms.NewReference(outgoing),
+
+				Caller:         rms.NewReference(caller),
+				Callee:         rms.NewReference(class),
+				CallSiteMethod: "New",
+			},
+			Meta: &rms.Meta{
+				Sender: rms.NewReference(caller),
+			},
+		}
+		catalogWrapper = object.NewCatalogMockWrapper(mc)
+		objectRef      = testutils.GetObjectReference(smExecute.Payload, meRef)
 	)
-
-	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
-	objectRef := reference.NewSelf(outgoing.GetLocal())
-
-	smExecute := SMExecute{
-		Payload: &rms.VCallRequest{
-			CallType:     rms.CallTypeConstructor,
-			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			CallOutgoing: rms.NewReference(outgoing),
-
-			Caller:         rms.NewReference(caller),
-			Callee:         rms.NewReference(class),
-			CallSiteMethod: "New",
-		},
-		Meta: &rms.Meta{
-			Sender: rms.NewReference(caller),
-		},
-	}
-	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
 		var (
@@ -289,14 +333,33 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 	)
 
 	slotMachine := virtualdebugger.New(ctx, t)
-	slotMachine.InitEmptyMessageSender(mc)
+	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
+
+	slotMachine.MessageSender.SendRole.SetCheckMessage(
+		func(msg rmsreg.GoGoSerializable) {
+			switch res := msg.(type) {
+			case *rms.LRegisterRequest:
+				key := lmn.ResultAwaitKey{
+					AnticipatedRef: res.AnticipatedRef,
+					RequiredFlag:   rms.RegistrationFlags_Fast,
+				}
+
+				_, bargeIn := slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(key)
+				bargeIn.CallWithParam(&rms.LRegisterResponse{
+					Flags:              rms.RegistrationFlags_Fast,
+					AnticipatedRef:     res.AnticipatedRef,
+					RegistrarSignature: rms.NewBytes([]byte("dummy")),
+				})
+			default:
+				require.FailNow(t, "unreachable")
+			}
+		})
 
 	var (
 		class       = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
 		caller      = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
 		outgoing    = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
-		objectRef   = reference.NewSelf(outgoing.GetLocal())
 		limiter     = tool.NewRunnerLimiter(4)
 		sharedState = &object.SharedState{
 			Info: object.Info{
@@ -306,25 +369,26 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 				OrderedExecute: limiter.NewChildSemaphore(1, "MutableExecution").SyncLink(),
 			},
 		}
+
+		smExecute = SMExecute{
+			Payload: &rms.VCallRequest{
+				CallType:     rms.CallTypeConstructor,
+				CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+				CallOutgoing: rms.NewReference(outgoing),
+
+				Caller:         rms.NewReference(caller),
+				Callee:         rms.NewReference(class),
+				CallSiteMethod: "New",
+			},
+			Meta: &rms.Meta{
+				Sender: rms.NewReference(caller),
+			},
+		}
+		meRef          = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		objectRef      = testutils.GetObjectReference(smExecute.Payload, meRef)
+		catalogWrapper = object.NewCatalogMockWrapper(mc)
 	)
-
 	sharedState.SetState(object.Missing)
-
-	smExecute := SMExecute{
-		Payload: &rms.VCallRequest{
-			CallType:     rms.CallTypeConstructor,
-			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			CallOutgoing: rms.NewReference(outgoing),
-
-			Caller:         rms.NewReference(caller),
-			Callee:         rms.NewReference(class),
-			CallSiteMethod: "New",
-		},
-		Meta: &rms.Meta{
-			Sender: rms.NewReference(caller),
-		},
-	}
-	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
 		var (
@@ -374,18 +438,41 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
-	slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg rmsreg.GoGoSerializable, target reference.Global, _ ...messagesender.SendOption) error {
-		res := msg.(*rms.VCallResult)
-		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
-		require.NoError(t, sysErr)
-		require.Contains(t, contractErr.Error(), "try to call method on deactivated object")
-		return nil
-	})
+	slotMachine.MessageSender.SendRole.SetCheckMessage(
+		func(msg rmsreg.GoGoSerializable) {
+			switch res := msg.(type) {
+			case *rms.LRegisterRequest:
+				key := lmn.ResultAwaitKey{
+					AnticipatedRef: res.AnticipatedRef,
+					RequiredFlag:   rms.RegistrationFlags_Fast,
+				}
+
+				_, bargeIn := slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(key)
+				bargeIn.CallWithParam(&rms.LRegisterResponse{
+					Flags:              rms.RegistrationFlags_Fast,
+					AnticipatedRef:     res.AnticipatedRef,
+					RegistrarSignature: rms.NewBytes([]byte("dummy")),
+				})
+			default:
+				require.FailNow(t, "unreachable")
+			}
+		})
+	slotMachine.MessageSender.SendTarget.SetCheckMessage(
+		func(msg rmsreg.GoGoSerializable) {
+			switch res := msg.(type) {
+			case *rms.VCallResult:
+				contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
+				require.NoError(t, sysErr)
+				require.Contains(t, contractErr.Error(), "try to call method on deactivated object")
+			default:
+				require.FailNow(t, "unreachable")
+			}
+		})
+
 	var (
 		class       = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
 		caller      = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
 		outgoing    = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
-		objectRef   = reference.NewSelf(outgoing.GetLocal())
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   callregistry.NewRequestTable(),
@@ -394,25 +481,27 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 				OrderedExecute: limiter.NewChildSemaphore(1, "ordered calls").SyncLink(),
 			},
 		}
+
+		smExecute = SMExecute{
+			Payload: &rms.VCallRequest{
+				CallType:     rms.CallTypeConstructor,
+				CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+				CallOutgoing: rms.NewReference(outgoing),
+
+				Caller:         rms.NewReference(caller),
+				Callee:         rms.NewReference(class),
+				CallSiteMethod: "New",
+			},
+			Meta: &rms.Meta{
+				Sender: rms.NewReference(caller),
+			},
+		}
+		catalogWrapper = object.NewCatalogMockWrapper(mc)
+		meRef          = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		objectRef      = testutils.GetObjectReference(smExecute.Payload, meRef)
 	)
 
 	sharedState.SetState(object.Inactive)
-
-	smExecute := SMExecute{
-		Payload: &rms.VCallRequest{
-			CallType:     rms.CallTypeConstructor,
-			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			CallOutgoing: rms.NewReference(outgoing),
-
-			Caller:         rms.NewReference(caller),
-			Callee:         rms.NewReference(class),
-			CallSiteMethod: "New",
-		},
-		Meta: &rms.Meta{
-			Sender: rms.NewReference(caller),
-		},
-	}
-	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
 		var (
