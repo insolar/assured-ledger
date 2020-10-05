@@ -55,7 +55,7 @@ type object struct {
 }
 
 // Class returns class reference.
-func (d *object) Class() (reference.Global, error) {
+func (d object) Class() (reference.Global, error) {
 	if d.class.IsEmpty() {
 		return reference.Global{}, errors.New("object has no class")
 	}
@@ -63,20 +63,20 @@ func (d *object) Class() (reference.Global, error) {
 }
 
 // HeadRef returns reference to represented object record.
-func (d *object) HeadRef() reference.Global {
+func (d object) HeadRef() reference.Global {
 	return d.head
 }
 
 // StateID returns reference to object state record.
-func (d *object) StateID() reference.Local {
+func (d object) StateID() reference.Local {
 	return d.state
 }
 
 // Memory fetches latest memory of the object known to storage.
-func (d *object) Memory() []byte {
+func (d object) Memory() []byte {
 	return d.memory
 }
 
-func (d *object) Deactivated() bool {
+func (d object) Deactivated() bool {
 	return d.deactivated
 }

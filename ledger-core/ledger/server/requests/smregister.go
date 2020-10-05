@@ -311,13 +311,13 @@ func (p *SMRegisterRecordSet) sendResponse(ctx smachine.ExecutionContext, safe b
 	}
 
 	if safe {
-		ctx.SetDefaultTerminationResult(signatures)
+		ctx.SetTerminationResult(signatures)
 	}
 
 	// TODO implement send
 }
 
-func (p *SMRegisterRecordSet) sendFailResponse(smachine.FailureExecutionContext, ...error) bool {
+func (p *SMRegisterRecordSet) sendFailResponse(smachine.LimitedExecutionContext, ...error) bool {
 	// TODO implement failure send
 	return false
 }

@@ -19,6 +19,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/crypto"
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
@@ -45,6 +49,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 )
 
@@ -68,6 +73,7 @@ type Server struct {
 	pulseGenerator     *testutils.PulseGenerator
 	pulseStorage       *memstor.StorageMem
 	pulseManager       *insapp.PulseManager
+	platformScheme     crypto.PlatformScheme
 	Journal            *journal.Journal
 
 	// wait and suspend operations
@@ -168,8 +174,20 @@ func newServerExt(ctx context.Context, t Tester, opts ServerOpts) (*Server, cont
 	s.pulseManager = PulseManager
 	s.pulseStorage = Pulses
 	censusMock := testpop.CreateOneNodePopulationMock(t, s.caller, member.PrimaryRoleVirtual)
-	s.pulseGenerator = testutils.NewPulseGenerator(opts.Delta, censusMock)
+	s.pulseGenerator = testutils.NewPulseGenerator(opts.Delta, censusMock, nil)
 	s.incrementPulse()
+
+	{
+		keyProcessor := platformpolicy.NewKeyProcessor()
+		pk, err := keyProcessor.GeneratePrivateKey()
+		if err != nil {
+			panic(throw.W(err, "failed to generate node PK"))
+		}
+		keyStore := keystore.NewInplaceKeyStore(pk)
+
+		platformCryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
+		s.platformScheme = legacyadapter.New(platformCryptographyScheme, keyProcessor, keyStore)
+	}
 
 	s.JetCoordinatorMock = affinity.NewHelperMock(t).
 		MeMock.Return(s.caller).
@@ -210,6 +228,7 @@ func newServerExt(ctx context.Context, t Tester, opts ServerOpts) (*Server, cont
 	virtualDispatcher.EventlessSleep = -1 // disable EventlessSleep for proper WaitActiveThenIdleConveyor behavior
 	virtualDispatcher.MachineLogger = machineLogger
 	virtualDispatcher.MaxRunners = 4
+	virtualDispatcher.ReferenceBuilder = lmn.NewRecordReferenceBuilder(s.platformScheme.RecordScheme(), s.caller)
 	s.virtual = virtualDispatcher
 
 	// re HTTP testing
@@ -227,6 +246,7 @@ func (s *Server) Init(ctx context.Context) {
 	if err := s.virtual.Init(ctx); err != nil {
 		panic(err)
 	}
+	s.virtual.MessageSender.InterceptorClear()
 
 	s.pulseManager.AddDispatcher(s.virtual.FlowDispatcher)
 	s.incrementPulse() // for sake of simplicity make sure that there is no "hanging" first pulse
@@ -245,8 +265,16 @@ func (s *Server) GetPulse() beat.Beat {
 	return s.pulseGenerator.GetLastBeat()
 }
 
+func (s *Server) GetPulseNumber() pulse.Number {
+	return s.pulseGenerator.GetLastBeat().PulseNumber
+}
+
 func (s *Server) GetPrevPulse() beat.Beat {
 	return s.pulseGenerator.GetPrevBeat()
+}
+
+func (s *Server) GetPrevPulseNumber() pulse.Number {
+	return s.pulseGenerator.GetPrevBeat().PulseNumber
 }
 
 func (s *Server) incrementPulse() {
@@ -317,7 +345,7 @@ func (s *Server) ReplaceAuthenticationService(svc authentication.Service) {
 }
 
 func (s *Server) AddInput(ctx context.Context, msg interface{}) error {
-	return s.virtual.Conveyor.AddInput(ctx, s.GetPulse().PulseNumber, msg)
+	return s.virtual.Conveyor.AddInput(ctx, s.GetPulseNumber(), msg)
 }
 
 func (s *Server) GlobalCaller() reference.Global {
@@ -325,7 +353,7 @@ func (s *Server) GlobalCaller() reference.Global {
 }
 
 func (s *Server) RandomLocalWithPulse() reference.Local {
-	return gen.UniqueLocalRefWithPulse(s.GetPulse().PulseNumber)
+	return gen.UniqueLocalRefWithPulse(s.GetPulseNumber())
 }
 
 func (s *Server) BuildRandomOutgoingWithGivenPulse(pn pulse.Number) reference.Global {
@@ -337,11 +365,23 @@ func (s *Server) BuildRandomOutgoingWithPulse() reference.Global {
 }
 
 func (s *Server) RandomGlobalWithPulse() reference.Global {
-	return gen.UniqueGlobalRefWithPulse(s.GetPulse().PulseNumber)
+	return gen.UniqueGlobalRefWithPulse(s.GetPulseNumber())
+}
+
+func (s *Server) RandomLocalWithPrevPulse() reference.Local {
+	return gen.UniqueLocalRefWithPulse(s.GetPrevPulseNumber())
+}
+
+func (s *Server) BuildRandomOutgoingWithPrevPulse() reference.Global {
+	return reference.NewRecordOf(s.GlobalCaller(), s.RandomLocalWithPrevPulse())
+}
+
+func (s *Server) RandomGlobalWithPrevPulse() reference.Global {
+	return gen.UniqueGlobalRefWithPulse(s.GetPrevPulseNumber())
 }
 
 func (s *Server) DelegationToken(outgoing reference.Global, to reference.Global, object reference.Global) rms.CallDelegationToken {
-	return s.virtual.AuthenticationService.GetCallDelegationToken(outgoing, to, s.GetPulse().PulseNumber, object)
+	return s.virtual.AuthenticationService.GetCallDelegationToken(outgoing, to, s.GetPulseNumber(), object)
 }
 
 func (s *Server) Stop() {
@@ -511,7 +551,7 @@ func (s *Server) setWaitCallback(cycleFn ConveyorCycleFunc) {
 }
 
 func (s *Server) WrapPayload(pl rmsreg.GoGoSerializable) *RequestWrapper {
-	return NewRequestWrapper(s.GetPulse().PulseNumber, pl).SetSender(s.caller)
+	return NewRequestWrapper(s.GetPulseNumber(), pl).SetSender(s.caller)
 }
 
 func (s *Server) SendPayload(ctx context.Context, pl rmsreg.GoGoSerializable) {

@@ -10,8 +10,9 @@ package functest
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
 )
 
 func TestGetSeed(t *testing.T) {

@@ -208,6 +208,7 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 		m.activateDependants(released, slot.NewLink(), worker.AsFixedSlotWorker())
 	}
 	slot.slotFlags &^= slotWokenUp|slotPriorityChanged
+	postFlags := postExecFlags(0)
 
 	var stateUpdate StateUpdate
 
@@ -228,7 +229,11 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 			var asyncCnt uint16
 			var sut StateUpdateType
 
-			slot.slotFlags &^= slotStepSuspendMigrate
+			if slot.slotFlags & slotStepSuspendMigrate != 0 {
+				slot.slotFlags &^= slotStepSuspendMigrate
+				postFlags |= wasMigrateSuspended
+			}
+
 			ec := executionContext{slotContext: slotContext{s: slot, w: worker}}
 			stateUpdate, sut, asyncCnt = ec.executeNextStep()
 
@@ -265,11 +270,11 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 
 	if wasDetached {
 		// MUST NOT apply any changes in the current routine, as it is no more safe to update queues
-		m.asyncPostSlotExecution(slot, stateUpdate, prevStepNo, 0)
+		m.asyncPostSlotExecution(slot, stateUpdate, prevStepNo, postFlags)
 		return true, loopCount
 	}
 
-	hasAsync := m.slotPostExecution(slot, stateUpdate, worker.AsFixedSlotWorker(), prevStepNo, 0)
+	hasAsync := m.slotPostExecution(slot, stateUpdate, worker.AsFixedSlotWorker(), prevStepNo, postFlags)
 	if hasAsync && !hasSignal {
 		_, hasSignal, wasDetached = m.syncQueue.ProcessCallbacks(worker)
 		return hasSignal || wasDetached, loopCount
@@ -309,6 +314,7 @@ type postExecFlags uint8
 const (
 	wasAsyncExec postExecFlags = 1 << iota
 	wasInlineExec
+	wasMigrateSuspended
 )
 
 func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker,
@@ -327,7 +333,7 @@ func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, wor
 		return false
 	}
 
-	if slot.canMigrateWorking(prevStepNo, wasAsync) {
+	if slot.canMigrateWorking(prevStepNo, flags&(wasAsyncExec|wasMigrateSuspended) != 0) {
 		_, migrateCount := m.getScanAndMigrateCounts()
 		if _, isAvailable := m._migrateSlot(migrateCount, slot, worker); !isAvailable {
 			return false

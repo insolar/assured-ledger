@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -29,7 +30,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
+	virtualtestutils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func TestBuiltinTestAPIEchoValue(t *testing.T) {
@@ -44,8 +47,9 @@ func TestBuiltinTestAPIEchoValue(t *testing.T) {
 
 func TestSMTestAPICall_MethodResends(t *testing.T) {
 	var (
-		mc  = minimock.NewController(t)
-		ctx = instestlogger.TestContext(t)
+		mc    = minimock.NewController(t)
+		ctx   = instestlogger.TestContext(t)
+		meRef = gen.UniqueGlobalRefWithPulse(pulse.MinTimePulse)
 	)
 
 	slotMachine := slotdebugger.New(ctx, t)
@@ -62,6 +66,13 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 
 	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 	slotMachine.AddInterfaceDependency(&memoryCache)
+
+	var referenceBuilder lmn.RecordReferenceBuilderService = virtualtestutils.GetReferenceBuilder(meRef)
+	slotMachine.AddInterfaceDependency(&referenceBuilder)
+
+	if !slotMachine.SlotMachine.TryPutDependency(insapp.LocalNodeRefInjectionID, meRef) {
+		panic(throw.IllegalState())
+	}
 
 	slotMachine.Start()
 	defer slotMachine.Stop()
@@ -80,7 +91,6 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 
 		// ensure that both times request is the same
 		assert.Equal(t, APICaller, res.Caller.GetValue())
-		assert.Equal(t, APICaller.GetBase(), res.CallOutgoing.GetValue().GetBase())
 		assert.Equal(t, p1, res.CallOutgoing.GetPulseOfLocal())
 		assert.Equal(t, affinity.DynamicRoleVirtualExecutor, role)
 		assert.Equal(t, request.Callee.GetValue(), object)
@@ -118,8 +128,9 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 
 func TestSMTestAPICall_MethodEcho(t *testing.T) {
 	var (
-		mc  = minimock.NewController(t)
-		ctx = instestlogger.TestContext(t)
+		mc    = minimock.NewController(t)
+		ctx   = instestlogger.TestContext(t)
+		meRef = gen.UniqueGlobalRefWithPulse(pulse.MinTimePulse)
 	)
 
 	slotMachine := slotdebugger.New(ctx, t)
@@ -139,6 +150,13 @@ func TestSMTestAPICall_MethodEcho(t *testing.T) {
 
 	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 	slotMachine.AddInterfaceDependency(&memoryCache)
+
+	var referenceBuilder lmn.RecordReferenceBuilderService = virtualtestutils.GetReferenceBuilder(meRef)
+	slotMachine.AddInterfaceDependency(&referenceBuilder)
+
+	if !slotMachine.SlotMachine.TryPutDependency(insapp.LocalNodeRefInjectionID, meRef) {
+		panic(throw.IllegalState())
+	}
 
 	slotMachine.Start()
 	defer slotMachine.Stop()
@@ -164,8 +182,9 @@ func TestSMTestAPICall_MethodEcho(t *testing.T) {
 
 func TestSMTestAPICall_Constructor(t *testing.T) {
 	var (
-		mc  = minimock.NewController(t)
-		ctx = instestlogger.TestContext(t)
+		mc    = minimock.NewController(t)
+		ctx   = instestlogger.TestContext(t)
+		meRef = gen.UniqueGlobalRefWithPulse(pulse.MinTimePulse)
 	)
 
 	slotMachine := slotdebugger.New(ctx, t)
@@ -182,6 +201,13 @@ func TestSMTestAPICall_Constructor(t *testing.T) {
 
 	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 	slotMachine.AddInterfaceDependency(&memoryCache)
+
+	var referenceBuilder lmn.RecordReferenceBuilderService = virtualtestutils.GetReferenceBuilder(meRef)
+	slotMachine.AddInterfaceDependency(&referenceBuilder)
+
+	if !slotMachine.SlotMachine.TryPutDependency(insapp.LocalNodeRefInjectionID, meRef) {
+		panic(throw.IllegalState())
+	}
 
 	slotMachine.Start()
 	defer slotMachine.Stop()
@@ -200,10 +226,8 @@ func TestSMTestAPICall_Constructor(t *testing.T) {
 
 		// ensure that both times request is the same
 		assert.Equal(t, APICaller, res.Caller.GetValue())
-		assert.Equal(t, APICaller.GetBase(), res.CallOutgoing.GetValue().GetBase())
 		assert.Equal(t, p1, res.CallOutgoing.GetPulseOfLocal())
 		assert.Equal(t, affinity.DynamicRoleVirtualExecutor, role)
-		assert.Equal(t, reference.NewSelf(res.CallOutgoing.GetValue().GetLocal()), object)
 
 		messageSent <- struct{}{}
 		return nil
@@ -217,8 +241,9 @@ const expectedMaxRetries = 3
 
 func TestSMTestAPICall_RetriesExceeded(t *testing.T) {
 	var (
-		mc  = minimock.NewController(t)
-		ctx = instestlogger.TestContext(t)
+		mc    = minimock.NewController(t)
+		ctx   = instestlogger.TestContext(t)
+		meRef = gen.UniqueGlobalRefWithPulse(pulse.MinTimePulse)
 	)
 
 	slotMachine := slotdebugger.New(ctx, t)
@@ -235,6 +260,13 @@ func TestSMTestAPICall_RetriesExceeded(t *testing.T) {
 
 	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 	slotMachine.AddInterfaceDependency(&memoryCache)
+
+	var referenceBuilder lmn.RecordReferenceBuilderService = virtualtestutils.GetReferenceBuilder(meRef)
+	slotMachine.AddInterfaceDependency(&referenceBuilder)
+
+	if !slotMachine.SlotMachine.TryPutDependency(insapp.LocalNodeRefInjectionID, meRef) {
+		panic(throw.IllegalState())
+	}
 
 	slotMachine.Start()
 	defer slotMachine.Stop()

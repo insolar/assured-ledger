@@ -90,6 +90,16 @@ func (v WriteAdapter) PrepareNotify(ctx smachine.ExecutionContext, callFn func(S
 	})
 }
 
+func (v WriteAdapter) SendNotify(ctx smachine.LimitedExecutionContext, callFn func(Service)) {
+	if callFn == nil {
+		panic(throw.IllegalValue())
+	}
+
+	v.adapter.SendNotify(ctx, func(context.Context, interface{}) {
+		callFn(v.service)
+	})
+}
+
 /****************************/
 
 type ReadAdapter struct {

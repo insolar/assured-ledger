@@ -87,7 +87,7 @@ func (c *TestCase) init(t *testing.T) {
 
 	c.Runner = logicless.NewServiceMock(c.Context, c.Minimock, nil)
 	c.Server.ReplaceRunner(c.Runner)
-	c.TypedChecker = c.Server.PublisherMock.SetTypedChecker(c.Context, c.Minimock, c.Server)
+	c.TypedChecker = c.Server.PublisherMock.SetTypedCheckerWithLightStubs(c.Context, c.Minimock, c.Server)
 
 	c.Server.Init(c.Context)
 }

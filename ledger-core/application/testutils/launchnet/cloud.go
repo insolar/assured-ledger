@@ -6,13 +6,17 @@
 package launchnet
 
 import (
+	"context"
 	"os"
 	"strconv"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/server"
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/cloud"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -20,6 +24,13 @@ var (
 	numVirtual        = 5
 	numLightMaterials = 0
 	numHeavyMaterials = 0
+)
+
+type PulsarMode uint8
+
+const (
+	RegularPulsar PulsarMode = iota
+	ManualPulsar
 )
 
 func prepareConfigProvider() (*server.CloudConfigurationProvider, error) {
@@ -78,8 +89,55 @@ func (cr *CloudRunner) PrepareConfig() {
 	}
 }
 
+func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider) server.Server {
+	controller := cloud.NewController()
+	s := server.NewControlledMultiServer(controller, confProvider)
+	go func() {
+		s.WaitStarted()
+
+		allNodes := make(map[reference.Global]struct{})
+		for _, conf := range confProvider.GetAppConfigs() {
+			cert, err := confProvider.CertificateFactory(nil, nil, conf.CertificatePath)
+			if err != nil {
+				panic(err)
+			}
+			allNodes[cert.GetCertificate().GetNodeRef()] = struct{}{}
+		}
+
+		pulseGenerator := testutils.NewPulseGenerator(uint16(confProvider.PulsarConfig.Pulsar.NumberDelta), nil, nil)
+		for i := 0; i < 2; i++ {
+			_ = pulseGenerator.Generate()
+			controller.PartialDistribute(context.Background(), pulseGenerator.GetLastPulsePacket(), allNodes)
+		}
+	}()
+
+	return s
+}
+
+//nolint:goconst
+func (cr CloudRunner) getPulseModeFromEnv() PulsarMode {
+	pulsarOneshot := os.Getenv("PULSARD_ONESHOT")
+	switch pulsarOneshot {
+	case "TRUE":
+		return ManualPulsar
+	case "FALSE", "":
+		return RegularPulsar
+	default:
+		panic(throw.IllegalValue())
+	}
+}
+
 func (cr CloudRunner) SetupCloud() (func(), error) {
-	s := server.NewMultiServer(cr.ConfProvider)
+	return cr.SetupCloudCustom(cr.getPulseModeFromEnv())
+}
+
+func (cr CloudRunner) SetupCloudCustom(pulsarMode PulsarMode) (func(), error) {
+	var s server.Server
+	if pulsarMode == ManualPulsar {
+		s = prepareCloudForOneShotMode(cr.ConfProvider)
+	} else {
+		s = server.NewMultiServer(cr.ConfProvider)
+	}
 	go func() {
 		s.Serve()
 	}()
