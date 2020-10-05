@@ -1,0 +1,17 @@
+@startuml
+state "Init" as T01_S001
+T01_S001 : SMWaitSafeResponse
+[*] --> T01_S001
+T01_S001 --> T01_S002
+state "stepWaitResult" as T01_S002
+T01_S002 : SMWaitSafeResponse
+T01_S002 --[dashed]> T01_S002 : [s.receivedType==ReceivedNothing]\n[!stateUpdate.IsEmpty()]...\nSleep
+T01_S002 --> [*]
+state "GetInitStateFor" as T00_S001
+T00_S001 : dSMWaitSafeResponse
+[*] --> T00_S001
+state "s.Init" as T00_U001
+T00_U001 : dSMWaitSafeResponse
+T00_U001 : UNKNOWN 
+T00_S001 --> T00_U001
+@enduml
