@@ -137,7 +137,7 @@ func (m *SlotMachine) beforeScan(scanTime time.Time) {
 func (m *SlotMachine) stopAll(worker AttachedSlotWorker) (repeatNow bool) {
 	fw := worker.AsFixedSlotWorker()
 	clean := m.slotPool.ScanAndCleanup(true, func(slot *Slot) {
-		m.recycleSlot(slot, fw)
+		m._cleanupSlot(slot, fw, nil)
 	}, func(slots []Slot) (isPageEmptyOrWeak, hasWeakSlots bool) {
 		return m.stopPage(slots, fw)
 	})

@@ -432,8 +432,8 @@ func stateUpdateDefaultStop(slot *Slot, _ StateUpdate, worker FixedSlotWorker, _
 	}
 
 	err = slot.callFinalizeOnce(worker.asDetachable(), nil)
-	// recycleSlotWithError can handle both in-place and off-place updates
-	m.recycleSlotWithError(slot, worker, err)
+	// recycleSlot can handle both in-place and off-place updates
+	m.recycleSlot(slot, worker, err)
 
 	return false, nil
 }

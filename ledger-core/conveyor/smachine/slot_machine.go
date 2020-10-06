@@ -236,7 +236,7 @@ func (m *SlotMachine) allocateSlot() *Slot {
 
 func (m *SlotMachine) Cleanup(worker FixedSlotWorker) {
 	m.slotPool.ScanAndCleanup(true, func(slot *Slot) {
-		m.recycleSlot(slot, worker)
+		m._cleanupSlot(slot, worker, nil)
 	}, func(slots []Slot) (isPageEmptyOrWeak, hasWeakSlots bool) {
 		return m.verifyPage(slots, worker)
 	})
@@ -274,7 +274,7 @@ func (m *SlotMachine) stopPage(slotPage []Slot, w FixedSlotWorker) (isPageEmptyO
 		case isEmpty:
 			// continue
 		case isStarted:
-			m.recycleSlot(slot, w)
+			m.recycleSlot(slot, w, nil)
 		default:
 			hasWorking = true
 		}
@@ -282,12 +282,12 @@ func (m *SlotMachine) stopPage(slotPage []Slot, w FixedSlotWorker) (isPageEmptyO
 	return !hasWorking, false
 }
 
-func (m *SlotMachine) recycleSlot(slot *Slot, worker FixedSlotWorker) {
-	m.recycleSlotWithError(slot, worker, nil)
+func (m *SlotMachine) recycleSlot(slot *Slot, worker FixedSlotWorker, err error) {
+	m._cleanupSlot(slot, worker, err)
+	m.slotPool.RecycleSlot(slot)
 }
 
-func (m *SlotMachine) recycleSlotWithError(slot *Slot, worker FixedSlotWorker, err error) {
-
+func (m *SlotMachine) _cleanupSlot(slot *Slot, worker FixedSlotWorker, err error) {
 	var link StepLink
 	hasPanic := false
 	func() {
@@ -340,7 +340,8 @@ func (m *SlotMachine) recycleSlotWithError(slot *Slot, worker FixedSlotWorker, e
 	} else {
 		slot.logInternal(link, "recycle", err)
 	}
-	m._recycleSlot(slot)
+
+	slot.dispose()               // check state and cleanup fields
 }
 
 // SAFE for concurrent use
@@ -359,10 +360,6 @@ func (m *SlotMachine) recycleEmptySlot(slot *Slot, err error) {
 
 	// slot.invalidateSlotID() // empty slot doesn't need early invalidation
 
-	m._recycleSlot(slot) // SAFE for concurrent use
-}
-
-func (m *SlotMachine) _recycleSlot(slot *Slot) {
 	slot.dispose()               // check state and cleanup fields
 	m.slotPool.RecycleSlot(slot) // SAFE for concurrent use
 }
@@ -762,7 +759,7 @@ func (m *SlotMachine) applyStateUpdate(slot *Slot, stateUpdate StateUpdate, w Fi
 func (m *SlotMachine) handleSlotUpdateError(slot *Slot, worker FixedSlotWorker, stateUpdate StateUpdate, isPanic bool, err error) bool {
 	switch ok, wakeup, err := slot.handleError(worker.asDetachable(), stateUpdate, isPanic, err); {
 	case !ok:
-		m.recycleSlotWithError(slot, worker, err)
+		m.recycleSlot(slot, worker, err)
 		return false
 	case wakeup:
 		m.updateSlotQueue(slot, worker, activateSlot)
