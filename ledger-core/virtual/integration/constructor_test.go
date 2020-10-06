@@ -119,8 +119,8 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 	})
 	typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 		objectState := rms.ObjectState{
-			State: rms.NewBytes([]byte("some memory")),
-			Class: rms.NewReference(class),
+			Memory: rms.NewBytes([]byte("some memory")),
+			Class:  rms.NewReference(class),
 		}
 		expected := &rms.VStateReport{
 			Status:           rms.StateStatusReady,
@@ -248,8 +248,8 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	})
 	typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 		objectState := rms.ObjectState{
-			State: rms.NewBytes([]byte("some memory")),
-			Class: rms.NewReference(class),
+			Memory: rms.NewBytes([]byte("some memory")),
+			Class:  rms.NewReference(class),
 		}
 		expected := &rms.VStateReport{
 			Status:           rms.StateStatusReady,
@@ -388,8 +388,8 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 		})
 		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 			objectState := rms.ObjectState{
-				State: rms.NewBytes([]byte("some memory")),
-				Class: pl.Callee,
+				Memory: rms.NewBytes([]byte("some memory")),
+				Class:  pl.Callee,
 			}
 			expected := &rms.VStateReport{
 				Status:           rms.StateStatusReady,
@@ -749,7 +749,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 			assert.Equal(t, outgoing, finished.CallOutgoing.GetValue())
 			assert.Equal(t, objectRef, finished.Callee.GetValue())
 			require.NotNil(t, finished.LatestState)
-			assert.Equal(t, []byte("234"), finished.LatestState.State.GetBytes())
+			assert.Equal(t, []byte("234"), finished.LatestState.Memory.GetBytes())
 			assert.Equal(t, delegationToken, finished.DelegationSpec)
 
 			assert.NotEmpty(t, finished.PendingTranscript.Entries)
@@ -962,7 +962,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 			assert.Equal(t, rms.CallTypeConstructor, finished.CallType)
 			assert.NotNil(t, finished.LatestState)
 			assert.Equal(t, secondExpectedToken, finished.DelegationSpec)
-			assert.Equal(t, []byte("state A"), finished.LatestState.State.GetBytes())
+			assert.Equal(t, []byte("state A"), finished.LatestState.Memory.GetBytes())
 			return false
 		})
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {

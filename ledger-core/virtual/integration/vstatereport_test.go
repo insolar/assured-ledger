@@ -185,7 +185,7 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 					LatestDirtyState: &rms.ObjectState{
 						Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(suite.getPulse(1))),
 						Class:     rms.NewReference(suite.getClass()),
-						State:     rms.NewBytes([]byte("object memory")),
+						Memory:    rms.NewBytes([]byte("object memory")),
 					},
 				},
 			}

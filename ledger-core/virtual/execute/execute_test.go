@@ -168,9 +168,9 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 		desc            = descriptor.NewObject(
 			objectRef,
-			gen.UniqueLocalRef(),
+			gen.UniqueLocalRefWithPulse(pd.PulseNumber),
 			reference.Global{},
-			[]byte(""),
+			[]byte("dummy"),
 			false,
 		)
 		smObjectAccessor = object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -964,7 +964,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 	assert.Equal(t, int32(0), report.OrderedPendingCount)
 	assert.Equal(t, int32(0), report.UnorderedPendingCount)
 	state := obj.BuildLatestDirtyState()
-	assert.Equal(t, []byte(stateMemory), state.State.GetBytes())
+	assert.Equal(t, []byte(stateMemory), state.Memory.GetBytes())
 	assert.False(t, state.Deactivated)
 
 	mc.Finish()

@@ -72,15 +72,13 @@ func Method_PrepareObject(
 			LatestDirtyState: &rms.ObjectState{
 				Reference:     rms.NewReferenceLocal(dirtyStateID),
 				Class:         rms.NewReference(testwalletProxy.GetClass()),
-				State:         state,
-				PreviousState: state,
+				Memory:        state,
 				Deactivated:   false,
 			},
 			LatestValidatedState: &rms.ObjectState{
 				Reference:     rms.NewReferenceLocal(dirtyStateID),
 				Class:         rms.NewReference(testwalletProxy.GetClass()),
-				State:         state,
-				PreviousState: state,
+				Memory:        state,
 				Deactivated:   false,
 			},
 		}
@@ -1005,12 +1003,12 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 				LatestValidatedState: &rms.ObjectState{
 					Reference: rms.NewReferenceLocal(validatedStateID),
 					Class:     rms.NewReference(class),
-					State:     rms.NewBytes([]byte(validatedMem)),
+					Memory:    rms.NewBytes([]byte(validatedMem)),
 				},
 				LatestDirtyState: &rms.ObjectState{
 					Reference: rms.NewReferenceLocal(dirtyStateID),
 					Class:     rms.NewReference(class),
-					State:     rms.NewBytes([]byte(dirtyMem)),
+					Memory:    rms.NewBytes([]byte(dirtyMem)),
 				},
 			},
 		}
@@ -1167,12 +1165,12 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 						LatestDirtyState: &rms.ObjectState{
 							Reference: rms.NewReferenceLocal(dirtyStateID),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes([]byte(origDirtyObjectMem)),
+							Memory:    rms.NewBytes([]byte(origDirtyObjectMem)),
 						},
 						LatestValidatedState: &rms.ObjectState{
 							Reference: rms.NewReferenceLocal(validatedStateID),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes([]byte(origValidatedObjectMem)),
+							Memory:    rms.NewBytes([]byte(origValidatedObjectMem)),
 						},
 					}
 
@@ -1200,9 +1198,9 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 					require.NotNil(t, report.ProvidedContent)
 					switch testCase.isolation.Interference {
 					case isolation.CallIntolerable:
-						assert.Equal(t, []byte(origDirtyObjectMem), report.ProvidedContent.LatestDirtyState.State.GetBytes())
+						assert.Equal(t, []byte(origDirtyObjectMem), report.ProvidedContent.LatestDirtyState.Memory.GetBytes())
 					case isolation.CallTolerable:
-						assert.Equal(t, []byte(changedObjectMem), report.ProvidedContent.LatestValidatedState.State.GetBytes())
+						assert.Equal(t, []byte(changedObjectMem), report.ProvidedContent.LatestValidatedState.Memory.GetBytes())
 					default:
 						t.Fatal("StateStatusInvalid test case isolation interference")
 					}
@@ -1457,7 +1455,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 				latestValidatedState = &rms.ObjectState{
 					Reference: rms.NewReferenceLocal(validatedState.StateID()),
 					Class:     rms.NewReference(class),
-					State:     rms.NewBytes(validatedState.Memory()),
+					Memory:    rms.NewBytes(validatedState.Memory()),
 				}
 			}
 
@@ -1473,7 +1471,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 						LatestDirtyState: &rms.ObjectState{
 							Reference: rms.NewReferenceLocal(dirtyState.StateID()),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes(dirtyState.Memory()),
+							Memory:    rms.NewBytes(dirtyState.Memory()),
 						},
 					},
 				}
@@ -1605,12 +1603,12 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 				LatestDirtyState: &rms.ObjectState{
 					Reference: rms.NewReferenceLocal(dirtyStateID),
 					Class:     rms.NewReference(testwalletProxy.GetClass()),
-					State:     rms.NewBytes([]byte(origObjectMem)),
+					Memory:    rms.NewBytes([]byte(origObjectMem)),
 				},
 				LatestValidatedState: &rms.ObjectState{
 					Reference: rms.NewReferenceLocal(dirtyStateID),
 					Class:     rms.NewReference(testwalletProxy.GetClass()),
-					State:     rms.NewBytes([]byte(origObjectMem)),
+					Memory:    rms.NewBytes([]byte(origObjectMem)),
 				},
 			}
 			report := rms.VStateReport{
@@ -1638,7 +1636,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 			assert.Equal(t, int32(0), report.UnorderedPendingCount)
 			assert.Equal(t, int32(0), report.OrderedPendingCount)
 			assert.NotNil(t, report.ProvidedContent)
-			assert.Equal(t, []byte(origObjectMem), report.ProvidedContent.LatestDirtyState.State.GetBytes())
+			assert.Equal(t, []byte(origObjectMem), report.ProvidedContent.LatestDirtyState.Memory.GetBytes())
 			return false
 		})
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
@@ -1707,8 +1705,8 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	{
 		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
-			assert.Equal(t, newState, report.ProvidedContent.LatestDirtyState.State.GetBytes())
-			assert.Equal(t, newState, report.ProvidedContent.LatestValidatedState.State.GetBytes())
+			assert.Equal(t, newState, report.ProvidedContent.LatestDirtyState.Memory.GetBytes())
+			assert.Equal(t, newState, report.ProvidedContent.LatestValidatedState.Memory.GetBytes())
 			return false
 		})
 		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
@@ -1738,12 +1736,12 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 				LatestDirtyState: &rms.ObjectState{
 					Reference: rms.NewReference(dStateID),
 					Class:     rms.NewReference(class),
-					State:     rms.NewBytes(initialState),
+					Memory:    rms.NewBytes(initialState),
 				},
 				LatestValidatedState: &rms.ObjectState{
 					Reference: rms.NewReference(vStateID),
 					Class:     rms.NewReference(class),
-					State:     rms.NewBytes(initialState),
+					Memory:    rms.NewBytes(initialState),
 				},
 			},
 		}

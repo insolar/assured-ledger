@@ -88,12 +88,12 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 						LatestDirtyState: &rms.ObjectState{
 							Reference: rms.NewReferenceLocal(initRef),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes(initState),
+							Memory:    rms.NewBytes(initState),
 						},
 						LatestValidatedState: &rms.ObjectState{
 							Reference: rms.NewReferenceLocal(initRef),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes(initState),
+							Memory:    rms.NewBytes(initState),
 						},
 					},
 				}
@@ -111,8 +111,8 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 					assert.Equal(t, rms.StateStatusReady, report.Status)
 					assert.Equal(t, initRef, report.ProvidedContent.LatestDirtyState.Reference.GetValueWithoutBase())
 					assert.Equal(t, initRef, report.ProvidedContent.LatestValidatedState.Reference.GetValueWithoutBase())
-					assert.Equal(t, initState, report.ProvidedContent.LatestDirtyState.State.GetBytes())
-					assert.Equal(t, initState, report.ProvidedContent.LatestValidatedState.State.GetBytes())
+					assert.Equal(t, initState, report.ProvidedContent.LatestDirtyState.Memory.GetBytes())
+					assert.Equal(t, initState, report.ProvidedContent.LatestValidatedState.Memory.GetBytes())
 					return false
 				})
 				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
@@ -135,7 +135,7 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 						LatestDirtyState: &rms.ObjectState{
 							Reference: rms.NewReferenceLocal(server.RandomLocalWithPulse()),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes([]byte("new state")),
+							Memory:    rms.NewBytes([]byte("new state")),
 						},
 					}
 				}

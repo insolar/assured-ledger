@@ -84,8 +84,8 @@ func TestVStateReport_StopSMIfAsOfOutdated(t *testing.T) {
 
 		catalog          = object.NewCatalogMockWrapper(mc)
 		initState        = []byte("init state")
-		initRef          = gen.UniqueLocalRef()
-		class            = gen.UniqueGlobalRef()
+		initRef          = gen.UniqueLocalRefWithPulse(pdPMinusThree.PulseNumber)
+		class            = gen.UniqueGlobalRefWithPulse(pdPMinusThree.PulseNumber)
 		smGlobalRef      = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject         = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData  = smachine.NewUnboundSharedData(&smObject.SharedState)
@@ -120,12 +120,12 @@ func TestVStateReport_StopSMIfAsOfOutdated(t *testing.T) {
 						LatestDirtyState: &rms.ObjectState{
 							Reference: rms.NewReferenceLocal(initRef),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes(initState),
+							Memory:    rms.NewBytes(initState),
 						},
 						LatestValidatedState: &rms.ObjectState{
 							Reference: rms.NewReferenceLocal(initRef),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes(initState),
+							Memory:    rms.NewBytes(initState),
 						},
 					},
 				},

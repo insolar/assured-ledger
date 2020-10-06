@@ -12,6 +12,7 @@ import (
 
 	walletproxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -21,6 +22,7 @@ import (
 )
 
 func BenchmarkOnWallets(b *testing.B) {
+	convlog.DisableTextConvLog()
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
 

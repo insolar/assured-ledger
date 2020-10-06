@@ -265,7 +265,7 @@ func (s *SMVDelegatedRequestFinished) latestState() descriptor.Object {
 		s.Payload.Callee.GetValue(),
 		state.Reference.GetValue().GetLocal(),
 		state.Class.GetValue(),
-		state.State.GetBytes(),
+		state.Memory.GetBytes(),
 		state.Deactivated,
 	)
 }
