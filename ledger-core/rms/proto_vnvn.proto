@@ -187,7 +187,6 @@ message ObjectState {
     Reference Reference = 20;
     Reference Class = 22;
     Binary State = 23;
-    Binary PreviousState = 24;
     bool Deactivated = 25;
 }
 
