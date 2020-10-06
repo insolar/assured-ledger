@@ -82,13 +82,13 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 					LatestDirtyState: &rms.ObjectState{
 						Reference:   rms.NewReferenceLocal(dirtyStateRef),
 						Class:       rms.NewReference(class),
-						State:       rms.NewBytes(dirtyState),
+						Memory:      rms.NewBytes(dirtyState),
 						Deactivated: test.dirtyIsDeactivated,
 					},
 					LatestValidatedState: &rms.ObjectState{
 						Reference: rms.NewReferenceLocal(validatedStateRef),
 						Class:     rms.NewReference(class),
-						State:     rms.NewBytes(validatedState),
+						Memory:    rms.NewBytes(validatedState),
 					},
 				}
 
@@ -359,12 +359,12 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 						LatestDirtyState: &rms.ObjectState{
 							Reference: rms.NewReference(stateID),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes([]byte("initial state")),
+							Memory:    rms.NewBytes([]byte("initial state")),
 						},
 						LatestValidatedState: &rms.ObjectState{
 							Reference: rms.NewReference(stateID),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes([]byte("initial state")),
+							Memory:    rms.NewBytes([]byte("initial state")),
 						},
 					},
 				}
@@ -511,10 +511,10 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 			require.NotNil(t, report.ProvidedContent)
 			require.NotNil(t, report.ProvidedContent.LatestDirtyState)
 			assert.False(t, report.ProvidedContent.LatestDirtyState.Deactivated)
-			assert.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestDirtyState.State.GetBytes())
+			assert.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestDirtyState.Memory.GetBytes())
 			require.NotNil(t, report.ProvidedContent.LatestValidatedState)
 			assert.False(t, report.ProvidedContent.LatestValidatedState.Deactivated)
-			assert.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestValidatedState.State.GetBytes())
+			assert.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestValidatedState.Memory.GetBytes())
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
@@ -533,7 +533,7 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
 			require.NotNil(t, finished.LatestState)
 			assert.True(t, finished.LatestState.Deactivated)
-			assert.Nil(t, finished.LatestState.State.GetBytes())
+			assert.Nil(t, finished.LatestState.Memory.GetBytes())
 			return false
 		})
 	}
@@ -546,12 +546,12 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 				LatestDirtyState: &rms.ObjectState{
 					Reference: rms.NewReference(dStateID),
 					Class:     rms.NewReference(class),
-					State:     rms.NewBytes([]byte(origDirtyMem)),
+					Memory:    rms.NewBytes([]byte(origDirtyMem)),
 				},
 				LatestValidatedState: &rms.ObjectState{
 					Reference: rms.NewReference(vStateID),
 					Class:     rms.NewReference(class),
-					State:     rms.NewBytes([]byte(origValidatedMem)),
+					Memory:    rms.NewBytes([]byte(origValidatedMem)),
 				},
 			},
 		}
@@ -992,12 +992,12 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 						LatestDirtyState: &rms.ObjectState{
 							Reference: rms.NewReferenceLocal(stateRef.GetLocal()),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes([]byte(origMem)),
+							Memory:    rms.NewBytes([]byte(origMem)),
 						},
 						LatestValidatedState: &rms.ObjectState{
 							Reference: rms.NewReferenceLocal(stateRef.GetLocal()),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes([]byte(origMem)),
+							Memory:    rms.NewBytes([]byte(origMem)),
 						},
 					},
 				}
@@ -1026,7 +1026,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 					CallIncoming: rms.NewReference(incoming),
 					CallFlags:    rms.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
 					LatestState: &rms.ObjectState{
-						State:       rms.NewBytes(nil),
+						Memory:      rms.NewBytes(nil),
 						Deactivated: true,
 					},
 				}

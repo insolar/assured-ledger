@@ -198,7 +198,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 					if test.isolation == tolerableFlags() && test.withSideEffect {
 						require.NotEmpty(t, finished.LatestState)
-						assert.Equal(t, []byte("new memory"), finished.LatestState.State.GetBytes())
+						assert.Equal(t, []byte("new memory"), finished.LatestState.Memory.GetBytes())
 					} else {
 						assert.Empty(t, finished.LatestState)
 					}
@@ -292,7 +292,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		objectState := rms.ObjectState{
 			Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
 			Class:     rms.NewReference(testwalletProxy.GetClass()),
-			State:     rms.NewBytes(makeRawWalletState(initialBalance)),
+			Memory:    rms.NewBytes(makeRawWalletState(initialBalance)),
 		}
 		content = &rms.VStateReport_ProvidedContentBody{
 			LatestDirtyState:     &objectState,
@@ -572,7 +572,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 					LatestState: &rms.ObjectState{
 						Reference: rms.NewReferenceLocal(dirtyStateRef),
 						Class:     rms.NewReference(class),
-						State:     rms.NewBytes([]byte("new object memory")),
+						Memory:    rms.NewBytes([]byte("new object memory")),
 					},
 				}
 				server.SendPayload(ctx, &finished)
