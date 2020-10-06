@@ -90,10 +90,11 @@ type SMExecute struct {
 	incomingAddedToTranscript bool
 	outgoingAddedToTranscript bool
 	transcript                validation.Transcript
-	
+
 	// registration in LMN
 	lmnLastFilamentRef         reference.Global
 	lmnLastLifelineRef         reference.Global
+	lmnIncomingRequestRef      reference.Global
 	lmnSafeResponseCounter     shared.SafeResponseCounter
 	lmnSafeResponseCounterLink smachine.SharedDataLink
 	incomingRegistered         bool
@@ -833,6 +834,7 @@ func (s *SMExecute) stepRegisterOutgoing(ctx smachine.ExecutionContext) smachine
 	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
 		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
+		s.lmnIncomingRequestRef = subroutineSM.IncomingRequestRef
 
 		s.outgoing.CallOutgoing = rms.NewReference(s.lmnLastFilamentRef)
 
@@ -929,7 +931,7 @@ func (s *SMExecute) incomingTranscriptEntry() validation.TranscriptEntry {
 		Reason: s.Payload.CallOutgoing.GetValue(),
 		Custom: validation.TranscriptEntryIncomingRequest{
 			ObjectMemory: s.objectMemoryRef(),
-			Incoming:     reference.Global{},
+			Incoming:     s.lmnIncomingRequestRef,
 			CallRequest:  *s.Payload,
 		},
 	}
@@ -975,7 +977,7 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 		entry := validation.TranscriptEntry{
 			Reason: s.execution.Outgoing,
 			Custom: validation.TranscriptEntryOutgoingResult{
-				OutgoingResult: reference.Global{},
+				OutgoingResult: s.lmnLastFilamentRef,
 				CallResult:     *s.outgoingVCallResult,
 			},
 		}
@@ -1043,6 +1045,7 @@ func (s *SMExecute) stepSaveExecutionResult(ctx smachine.ExecutionContext) smach
 	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
 		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
+		s.lmnIncomingRequestRef = subroutineSM.IncomingRequestRef
 
 		return ctx.Jump(s.stepSaveNewObject)
 	})
@@ -1082,10 +1085,17 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	if !s.incomingAddedToTranscript {
 		tEntries = append(tEntries, s.incomingTranscriptEntry())
 	}
+
+	var resultRef reference.Global
+	if s.intolerableCall() {
+		resultRef = s.lmnLastFilamentRef
+	} else {
+		resultRef = s.lmnLastLifelineRef
+	}
 	tEntries = append(tEntries, validation.TranscriptEntry{
 		Reason: s.execution.Outgoing,
 		Custom: validation.TranscriptEntryIncomingResult{
-			IncomingResult: reference.Global{},
+			IncomingResult: resultRef,
 			ObjectMemory:   s.newObjectMemoryRef(),
 		},
 	})
@@ -1411,7 +1421,6 @@ func (s *SMExecute) newObjectMemoryRef() reference.Global {
 	}
 	return res
 }
-
 
 type RegisterVariant int
 

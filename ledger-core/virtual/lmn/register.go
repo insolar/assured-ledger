@@ -123,6 +123,7 @@ type SubSMRegister struct {
 	NewObjectRef       reference.Global
 	NewLastFilamentRef reference.Global
 	NewLastLifelineRef reference.Global
+	IncomingRequestRef reference.Global
 
 	// DI
 	messageSender messageSenderAdapter.MessageSender
@@ -461,6 +462,7 @@ func (s *SubSMRegister) stepRegisterIncoming(ctx smachine.ExecutionContext) smac
 	case isolation.CallIntolerable:
 		s.LastFilamentRef = anticipatedRef
 	}
+	s.IncomingRequestRef = anticipatedRef
 
 	switch {
 	case s.Outgoing != nil:
