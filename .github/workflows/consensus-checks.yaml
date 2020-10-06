@@ -39,6 +39,16 @@ jobs:
           docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
           docker tag insolar/assured-ledger:latest $ACR_HOST/assured-ledger:"${GITHUB_SHA:0:8}"
           docker push $ACR_HOST/assured-ledger:"${GITHUB_SHA:0:8}"
+      - name: Prepare report config boilerplate
+        run: |
+          echo "::set-env name=INSOLAR_BRANCH::$(echo "${{github.ref}}")"
+          echo "::set-env name=INSOLAR_TAG::${GITHUB_SHA:0:8}"
+          cat ledger-core/scripts/deploy/kube/report.yaml | envsubst '${INSOLAR_BRANCH} ${INSOLAR_TAG}' >report-config.yaml
+      - name: Create base report-config artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: report-config
+          path: report-config.yaml
   consensus:
     name: consensus # don't change, this name is used in repository restricts!
     needs: prepare
@@ -46,7 +56,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        target: [aks-10node]
+        target: [aks-10node, aks-15node]
     steps:
       - name: Checkout code
         uses: actions/checkout@master
@@ -54,13 +64,15 @@ jobs:
         env:
           TARGET: ${{matrix.target}}
         run: |
+          echo "::set-env name=INSOLAR_DESIRED_UPTIME::300"
           echo "::set-env name=INSOLAR_TAG::${GITHUB_SHA:0:8}"
           echo "::set-env name=INSOLAR_NETWORK_SIZE::${TARGET}"
           echo "::set-env name=INSOLAR_NAMESPACE::${GITHUB_SHA:0:8}-${TARGET}"
-          echo "::set-env name=INSOLAR_DESIRED_UPTIME::300"
           echo "::set-env name=INSOLAR_BRANCH::$(echo "${{github.ref}}")"
           echo "::set-env name=INSOLAR_NETWORK_SIZE_INT::$(echo $TARGET | awk '{gsub(/[^[0-9]]*/,"");print}')"
-          echo "::set-env name=REPORT_WEBDAV_DIRECTORY::consensus-checks/$(date +"%Y%m%d-%H%M")-pull-$(echo ${{github.ref}} | cut -d '/' -f3)-${GITHUB_SHA:0:8}"
+          echo "::set-env name=REPORT_WEBDAV_DIRECTORY::consensus-checks/$(date +"%Y%m%d-%H%M")-$(echo ${{github.ref}} | cut -d '/' -f3)-${GITHUB_SHA:0:8}"
+      - name: Install yq - portable yaml processor
+        uses: mikefarah/yq@3.4.0
       - name: Preparation - copy docker auth secret
         run: |
           docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
@@ -81,18 +93,48 @@ jobs:
         run:  echo "::set-env name=INSOLAR_START_TIME::$(date +'%s')"
       - name: Keep network running for a desired period of time
         run:  sleep $INSOLAR_DESIRED_UPTIME
-      - name: Add bin to path
-        run: echo "::add-path::$GITHUB_WORKSPACE/bin"
-      - name: Grab utility binaries
+      - name: mandatory debug
+        if: always()
+        run: kubectl get all --all-namespaces
+      - name: cleanup
+        if: always()
+        run: kubectl delete ns $INSOLAR_NAMESPACE --ignore-not-found=true
+
+      - name: Download report-config
+        uses: actions/download-artifact@v2
+        with:
+          name: report-config
+      - name: Save network run properties
         run: |
+          cat ledger-core/scripts/deploy/kube/report-add-range.yaml | envsubst '${INSOLAR_START_TIME} ${INTERVAL} ${INSOLAR_NETWORK_SIZE_INT}' > yq-cmd.yaml
+          yq write --inplace --script yq-cmd.yaml report-config.yaml
+        env:
+          INTERVAL: 5m
+      - name: Upload updated report-config
+        uses: actions/upload-artifact@v2
+        with:
+          name: report-config
+          path: report-config.yaml
+
+  report:
+    name: report
+    needs: consensus
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install utility binaries
+        run: |
+          echo "::add-path::$GITHUB_WORKSPACE/bin"
           wget -q https://github.com/insolar/consensus-reports/releases/download/v1.0.4/{report,metricreplicator} -P bin/
           chmod +x bin/{report,metricreplicator}
+      - name: Download report-config
+        uses: actions/download-artifact@v2
+        with:
+          name: report-config
       - name: gather metrics and generate report (IF THIS STEP FAILED - CALL DEV, READ LOGS BLUE ALERT)
         run: |
-          cat ledger-core/scripts/deploy/kube/report.yaml | envsubst '${INTERVAL} ${INSOLAR_START_TIME} ${INSOLAR_NETWORK_SIZE_INT} ${INSOLAR_BRANCH} ${INSOLAR_TAG}' >> config.yaml
-          metricreplicator --config config.yaml
+          metricreplicator --config report-config.yaml
         env:
-          INTERVAL: "3m"
           REPORT_PROMETHEUS_HOST: "https://${{secrets.PROMETHEUS_USER}}:${{secrets.PROMETHEUS_PASS}}@prometheus.uscifarm.insolar.io/prometheus"
       - name: generate report
         run: report
@@ -101,9 +143,3 @@ jobs:
           REPORT_GIT_HASH: ${{env.INSOLAR_TAG}}
       - name: report URL
         run: echo $REPORT_WEBDAV_HOST/$REPORT_WEBDAV_DIRECTORY
-      - name: mandatory debug
-        if: always()
-        run: kubectl get all --all-namespaces
-      - name: cleanup
-        if: always()
-        run: kubectl delete ns $INSOLAR_NAMESPACE --ignore-not-found=true
