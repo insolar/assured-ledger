@@ -240,7 +240,6 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 				Reference:     rms.NewReferenceLocal(s.server.RandomLocalWithPulse()),
 				Class:         rms.NewReference(s.class),
 				State:         rms.NewBytes([]byte(newState)),
-				PreviousState: rms.NewBytes([]byte("initial state")),
 			},
 		}
 		await := s.server.Journal.WaitStopOf(&handlers.SMVDelegatedRequestFinished{}, 1)
