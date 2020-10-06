@@ -77,7 +77,7 @@ func TestVirtual_VStateRequest(t *testing.T) {
 					expectedVStateReport.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
 							Reference: rms.NewReference(reference.Global{}),
-							State:     rms.NewBytes(rawWalletState),
+							Memory:    rms.NewBytes(rawWalletState),
 							Class:     rms.NewReference(testwallet.ClassReference),
 						},
 					}
@@ -86,7 +86,7 @@ func TestVirtual_VStateRequest(t *testing.T) {
 					expectedVStateReport.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 						LatestValidatedState: &rms.ObjectState{
 							Reference: rms.NewReference(reference.Global{}),
-							State:     rms.NewBytes(rawWalletState),
+							Memory:    rms.NewBytes(rawWalletState),
 							Class:     rms.NewReference(testwallet.ClassReference),
 						},
 					}
