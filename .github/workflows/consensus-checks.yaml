@@ -151,8 +151,8 @@ jobs:
           REPORT_GIT_HASH: ${{env.INSOLAR_TAG}}
       - name: report URL
         run: |
-          curl --header "Content-Type: application/json" \
-               --request POST \
-               --data '{ "text": "Headless network test report: ${REPORT_WEBDAV_HOST}/${REPORT_WEBDAV_DIRECTORY}" }' \
+          curl --silent --header "Content-Type: application/json" --request POST \
+               --data "{ \"text\": \"Headless network test report: ${REPORT_WEBDAV_HOST}/${REPORT_WEBDAV_DIRECTORY}\" }" \
                ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}
+          echo "\n\n\n"
           echo $REPORT_WEBDAV_HOST/$REPORT_WEBDAV_DIRECTORY
