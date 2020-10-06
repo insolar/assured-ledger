@@ -17,12 +17,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
-// constructor pending +  method call
+// constructor pending +  unordered method call
 // check transcript
 func TestValidation_HappyPathWithPending(t *testing.T) {
 	// todo add case
@@ -44,26 +45,29 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	var (
-		class         = server.RandomGlobalWithPulse()
-		object        = server.RandomGlobalWithPulse()
-		outgoingP1    = server.BuildRandomOutgoingWithPulse()
-		incomingP1    = reference.NewRecordOf(object, outgoingP1.GetLocal())
-		dirtyStateRef = server.RandomLocalWithPulse()
-		p1            = server.GetPulse().PulseNumber
-		isolation     = contract.MethodIsolation{
+		constructorReq = utils.GenerateVCallRequestConstructor(server)
+		class          = constructorReq.Callee.GetValue()
+		outgoingP1     = constructorReq.CallOutgoing.GetValue()
+		object         = reference.NewSelf(outgoingP1.GetLocal())
+
+		incomingP1 = reference.NewRecordOf(object, outgoingP1.GetLocal())
+		p1         = server.GetPulse().PulseNumber
+		isolation  = contract.MethodIsolation{
 			Interference: isolation.CallIntolerable,
 			State:        isolation.CallDirty, // use dirty state because R0 does not copy dirty to validated state
 		}
 		getDelegated = false
 	)
 
-	// constructor request
-	constructorReq := utils.GenerateVCallRequestConstructor(server)
-	{
-		constructorReq.Callee.Set(object)
-		constructorReq.CallOutgoing.Set(outgoingP1)
+	stateId := server.RandomLocalWithPulse()
+	objDescriptor := descriptor.NewObject(object, stateId, class, []byte("init state"), false)
 
-	}
+	bytes := []byte("after pending state")
+	afterPendingStateHash := append(bytes, object.AsBytes()...)
+	afterPendingStateHash = append(afterPendingStateHash, objDescriptor.StateID().AsBytes()...)
+	afterPendingStateID := execute.NewStateID(server.GetPulse().PulseNumber, afterPendingStateHash)
+	dirtyStateRef := reference.NewRecordOf(object, afterPendingStateID)
+
 	pendingTranscript := buildIncomingTranscript(*constructorReq, nil, dirtyStateRef)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -80,8 +84,6 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 		pl.Callee.Set(object)
 		pl.CallSiteMethod = "SomeMethod"
 		pl.CallOutgoing.Set(outgoingP2)
-
-		server.SendPayload(ctx, pl)
 	}
 	methodTranscript := buildIncomingTranscript(*pl, dirtyStateRef, dirtyStateRef)
 
@@ -96,6 +98,7 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 		}
 
 		server.SendPayload(ctx, vsrPayload)
+		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1))
 		server.WaitActiveThenIdleConveyor()
 	}
 
@@ -108,8 +111,8 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 		objectExecutionMock.AddStart(func(ctx execution.Context) {
 			logger.Debug("ExecutionStart [SomeMethod]")
 			require.Equal(t, object, ctx.Request.Callee.GetValue())
-			require.Equal(t, []byte("new object memory"), ctx.ObjectDescriptor.Memory())
-			require.Equal(t, dirtyStateRef, ctx.ObjectDescriptor.StateID())
+			require.Equal(t, bytes, ctx.ObjectDescriptor.Memory())
+			require.Equal(t, afterPendingStateID, ctx.ObjectDescriptor.StateID())
 			require.True(t, getDelegated)
 		}, &execution.Update{
 			Type:   execution.Done,
@@ -129,16 +132,16 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 		typedChecker.VDelegatedCallResponse.SetResend(false)
 		typedChecker.VStateReport.SetResend(false)
 		typedChecker.VObjectTranscriptReport.Set(func(res *rms.VObjectTranscriptReport) bool {
-			assert.Equal(t, pendingTranscript, res.PendingTranscripts[0])
-			assert.Equal(t, methodTranscript, res.ObjectTranscript)
+
+			utils.AssertAnyTranscriptEqual(t, &pendingTranscript.Entries[0], &res.PendingTranscripts[0].Entries[0], logger)
+			utils.AssertAnyTranscriptEqual(t, &pendingTranscript.Entries[1], &res.PendingTranscripts[0].Entries[1], logger)
+
+			utils.AssertAnyTranscriptEqual(t, &methodTranscript.Entries[0], &res.ObjectTranscript.Entries[0], logger)
+			utils.AssertAnyTranscriptEqual(t, &methodTranscript.Entries[1], &res.ObjectTranscript.Entries[1], logger)
 
 			return false
 		})
 	}
-
-	// VCallRequest
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-	server.SendPayload(ctx, pl)
 
 	// VDelegatedCallRequest
 	{
@@ -162,9 +165,10 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 			CallIncoming:      rms.NewReference(incomingP1),
 			PendingTranscript: pendingTranscript,
 			LatestState: &rms.ObjectState{
-				Reference: rms.NewReferenceLocal(dirtyStateRef),
-				Class:     rms.NewReference(class),
-				State:     rms.NewBytes([]byte("new object memory")),
+				Reference:   rms.NewReferenceLocal(dirtyStateRef),
+				Class:       rms.NewReference(class),
+				State:       rms.NewBytes(bytes),
+				Deactivated: false,
 			},
 		}
 		server.SendPayload(ctx, &finished)
@@ -172,7 +176,11 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 		getDelegated = true
 	}
 
+	// VCallRequest
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+	server.SendPayload(ctx, pl)
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVObjectTranscriptReport{}, 1)
@@ -189,18 +197,20 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 	mc.Finish()
 }
 
-func buildIncomingTranscript(request rms.VCallRequest, stateBefore reference.LocalHolder, stateAfter reference.LocalHolder) rms.Transcript {
+func buildIncomingTranscript(request rms.VCallRequest, stateBefore, stateAfter reference.Holder) rms.Transcript {
 	transcript := rms.Transcript{Entries: []rms.Any{{}, {}}}
 	t := &rms.Transcript_TranscriptEntryIncomingRequest{
 		Request: request,
 	}
 	if stateBefore != nil {
-		t.ObjectMemory = rms.NewReferenceLocal(stateBefore)
+		t.ObjectMemory.Set(stateBefore)
 	}
 	transcript.Entries[0].Set(t)
-	transcript.Entries[1].Set(&rms.Transcript_TranscriptEntryIncomingResult{
-		ObjectState: rms.NewReferenceLocal(stateAfter),
+	result := &rms.Transcript_TranscriptEntryIncomingResult{
+		ObjectState: rms.NewReference(stateAfter),
 		Reason:      request.CallOutgoing,
-	})
+	}
+	transcript.Entries[1].Set(result)
+
 	return transcript
 }
