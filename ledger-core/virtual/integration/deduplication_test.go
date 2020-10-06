@@ -704,7 +704,7 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 				LatestDirtyState: &rms.ObjectState{
 					Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(s.getP1())),
 					Class:     rms.NewReference(s.getClass()),
-					State:     rms.NewBytes([]byte("object memory")),
+					Memory:    rms.NewBytes([]byte("object memory")),
 				},
 			},
 		}
