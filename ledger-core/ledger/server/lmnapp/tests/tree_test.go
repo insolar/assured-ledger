@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp/lmntestapp"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 )
 
 func TestGenesisTree(t *testing.T) {
@@ -97,7 +98,7 @@ func TestReadyTree(t *testing.T) {
 	require.False(t, prev.IsEmpty())
 	require.False(t, cur.IsEmpty())
 
-	ch = jrn.WaitStopOf(&datawriter.SMPlash{}, 1)
+	ch = jrn.WaitOnce(predicate.AfterStepName("(*SMPlash).stepWaitPast"))
 	ch2 := jrn.WaitInitOf(&datawriter.SMDropBuilder{}, 1<<datawriter.DefaultGenesisSplitDepth)
 	server.IncrementPulse() // trigger plash creation
 	<-ch

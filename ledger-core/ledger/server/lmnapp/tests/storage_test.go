@@ -186,7 +186,7 @@ func TestAddRecordsThenChangePulse(t *testing.T) {
 	time.Sleep(2*time.Second)
 
 	server.IncrementPulse()
-//	time.Sleep(time.Second)
+	time.Sleep(time.Second)
 }
 
 func BenchmarkWriteNew(b *testing.B) {

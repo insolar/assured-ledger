@@ -105,6 +105,7 @@ func (p *SMPlash) makePlashConfig(ctx smachine.ExecutionContext) buildersvc.Basi
 			return ctx.Error(e.(error))
 		}
 	})
+
 	return buildersvc.BasicPlashConfig{
 		PulseRange: p.sd.pr,
 		Population: bd.Online,
