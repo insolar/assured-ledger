@@ -289,8 +289,8 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 			CallOutgoing: rms.NewReference(outgoing),
 			CallIncoming: rms.NewReference(reference.NewRecordOf(class, outgoing.GetLocal())),
 			LatestState: &rms.ObjectState{
-				Class: rms.NewReference(class),
-				State: rms.NewBytes(ExecutionResultFromPreviousNode),
+				Class:  rms.NewReference(class),
+				Memory: rms.NewBytes(ExecutionResultFromPreviousNode),
 			},
 		}
 	}
@@ -546,7 +546,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 			Status:              rms.StateStatusReady,
 			OrderedPendingCount: 0,
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &rms.ObjectState{State: rms.NewBytes([]byte("123"))},
+				LatestDirtyState: &rms.ObjectState{Memory: rms.NewBytes([]byte("123"))},
 			},
 		}
 
@@ -606,7 +606,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 			Status:              rms.StateStatusReady,
 			OrderedPendingCount: 1,
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &rms.ObjectState{State: rms.NewBytes([]byte("123"))},
+				LatestDirtyState: &rms.ObjectState{Memory: rms.NewBytes([]byte("123"))},
 			},
 		}
 

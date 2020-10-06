@@ -49,12 +49,12 @@ func createWallet(
 		LatestDirtyState: &rms.ObjectState{
 			Reference: rms.NewReference(stateID),
 			Class:     rms.NewReference(testwalletProxy.GetClass()),
-			State:     rms.NewBytes(walletState),
+			Memory:    rms.NewBytes(walletState),
 		},
 		LatestValidatedState: &rms.ObjectState{
 			Reference: rms.NewReference(stateID),
 			Class:     rms.NewReference(testwalletProxy.GetClass()),
-			State:     rms.NewBytes(walletState),
+			Memory:    rms.NewBytes(walletState),
 		},
 	}
 
