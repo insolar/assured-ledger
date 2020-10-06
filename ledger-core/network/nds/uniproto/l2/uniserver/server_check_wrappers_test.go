@@ -6,14 +6,16 @@
 package uniserver
 
 import (
+	"io"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l1"
 	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
-	"github.com/stretchr/testify/require"
-	"io"
-	"testing"
 )
 
 func TestServerWrappedFactory(t *testing.T) {
@@ -67,7 +69,7 @@ func TestServerWrappedFactory(t *testing.T) {
 
 	ups1.SetTransportProvider(provider)
 
-	ups1.StartListen()
+	RetryStartListenForTests(ups1, 3)
 	dispatcher1.SetMode(uniproto.AllowAll)
 
 	pm1 := ups1.PeerManager()
@@ -90,7 +92,7 @@ func TestServerWrappedFactory(t *testing.T) {
 	ups2.SetSignatureFactory(vf)
 	ups2.SetTransportProvider(provider)
 
-	ups2.StartListen()
+	RetryStartListenForTests(ups2, 3)
 
 	pm2 := ups2.PeerManager()
 	_, err = pm2.AddHostID(pm2.Local().GetPrimary(), 2)

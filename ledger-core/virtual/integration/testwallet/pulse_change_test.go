@@ -40,16 +40,21 @@ func createWallet(
 	object reference.Global,
 	pulse rms.PulseNumber,
 ) {
-	walletState := makeRawWalletState(initialBalance)
+	var (
+		walletState = makeRawWalletState(initialBalance)
+		stateID     = reference.NewRecordOf(object, server.RandomLocalWithPulse())
+	)
 
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Class: rms.NewReference(testwalletProxy.GetClass()),
-			State: rms.NewBytes(walletState),
+			Reference: rms.NewReference(stateID),
+			Class:     rms.NewReference(testwalletProxy.GetClass()),
+			State:     rms.NewBytes(walletState),
 		},
 		LatestValidatedState: &rms.ObjectState{
-			Class: rms.NewReference(testwalletProxy.GetClass()),
-			State: rms.NewBytes(walletState),
+			Reference: rms.NewReference(stateID),
+			Class:     rms.NewReference(testwalletProxy.GetClass()),
+			State:     rms.NewBytes(walletState),
 		},
 	}
 
@@ -85,7 +90,7 @@ func TestVirtual_CallMethodAfterMultiplePulseChanges(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VCallRequest.SetResend(true)
 	typedChecker.VCallResult.SetResend(true)
 	typedChecker.VStateReport.SetResend(true)
@@ -95,15 +100,15 @@ func TestVirtual_CallMethodAfterMultiplePulseChanges(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		objectGlobal = server.RandomGlobalWithPulse()
-		prevPulse    = server.GetPulse().PulseNumber
+		objectGlobal    = server.RandomGlobalWithPulse()
+		prevPulse       = server.GetPulse().PulseNumber
+		numPulseChanges = 5
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	createWallet(ctx, t, server, objectGlobal, prevPulse)
 
-	numPulseChanges := 5
 	for i := 0; i < numPulseChanges; i++ {
 		wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 		server.IncrementPulseAndWaitIdle(ctx)

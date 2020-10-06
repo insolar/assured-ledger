@@ -88,7 +88,7 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 		}
 	}
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 		return false // no resend msg
 	})

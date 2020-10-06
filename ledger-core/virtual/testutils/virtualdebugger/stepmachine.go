@@ -11,6 +11,9 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
@@ -18,6 +21,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
@@ -37,6 +42,22 @@ func NewWithErrorFilter(ctx context.Context, t *testing.T, filterFn logcommon.Er
 		StepController: stepController,
 	}
 
+	{
+		keyProcessor := platformpolicy.NewKeyProcessor()
+		pk, err := keyProcessor.GeneratePrivateKey()
+		if err != nil {
+			panic(throw.W(err, "failed to generate node PK"))
+		}
+		keyStore := keystore.NewInplaceKeyStore(pk)
+
+		platformCryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
+		platformScheme := legacyadapter.New(platformCryptographyScheme, keyProcessor, keyStore)
+
+		var rrb lmn.RecordReferenceBuilderService
+		rrb = lmn.NewRecordReferenceBuilder(platformScheme.RecordScheme(), w.GenerateGlobal())
+		w.SlotMachine.AddInterfaceDependency(&rrb)
+	}
+
 	return w
 }
 
@@ -46,13 +67,8 @@ func New(ctx context.Context, t *testing.T) *VirtualStepController {
 
 // deprecated
 func NewWithIgnoreAllError(ctx context.Context, t *testing.T) *VirtualStepController {
-	stepController := slotdebugger.NewWithIgnoreAllErrors(ctx, t)
+	return NewWithErrorFilter(ctx, t, func(s string) bool { return false })
 
-	w := &VirtualStepController{
-		StepController: stepController,
-	}
-
-	return w
 }
 
 func (c *VirtualStepController) PrepareRunner(ctx context.Context, mc minimock.Tester) {

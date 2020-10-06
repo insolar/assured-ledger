@@ -26,6 +26,10 @@ func TestVirtual_Scenario1(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, t, server)
+	typedChecker.VCallRequest.SetResend(true)
+	typedChecker.VCallResult.SetResend(true)
+
 	var (
 		count                = 10 // Number of concurrent requests
 		amount          uint = 100
@@ -96,6 +100,10 @@ func TestVirtual_Scenario2(t *testing.T) {
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
+
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, t, server)
+	typedChecker.VCallRequest.SetResend(true)
+	typedChecker.VCallResult.SetResend(true)
 
 	var (
 		count                = 10 // Number of concurrent requests

@@ -52,7 +52,7 @@ func TestServer(t *testing.T) {
 	ups1.SetPeerFactory(peerProfileFn)
 	ups1.SetSignatureFactory(vf)
 
-	ups1.StartListen()
+	RetryStartListenForTests(ups1, 3)
 	dispatcher1.SetMode(uniproto.AllowAll)
 
 	pm1 := ups1.PeerManager()
@@ -74,7 +74,7 @@ func TestServer(t *testing.T) {
 	ups2.SetPeerFactory(peerProfileFn)
 	ups2.SetSignatureFactory(vf)
 
-	ups2.StartListen()
+	RetryStartListenForTests(ups2, 3)
 
 	pm2 := ups2.PeerManager()
 	_, err = pm2.AddHostID(pm2.Local().GetPrimary(), 2)

@@ -98,7 +98,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				Method_PrepareObject(ctx, server, rms.StateStatusReady, object, prevPulse)
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 			var (
 				outgoing = server.BuildRandomOutgoingWithPulse()
@@ -290,7 +290,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		server.Init(ctx)
 	}
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	var (
 		content *rms.VStateReport_ProvidedContentBody
@@ -512,7 +512,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 				server.Init(ctx)
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 			var (
 				class         = server.RandomGlobalWithPulse()

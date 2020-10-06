@@ -69,7 +69,16 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 	}
 
 	// don't check sender for future pulses in R0
-	if !pr.RightBoundData().IsExpectedPulse() {
+	switch payloadObj.(type) {
+	case *rms.LRegisterResponse:
+		// TODO: do nothing for now, message from ledger
+	case *rms.LRegisterRequest:
+		panic(throw.Impossible())
+	default:
+		if pr.RightBoundData().IsExpectedPulse() {
+			break
+		}
+
 		mustReject, err := f.AuthService.CheckMessageFromAuthorizedVirtual(logCtx, payloadObj, sender, pr)
 		if err != nil {
 			logger.Warn(throw.W(err, "illegitimate msg", skippedMessage{
@@ -132,6 +141,8 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 			return targetPulse, &SMVCachedMemoryResponse{Meta: payloadMeta, Payload: obj}
 		case *rms.VObjectValidationReport:
 			return obj.In, &SMVObjectValidationReport{Meta: payloadMeta, Payload: obj}
+		case *rms.LRegisterResponse:
+			return targetPulse, &SMLRegisterResponse{Meta: payloadMeta, Payload: obj}
 		default:
 			logger.Warnm(struct {
 				Msg             string

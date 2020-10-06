@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -53,6 +54,7 @@ func Method_PrepareObject(
 ) {
 
 	bytes := []byte("original object memory")
+	// TODO: FIXME: do we need real state generation?
 	dirtyStateHash := append(bytes, object.AsBytes()...)
 	dirtyStateID := execute.NewStateID(pulse, dirtyStateHash)
 
@@ -131,7 +133,7 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 
 	require.NoError(t, err)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 		assert.Equal(t, objectGlobal, res.Callee.GetValue())
 		assert.Equal(t, outgoing, res.CallOutgoing.GetValue())
@@ -186,7 +188,7 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 		State:           object.Missing,
 	})
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 		assert.Equal(t, objectGlobal, res.Callee.GetValue())
 		assert.Equal(t, outgoing, res.CallOutgoing.GetValue())
@@ -224,16 +226,16 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
-
 	runnerMock := logicless.NewServiceMock(ctx, t, nil)
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
 
 	var (
-		waitInputChannel  = make(chan struct{}, 2)
+		parallelCount     = 2
+		waitInputChannel  = make(chan struct{}, parallelCount)
 		waitOutputChannel = make(chan struct{}, 0)
+		executeDone       = server.Journal.WaitStopOf(&execute.SMExecute{}, parallelCount)
 
 		objectGlobal = server.RandomGlobalWithPulse()
 		prevPulse    = server.GetPulse().PulseNumber
@@ -244,7 +246,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 
 	Method_PrepareObject(ctx, server, rms.StateStatusReady, objectGlobal, prevPulse)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	{
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
@@ -256,7 +258,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 
 		countBefore := server.PublisherMock.GetCount()
 
-		for i := 0; i < 2; i++ {
+		for i := 0; i < parallelCount; i++ {
 			pl := utils.GenerateVCallRequestMethodImmutable(server)
 			pl.Callee.Set(objectGlobal)
 			pl.CallSiteMethod = "GetBalance"
@@ -283,7 +285,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 			server.SendPayload(ctx, pl)
 		}
 
-		for i := 0; i < 2; i++ {
+		for i := 0; i < parallelCount; i++ {
 			select {
 			case <-waitInputChannel:
 			case <-time.After(10 * time.Second):
@@ -291,7 +293,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 			}
 		}
 
-		for i := 0; i < 2; i++ {
+		for i := 0; i < parallelCount; i++ {
 			waitOutputChannel <- struct{}{}
 		}
 
@@ -301,9 +303,10 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	}
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	{
-		assert.Equal(t, 2, typedChecker.VCallResult.Count())
+		assert.Equal(t, parallelCount, typedChecker.VCallResult.Count())
 	}
 
 	mc.Finish()
@@ -324,18 +327,19 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 	server.Init(ctx)
 
 	var (
-		objectGlobal = server.RandomGlobalWithPulse()
-		prevPulse    = server.GetPulse().PulseNumber
+		objectGlobal  = server.RandomGlobalWithPulse()
+		prevPulse     = server.GetPulse().PulseNumber
+		parallelCount = 2
+		awaitFullStop = server.Journal.WaitStopOf(&execute.SMExecute{}, parallelCount)
 	)
 
 	// need for correct handle state report (should from prev pulse)
 	server.IncrementPulse(ctx)
 
 	Method_PrepareObject(ctx, server, rms.StateStatusReady, objectGlobal, prevPulse)
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	counter := 0
-	awaitFullStop := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
 	{
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
@@ -344,10 +348,10 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 			return false // no resend msg
 		})
 
-		for i := int64(0); i < 2; i++ {
+		for i := 0; i < parallelCount; i++ {
 			pl := utils.GenerateVCallRequestMethod(server)
 			pl.Callee.Set(objectGlobal)
-			pl.CallSiteMethod = "ordered" + strconv.FormatInt(i, 10)
+			pl.CallSiteMethod = "ordered-" + strconv.FormatInt(int64(i), 10)
 
 			result := requestresult.New([]byte("345"), objectGlobal)
 
@@ -356,7 +360,7 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 				counter++
 				for k := 0; k < 5; k++ {
 					require.Equal(t, 1, counter)
-					time.Sleep(3 * time.Millisecond)
+					time.Sleep(10 * time.Millisecond)
 				}
 				counter--
 			}, &execution.Update{
@@ -373,7 +377,8 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 	}
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, awaitFullStop)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-	assert.Equal(t, 2, typedChecker.VCallResult.Count())
+
+	assert.Equal(t, parallelCount, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }
@@ -469,7 +474,7 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 
 			runnerMock.AddExecutionClassify(outgoing, flags, nil)
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 				switch res.Callee.GetValue() {
 				case objectAGlobal:
@@ -520,14 +525,14 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	var (
 		objectA        = server.RandomGlobalWithPulse()
 		objectB1Global = server.RandomGlobalWithPulse()
 		objectB2Global = server.RandomGlobalWithPulse()
 		objectB3Global = server.RandomGlobalWithPulse()
-		prevPulse      = server.GetPulse().PulseNumber
+		prevPulse      = server.GetPulseNumber()
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -540,7 +545,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 		Method_PrepareObject(ctx, server, rms.StateStatusReady, objectB3Global, prevPulse)
 	}
 
-	p := server.GetPulse().PulseNumber
+	p := server.GetPulseNumber()
 
 	var (
 		flags     = contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}
@@ -714,7 +719,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	var (
 		flags     = contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}
@@ -910,7 +915,7 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 
 	outgoing := server.BuildRandomOutgoingWithPulse()
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 		assert.Equal(t, objectGlobal, res.Callee.GetValue())
 		assert.Equal(t, outgoing, res.CallOutgoing.GetValue())
@@ -986,7 +991,7 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 
 	p := server.GetPulse().PulseNumber
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool { return false })
 	typedChecker.VStateReport.Set(func(res *rms.VStateReport) bool { return false })
 	typedChecker.VStateRequest.Set(func(res *rms.VStateRequest) bool {
@@ -1095,7 +1100,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 				server.Init(ctx)
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 			var (
 				class     = server.RandomGlobalWithPulse()
@@ -1320,7 +1325,7 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 				State:           object.Missing,
 			})
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 				assert.Equal(t, rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty), result.CallFlags)
 				assert.Equal(t, objectRef, result.Callee.GetValue())
@@ -1370,7 +1375,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
 				return descriptor.NewObject(
 					objectRef,
-					execute.NewStateID(pn, []byte("ok case")),
+					reference.Local{},
 					classRef,
 					[]byte("ok case"),
 					false,
@@ -1379,7 +1384,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			validatedStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
 				return descriptor.NewObject(
 					objectRef,
-					execute.NewStateID(pn, []byte("not ok case")),
+					reference.Local{},
 					classRef,
 					[]byte("not ok case"),
 					false,
@@ -1395,7 +1400,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
 				return descriptor.NewObject(
 					objectRef,
-					execute.NewStateID(pn, []byte("ok case")),
+					reference.Local{},
 					classRef,
 					[]byte("ok case"),
 					false,
@@ -1480,7 +1485,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 
 			outgoingRef := server.BuildRandomOutgoingWithPulse()
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 			{
 				typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
@@ -1552,12 +1557,12 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 		server.Init(ctx)
 	}
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	var (
 		class     = server.RandomGlobalWithPulse()
 		objectRef = server.RandomGlobalWithPulse()
-		p1        = server.GetPulse().PulseNumber
+		p1        = server.GetPulseNumber()
 		isolation = contract.MethodIsolation{
 			Interference: isolation.CallIntolerable,
 			State:        isolation.CallValidated,
@@ -1694,10 +1699,12 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		initialState = []byte("initial state")
 		newState     = []byte("updated state")
 		prevPulse    = server.GetPulse().PulseNumber
+		vStateID     = reference.NewRecordOf(objectGlobal, server.RandomLocalWithPulse())
+		dStateID     = reference.NewRecordOf(objectGlobal, server.RandomLocalWithPulse())
 	)
 
 	// add typedChecker mock
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	{
 		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 			assert.Equal(t, newState, report.ProvidedContent.LatestDirtyState.State.GetBytes())
@@ -1729,12 +1736,14 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 			AsOf:   prevPulse,
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &rms.ObjectState{
-					Class: rms.NewReference(class),
-					State: rms.NewBytes(initialState),
+					Reference: rms.NewReference(dStateID),
+					Class:     rms.NewReference(class),
+					State:     rms.NewBytes(initialState),
 				},
 				LatestValidatedState: &rms.ObjectState{
-					Class: rms.NewReference(class),
-					State: rms.NewBytes(initialState),
+					Reference: rms.NewReference(vStateID),
+					Class:     rms.NewReference(class),
+					State:     rms.NewBytes(initialState),
 				},
 			},
 		}
@@ -1763,7 +1772,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	{
 		objectDescriptor := descriptor.NewObject(
 			objectGlobal,
-			execute.NewStateID(server.GetPulse().PulseNumber, newState),
+			reference.Local{},
 			class,
 			newState,
 			false,
@@ -1969,7 +1978,7 @@ func TestVirtual_Method_TwoUnorderedCalls(t *testing.T) {
 	}
 
 	// add typedChecker mock
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	{
 		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 			switch result.CallOutgoing.GetValue() {

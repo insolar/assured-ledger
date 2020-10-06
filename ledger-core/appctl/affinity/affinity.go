@@ -39,29 +39,29 @@ func (jc *Coordinator) Me() reference.Global {
 
 // QueryRole returns node refs responsible for role bound operations for given object and pulse.
 func (jc *Coordinator) QueryRole(role DynamicRole, objID reference.Holder, pn pulse.Number) ([]reference.Global, error) {
+	var (
+		nodeID reference.Global
+		err    error
+	)
 	switch role {
 	case DynamicRoleVirtualExecutor:
-		n, err := jc.VirtualExecutorForObject(objID, pn)
-		if err != nil {
-			return nil, throw.WithDetails(err, struct {
-				Ref reference.Holder
-				PN  pulse.Number
-			}{objID, pn})
-		}
-		return []reference.Global{n}, nil
+		nodeID, err = jc.VirtualExecutorForObject(objID, pn)
+	case DynamicRoleLightExecutor:
+		nodeID, err = jc.LightExecutorForObject(objID, pn)
 	case DynamicRoleVirtualValidator:
 		// fixme: validator == executor now , need to change
-		n, err := jc.VirtualValidatorForObject(objID, pn)
-		if err != nil {
-			return nil, throw.WithDetails(err, struct {
-				Ref reference.Holder
-				PN  pulse.Number
-			}{objID, pn})
-		}
-		return []reference.Global{n}, nil
+		nodeID, err = jc.VirtualValidatorForObject(objID, pn)
 	default:
 		panic(throw.NotImplemented())
 	}
+
+	if err != nil {
+		return nil, throw.WithDetails(err, struct {
+			Ref reference.Holder
+			PN  pulse.Number
+		}{objID, pn})
+	}
+	return []reference.Global{nodeID}, nil
 }
 
 // VirtualExecutorForObject returns list of VEs for a provided pulse and objID
@@ -158,4 +158,22 @@ func (jc *Coordinator) VirtualValidatorForObject(objID reference.Holder, pn puls
 	ref := assigned.GetStatic().GetExtension().GetReference()
 
 	return ref, nil
+}
+
+// TODO: when we'll add a LME we need to unify LightExecutorForObject (and implement) and VirtualExecutorForObject
+func (jc *Coordinator) LightExecutorForObject(objID reference.Holder, pn pulse.Number) (reference.Global, error) {
+	pc, err := jc.PulseAccessor.TimeBeat(pn)
+	switch {
+	case err != nil:
+		return reference.Global{}, err
+	case pc.Online == nil:
+		return reference.Global{}, throw.IllegalState()
+	}
+
+	role := pc.Online.GetRolePopulation(member.PrimaryRoleLightMaterial)
+	if role != nil {
+		panic(throw.Unsupported())
+	}
+
+	return jc.VirtualExecutorForObject(objID, pn)
 }
