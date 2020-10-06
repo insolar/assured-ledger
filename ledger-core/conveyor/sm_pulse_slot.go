@@ -283,8 +283,7 @@ func (p *PulseSlotMachine) stepPastLoop(ctx smachine.ExecutionContext) smachine.
 func (p *PulseSlotMachine) migratePast(ctx smachine.MigrationContext) smachine.StateUpdate {
 	p._runInnerMigrate(ctx, Past)
 
-	if p.innerMachine.IsEmpty() {
-		ctx.UnpublishAll()
+	if p.innerMachine.StopIfEmpty() {
 		return ctx.Stop()
 	}
 	return ctx.Stay()

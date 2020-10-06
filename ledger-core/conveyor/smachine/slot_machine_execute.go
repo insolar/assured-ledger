@@ -18,6 +18,7 @@ func (m *SlotMachine) RunToStop(worker AttachableSlotWorker, signal *synckit.Sig
 	m.Stop()
 	worker.AttachTo(m, signal, uint32(m.config.ScanCountLimit), func(worker AttachedSlotWorker) {
 		for !m.syncQueue.IsInactive() && !worker.HasSignal() {
+			// TODO this causes busy-wait when slots are busy/locked
 			m.ScanOnce(ScanDefault, worker)
 		}
 	})

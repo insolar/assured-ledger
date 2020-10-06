@@ -134,8 +134,19 @@ func (m *SlotMachine) IsActive() bool {
 }
 
 func (m *SlotMachine) Stop() bool {
-	m.logStop()
-	return m.syncQueue.SetStopping()
+	if m.syncQueue.SetStopping() {
+		m.logStop()
+		return true
+	}
+	return false
+}
+
+func (m *SlotMachine) StopIfEmpty() bool {
+	if m.slotPool.BlockIfEmpty(m.syncQueue.SetStopping) {
+		m.logStop()
+		return true
+	}
+	return false
 }
 
 func (m *SlotMachine) getScanAndMigrateCounts() (scanCount, migrateCount uint32) {
@@ -228,6 +239,7 @@ func (m *SlotMachine) _allocateNextSlotID() SlotID {
 }
 
 // SAFE for concurrent use
+// allocateSlot can return nil when allocation is blocked (preparation of stop)
 func (m *SlotMachine) allocateSlot() *Slot {
 	return m.slotPool.AllocateSlot(m, m.allocateNextSlotID())
 }
@@ -467,6 +479,10 @@ func (m *SlotMachine) prepareNewSlot(creator *Slot, fn CreateFunc, sm StateMachi
 	}
 
 	slot := m.allocateSlot()
+	if slot == nil {
+		return SlotLink{}, false
+	}
+
 	defer func() {
 		if slot != nil {
 			m.recycleEmptySlot(slot, nil) // all construction errors are reported to caller
@@ -615,14 +631,22 @@ func (m *SlotMachine) startNewSlotByDetachable(slot *Slot, postInitFn PostInitFu
 
 func (m *SlotMachine) _startAddedSlot(link SlotLink, worker FixedSlotWorker) {
 	if !link.IsValid() {
-		panic("unexpected")
+		panic(throw.Impossible())
 	}
 	slot := link.s
 	slot.ensureInitializing()
 	m._boostNewSlot(slot)
-	m.stopSlotWorking(slot, 0, worker)
-	list := m._updateSlotQueue(slot, false, activateSlot)
-	if list != nil {
+
+	// there is no need to use m.stopSlotWorking
+	// as there should be no dependencies for the just added slot
+	slot.stopWorking()
+
+	if worker.IsZero() {
+		// SlotMachine is stopping
+		return
+	}
+
+	if list := m._updateSlotQueue(slot, false, activateSlot); list != nil {
 		panic(throw.Impossible())
 	}
 }

@@ -210,10 +210,11 @@ func (p *PulseConveyor) AddInputExt(pn pulse.Number, event InputEvent,
 		return throw.E("slotMachine remap is missing", errMissingPN{PN: pn, RemapPN: setup.TargetPulse})
 	}
 
-	createFn := setup.CreateFn
 	if setup.PreInitFn != nil {
-		createDefaults.PreInitializationHandler = setup.PreInitFn
+		createDefaults.PreInitializationHandler = mergePreInit(setup.PreInitFn, createDefaults.PreInitializationHandler)
 	}
+
+	createFn := setup.CreateFn
 
 	addedOk := false
 	switch {
@@ -271,6 +272,22 @@ func (p *PulseConveyor) AddInputExt(pn pulse.Number, event InputEvent,
 	}
 
 	return nil
+}
+
+func mergePreInit(fn1, fn2 smachine.PreInitHandlerFunc) smachine.PreInitHandlerFunc {
+	switch {
+	case fn1 == nil:
+		return fn2
+	case fn2 == nil:
+		return fn1
+	default:
+		return func(ctx smachine.InitializationContext, sm smachine.StateMachine) error {
+			if err := fn1(ctx, sm); err != nil {
+				return err
+			}
+			return fn2(ctx, sm)
+		}
+	}
 }
 
 func (p *PulseConveyor) mapToPulseSlotMachine(pn pulse.Number) (*PulseSlotMachine, pulse.Number, PulseSlotState, error) {
