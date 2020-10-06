@@ -26,7 +26,12 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type RCtlPlashStart struct {
-	Version uint32 `protobuf:"varint,40,opt,name=Version,proto3" json:"Version"`
+	Version        uint32    `protobuf:"varint,40,opt,name=Version,proto3" json:"Version"`
+	NodeRef        Reference `protobuf:"bytes,41,opt,name=NodeRef,proto3" json:"NodeRef"`
+	PulseData      Reference `protobuf:"bytes,42,opt,name=PulseData,proto3" json:"PulseData"`
+	PulseEpochData Reference `protobuf:"bytes,43,opt,name=PulseEpochData,proto3" json:"PulseEpochData"`
+	PopulationRef  Reference `protobuf:"bytes,44,opt,name=PopulationRef,proto3" json:"PopulationRef"`
+	Population     Binary    `protobuf:"bytes,45,opt,name=Population,proto3" json:"Population"`
 }
 
 func (m *RCtlPlashStart) Reset()         { *m = RCtlPlashStart{} }
@@ -65,7 +70,46 @@ func (m *RCtlPlashStart) GetVersion() uint32 {
 	return 0
 }
 
+func (m *RCtlPlashStart) GetNodeRef() Reference {
+	if m != nil {
+		return m.NodeRef
+	}
+	return Reference{}
+}
+
+func (m *RCtlPlashStart) GetPulseData() Reference {
+	if m != nil {
+		return m.PulseData
+	}
+	return Reference{}
+}
+
+func (m *RCtlPlashStart) GetPulseEpochData() Reference {
+	if m != nil {
+		return m.PulseEpochData
+	}
+	return Reference{}
+}
+
+func (m *RCtlPlashStart) GetPopulationRef() Reference {
+	if m != nil {
+		return m.PopulationRef
+	}
+	return Reference{}
+}
+
+func (m *RCtlPlashStart) GetPopulation() Binary {
+	if m != nil {
+		return m.Population
+	}
+	return Binary{}
+}
+
 type RCtlPlashSummary struct {
+	MerkleRoot              Binary           `protobuf:"bytes,40,opt,name=MerkleRoot,proto3" json:"MerkleRoot"`
+	MerkleProducerSignature Binary           `protobuf:"bytes,41,opt,name=MerkleProducerSignature,proto3" json:"MerkleProducerSignature"`
+	SectionSummaryOrd       []CatalogOrdinal `protobuf:"varint,50,rep,packed,name=SectionSummaryOrd,proto3,casttype=CatalogOrdinal" json:"SectionSummaryOrd,omitempty"`
+	DropSummaryOrd          []CatalogOrdinal `protobuf:"varint,51,rep,packed,name=DropSummaryOrd,proto3,casttype=CatalogOrdinal" json:"DropSummaryOrd,omitempty"`
 }
 
 func (m *RCtlPlashSummary) Reset()         { *m = RCtlPlashSummary{} }
@@ -97,12 +141,40 @@ func (m *RCtlPlashSummary) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_RCtlPlashSummary proto.InternalMessageInfo
 
+func (m *RCtlPlashSummary) GetMerkleRoot() Binary {
+	if m != nil {
+		return m.MerkleRoot
+	}
+	return Binary{}
+}
+
+func (m *RCtlPlashSummary) GetMerkleProducerSignature() Binary {
+	if m != nil {
+		return m.MerkleProducerSignature
+	}
+	return Binary{}
+}
+
+func (m *RCtlPlashSummary) GetSectionSummaryOrd() []CatalogOrdinal {
+	if m != nil {
+		return m.SectionSummaryOrd
+	}
+	return nil
+}
+
+func (m *RCtlPlashSummary) GetDropSummaryOrd() []CatalogOrdinal {
+	if m != nil {
+		return m.DropSummaryOrd
+	}
+	return nil
+}
+
 type RCtlDropSummary struct {
 	DropReport              RCtlDropReport `protobuf:"bytes,40,opt,name=DropReport,proto3" json:"DropReport"`
 	ReportProducerSignature Binary         `protobuf:"bytes,41,opt,name=ReportProducerSignature,proto3" json:"ReportProducerSignature"`
-	FilToMklLoc             StorageLocator `protobuf:"fixed64,44,opt,name=FilToMklLoc,proto3,casttype=StorageLocator" json:"FilToMklLoc"`
-	FilToMklSize            uint32         `protobuf:"varint,45,opt,name=FilToMklSize,proto3" json:"FilToMklSize"`
-	FilToMklCount           uint32         `protobuf:"varint,46,opt,name=FilToMklCount,proto3" json:"FilToMklCount"`
+	MerkleLogLoc            StorageLocator `protobuf:"fixed64,44,opt,name=MerkleLogLoc,proto3,casttype=StorageLocator" json:"MerkleLogLoc"`
+	MerkleLogSize           uint32         `protobuf:"varint,45,opt,name=MerkleLogSize,proto3" json:"MerkleLogSize"`
+	MerkleLogCount          uint32         `protobuf:"varint,46,opt,name=MerkleLogCount,proto3" json:"MerkleLogCount"`
 }
 
 func (m *RCtlDropSummary) Reset()         { *m = RCtlDropSummary{} }
@@ -148,23 +220,23 @@ func (m *RCtlDropSummary) GetReportProducerSignature() Binary {
 	return Binary{}
 }
 
-func (m *RCtlDropSummary) GetFilToMklLoc() StorageLocator {
+func (m *RCtlDropSummary) GetMerkleLogLoc() StorageLocator {
 	if m != nil {
-		return m.FilToMklLoc
+		return m.MerkleLogLoc
 	}
 	return 0
 }
 
-func (m *RCtlDropSummary) GetFilToMklSize() uint32 {
+func (m *RCtlDropSummary) GetMerkleLogSize() uint32 {
 	if m != nil {
-		return m.FilToMklSize
+		return m.MerkleLogSize
 	}
 	return 0
 }
 
-func (m *RCtlDropSummary) GetFilToMklCount() uint32 {
+func (m *RCtlDropSummary) GetMerkleLogCount() uint32 {
 	if m != nil {
-		return m.FilToMklCount
+		return m.MerkleLogCount
 	}
 	return 0
 }
@@ -474,55 +546,64 @@ func init() {
 func init() { proto.RegisterFile("proto_rec_ctl.proto", fileDescriptor_f042488a06be6910) }
 
 var fileDescriptor_f042488a06be6910 = []byte{
-	// 767 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x95, 0xbf, 0x4f, 0x1b, 0x49,
-	0x14, 0xc7, 0xbd, 0x60, 0x81, 0x19, 0x83, 0x31, 0x63, 0x04, 0x16, 0xc5, 0xda, 0xa2, 0x32, 0xe0,
-	0x1f, 0x3a, 0xe0, 0x74, 0x70, 0xba, 0x93, 0xa2, 0x85, 0x10, 0x61, 0x0c, 0xb2, 0xd6, 0x24, 0x2d,
-	0x5a, 0xaf, 0x1f, 0x66, 0xc5, 0x7a, 0xc7, 0x9a, 0x9d, 0x4d, 0x44, 0x2a, 0xff, 0x09, 0x29, 0xa2,
-	0x48, 0xe9, 0x52, 0xe6, 0xcf, 0xa0, 0xa4, 0xa4, 0xa4, 0x42, 0x89, 0xdd, 0x44, 0x4a, 0x13, 0x29,
-	0x5d, 0xaa, 0x68, 0x67, 0x76, 0xed, 0x31, 0x8e, 0x51, 0x52, 0x31, 0x6f, 0xe6, 0xf3, 0xde, 0x7c,
-	0xe7, 0xbb, 0xef, 0x61, 0x94, 0x6a, 0x53, 0xc2, 0xc8, 0x19, 0x05, 0xf3, 0xcc, 0x64, 0x76, 0x91,
-	0x47, 0x78, 0x92, 0xb6, 0xdc, 0x95, 0x42, 0xd3, 0x62, 0x17, 0x5e, 0xbd, 0x68, 0x92, 0x56, 0xa9,
-	0x49, 0x9a, 0xa4, 0xc4, 0xcf, 0xea, 0xde, 0x39, 0x8f, 0x78, 0xc0, 0x57, 0x22, 0x67, 0xe5, 0x89,
-	0x84, 0x5b, 0x8e, 0x4b, 0x6c, 0x83, 0x96, 0x0c, 0xd7, 0xf5, 0x28, 0x34, 0x0a, 0x36, 0x34, 0x9a,
-	0x40, 0x4b, 0xe2, 0x4f, 0xc1, 0x24, 0x14, 0x7c, 0x44, 0x94, 0xb0, 0x1c, 0x37, 0xa8, 0x30, 0x43,
-	0x5b, 0xe1, 0x72, 0xa0, 0x8a, 0xd0, 0x46, 0xb0, 0xb9, 0xfa, 0x0c, 0x25, 0xf4, 0x3d, 0x66, 0x57,
-	0x6d, 0xc3, 0xbd, 0xa8, 0x31, 0x83, 0x32, 0xac, 0xa2, 0xe9, 0x17, 0x40, 0x5d, 0x8b, 0x38, 0xe9,
-	0x5c, 0x56, 0xc9, 0xcd, 0x69, 0xd1, 0x9b, 0xfb, 0x4c, 0x44, 0x0f, 0x37, 0xff, 0x8d, 0x5e, 0xdf,
-	0x65, 0x1a, 0xe5, 0x68, 0x4c, 0x49, 0xe6, 0xca, 0x33, 0xb1, 0x4e, 0x22, 0xd9, 0xe9, 0x74, 0x3a,
-	0x13, 0xab, 0x6b, 0x28, 0x39, 0x28, 0xe4, 0xb5, 0x5a, 0x06, 0xbd, 0xe2, 0x28, 0x8c, 0xa2, 0xd7,
-	0x13, 0x68, 0xde, 0x67, 0xf7, 0x29, 0x69, 0x07, 0x28, 0xde, 0x45, 0xc8, 0x0f, 0x75, 0x68, 0x13,
-	0xca, 0xf8, 0xc5, 0xf1, 0xcd, 0x54, 0xd1, 0x17, 0x1f, 0x92, 0xe2, 0x28, 0x50, 0x23, 0xc1, 0xf8,
-	0x08, 0x2d, 0x8b, 0x55, 0x95, 0x92, 0x86, 0x67, 0x02, 0xad, 0x59, 0x4d, 0xc7, 0x60, 0x1e, 0x85,
-	0xf4, 0x1a, 0xaf, 0x13, 0xe7, 0x75, 0x34, 0xcb, 0x31, 0xe8, 0x55, 0x90, 0x3f, 0x2e, 0x03, 0xef,
-	0xa0, 0xf8, 0x81, 0x65, 0x9f, 0x92, 0xe3, 0x4b, 0xbb, 0x42, 0xcc, 0x74, 0x3e, 0xab, 0xe4, 0xa6,
-	0xb4, 0x25, 0x3f, 0xe7, 0xc7, 0x7d, 0x26, 0x51, 0x63, 0x84, 0x1a, 0x4d, 0xa8, 0x10, 0xd3, 0x60,
-	0x84, 0xea, 0x32, 0x8a, 0x73, 0x68, 0x36, 0x0c, 0x6b, 0xd6, 0x6b, 0x48, 0x17, 0x24, 0xf3, 0x86,
-	0x4e, 0xf0, 0x3a, 0x9a, 0x0b, 0xe3, 0x3d, 0xe2, 0x39, 0x2c, 0x5d, 0x94, 0xd0, 0xe1, 0x23, 0x6e,
-	0xe1, 0xf9, 0xa8, 0x85, 0xdf, 0x15, 0x84, 0x7d, 0x63, 0x6a, 0x60, 0x32, 0x8b, 0x38, 0xa1, 0x8b,
-	0x3b, 0x28, 0xae, 0x83, 0x79, 0x4a, 0x0e, 0x2c, 0xae, 0x3e, 0xf7, 0xb8, 0x7a, 0x09, 0xf5, 0xd5,
-	0x87, 0x21, 0x57, 0xbf, 0x26, 0xab, 0x97, 0x4f, 0xfa, 0x0e, 0x95, 0x81, 0xf9, 0x77, 0xac, 0xff,
-	0x86, 0x43, 0x02, 0xed, 0x3b, 0x54, 0x06, 0xc6, 0xef, 0xd8, 0x18, 0x71, 0x28, 0x38, 0xe1, 0xaf,
-	0xbe, 0x18, 0x7d, 0xf5, 0x86, 0x78, 0xf4, 0x81, 0x65, 0x1b, 0x2d, 0x70, 0xd8, 0xf3, 0x76, 0xc3,
-	0x60, 0x02, 0xb6, 0x46, 0xe1, 0xaf, 0x13, 0x68, 0x41, 0xa6, 0x9f, 0x3a, 0x8c, 0xf7, 0x59, 0xbc,
-	0x62, 0xb8, 0xec, 0xc8, 0x21, 0xaf, 0x9c, 0xea, 0x49, 0x3a, 0x95, 0x55, 0x72, 0xd3, 0xda, 0x72,
-	0xa0, 0x3e, 0x5e, 0xf5, 0x6c, 0x17, 0x4e, 0xbc, 0x56, 0x1d, 0xe8, 0xb7, 0x77, 0xd9, 0x88, 0x2e,
-	0xb3, 0x78, 0x0b, 0xcd, 0x54, 0x2c, 0x07, 0x74, 0x30, 0x8d, 0x76, 0xd0, 0x59, 0xf3, 0xa2, 0x43,
-	0xfb, 0xdb, 0xc1, 0x63, 0x06, 0x1c, 0x3e, 0x44, 0x4b, 0x7c, 0x31, 0xda, 0x9b, 0xeb, 0xe3, 0x7a,
-	0x73, 0x4c, 0x02, 0xfe, 0x07, 0x21, 0x51, 0x97, 0x8f, 0xc8, 0x06, 0x4f, 0x5f, 0x10, 0x02, 0x6a,
-	0xcc, 0x60, 0x30, 0x3c, 0x20, 0x03, 0xf4, 0xb1, 0x01, 0xc9, 0xff, 0xe9, 0x80, 0x70, 0x9f, 0x53,
-	0xe5, 0x68, 0x6c, 0x71, 0xd8, 0xed, 0xb7, 0x93, 0xe2, 0x1f, 0x89, 0x34, 0x97, 0x7f, 0x23, 0xd9,
-	0x4f, 0xde, 0x8c, 0xd3, 0x5a, 0xea, 0x17, 0x56, 0xeb, 0x72, 0x80, 0xf3, 0x28, 0xe6, 0xf7, 0x0b,
-	0x34, 0x0f, 0xf7, 0xb9, 0xcb, 0x53, 0x5a, 0x32, 0xc8, 0xe9, 0xef, 0xeb, 0xfd, 0x15, 0xfe, 0x0b,
-	0xa1, 0x63, 0xa0, 0x97, 0x36, 0xe8, 0x84, 0xb0, 0xf1, 0x9e, 0x4a, 0x10, 0xfe, 0x1f, 0xcd, 0x57,
-	0x29, 0xbc, 0x94, 0xb5, 0x6d, 0x8e, 0xd7, 0xf6, 0x90, 0xc5, 0xdb, 0x68, 0xd6, 0xdf, 0xea, 0x6b,
-	0xdc, 0x1a, 0xa3, 0x71, 0x88, 0xc2, 0xbb, 0x28, 0xe1, 0xc7, 0x92, 0xd6, 0xed, 0x71, 0x5a, 0x1f,
-	0x80, 0x78, 0x1b, 0xa1, 0xe0, 0x33, 0x34, 0xb4, 0xab, 0xf4, 0x7f, 0x3c, 0x2d, 0x21, 0xbe, 0x3b,
-	0x9c, 0x03, 0x05, 0xc7, 0x84, 0xf0, 0x95, 0x03, 0x8e, 0x4f, 0x45, 0x64, 0x75, 0x11, 0xcd, 0xca,
-	0xcd, 0x21, 0x76, 0xb5, 0xfc, 0xcd, 0x67, 0x55, 0xf9, 0xd8, 0x55, 0x95, 0x9b, 0xae, 0xaa, 0xdc,
-	0x76, 0x55, 0xe5, 0xae, 0xab, 0x2a, 0x9f, 0xba, 0x6a, 0xe4, 0x4d, 0x4f, 0x8d, 0x7c, 0xe8, 0xa9,
-	0xca, 0x6d, 0x4f, 0x8d, 0xdc, 0xf5, 0xd4, 0xc8, 0x97, 0xf7, 0x19, 0xa5, 0x3e, 0xc5, 0x7f, 0x29,
-	0xb6, 0x7e, 0x06, 0x00, 0x00, 0xff, 0xff, 0x92, 0x92, 0x54, 0x33, 0xd6, 0x06, 0x00, 0x00,
+	// 906 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x56, 0xbf, 0x6f, 0xdb, 0x46,
+	0x14, 0x16, 0x65, 0xc3, 0x3f, 0x9e, 0x6c, 0xd9, 0x3e, 0x05, 0x89, 0x90, 0x81, 0x16, 0x3c, 0x29,
+	0xb2, 0x2c, 0xa3, 0xb6, 0x8b, 0x36, 0x46, 0x5a, 0x14, 0xb2, 0x63, 0x20, 0x8e, 0xea, 0x08, 0x54,
+	0xda, 0x35, 0x38, 0x93, 0x67, 0x9a, 0x28, 0xc5, 0x13, 0x8e, 0xc7, 0x16, 0xee, 0xa4, 0x3f, 0xa1,
+	0x43, 0x51, 0xa0, 0x5b, 0xc7, 0x6e, 0xfd, 0x17, 0x3a, 0x15, 0x1e, 0x33, 0x7a, 0x0a, 0x5a, 0x69,
+	0x29, 0xd0, 0xa5, 0x40, 0xb7, 0x4e, 0xc5, 0xdd, 0x91, 0xe2, 0x51, 0xb2, 0x88, 0x66, 0xf2, 0xbd,
+	0x77, 0xdf, 0xf7, 0x7e, 0x7c, 0x7c, 0xef, 0x64, 0xa8, 0x0c, 0x18, 0xe5, 0xf4, 0x0d, 0x23, 0xf6,
+	0x1b, 0x9b, 0xfb, 0x2d, 0x69, 0xa1, 0x05, 0xd6, 0x0f, 0x1f, 0xef, 0xb9, 0x1e, 0xbf, 0x8e, 0x2e,
+	0x5b, 0x36, 0xed, 0xef, 0xbb, 0xd4, 0xa5, 0xfb, 0xf2, 0xee, 0x32, 0xba, 0x92, 0x96, 0x34, 0xe4,
+	0x49, 0x71, 0x1e, 0x7f, 0xa6, 0xc1, 0xbd, 0x20, 0xa4, 0x3e, 0x66, 0xfb, 0x38, 0x0c, 0x23, 0x46,
+	0x9c, 0x3d, 0x9f, 0x38, 0x2e, 0x61, 0xfb, 0xea, 0xcf, 0x9e, 0x4d, 0x19, 0x11, 0x10, 0x15, 0xc2,
+	0x0b, 0xc2, 0x38, 0xc2, 0x2a, 0xeb, 0x27, 0xc7, 0xb4, 0x2a, 0xca, 0x9c, 0xd8, 0xb9, 0x73, 0x57,
+	0x84, 0xb2, 0x75, 0xc2, 0xfd, 0xae, 0x8f, 0xc3, 0xeb, 0x1e, 0xc7, 0x8c, 0x23, 0x13, 0x96, 0xbf,
+	0x24, 0x2c, 0xf4, 0x68, 0x50, 0xad, 0xd7, 0x8c, 0xfa, 0x7a, 0x7b, 0xf1, 0xf6, 0xdd, 0x76, 0xc1,
+	0x4a, 0x9c, 0xa8, 0x05, 0xcb, 0x17, 0xd4, 0x21, 0x16, 0xb9, 0xaa, 0x3e, 0xa9, 0x19, 0xf5, 0xd2,
+	0x41, 0xb9, 0x25, 0x92, 0x58, 0xe4, 0x8a, 0x30, 0x12, 0xd8, 0x24, 0xc1, 0xc7, 0x20, 0x74, 0x00,
+	0xab, 0xdd, 0xc8, 0x0f, 0xc9, 0x29, 0xe6, 0xb8, 0xda, 0xc8, 0x61, 0xa4, 0x30, 0xf4, 0x0c, 0xca,
+	0xd2, 0x78, 0x3e, 0xa0, 0xf6, 0xb5, 0x24, 0xee, 0xe6, 0x10, 0xa7, 0xb0, 0xe8, 0x18, 0xd6, 0xbb,
+	0x74, 0x10, 0xf9, 0x98, 0x7b, 0x34, 0x10, 0x75, 0x36, 0x73, 0xc8, 0x59, 0x28, 0xfa, 0x00, 0x20,
+	0x75, 0x54, 0xf7, 0x24, 0xb1, 0x24, 0x89, 0x6d, 0x2f, 0xc0, 0xec, 0x26, 0x66, 0x69, 0xa0, 0xe3,
+	0xc5, 0x5f, 0xef, 0xb6, 0x9d, 0xf3, 0xc5, 0x15, 0x63, 0xb3, 0x7e, 0xbe, 0xba, 0x32, 0x2c, 0x6f,
+	0x0e, 0x87, 0xc3, 0x61, 0x71, 0xe7, 0x97, 0x22, 0x6c, 0xa6, 0xd2, 0x46, 0xfd, 0x3e, 0x66, 0x37,
+	0x22, 0xfc, 0xe7, 0x84, 0x7d, 0xe5, 0x13, 0x8b, 0x52, 0x2e, 0xf5, 0xbd, 0x3f, 0x7c, 0x0a, 0x42,
+	0x2f, 0xe1, 0x91, 0xb2, 0xba, 0x8c, 0x3a, 0x91, 0x4d, 0x58, 0xcf, 0x73, 0x03, 0xcc, 0x23, 0x46,
+	0x62, 0xfd, 0xef, 0xe1, 0xcf, 0x63, 0xa0, 0x53, 0xd8, 0xea, 0x11, 0x5b, 0x94, 0x1d, 0x57, 0xf4,
+	0x8a, 0x39, 0xd5, 0x83, 0xda, 0x42, 0x7d, 0xbd, 0xfd, 0x50, 0x30, 0xff, 0x7d, 0xb7, 0x5d, 0x3e,
+	0xc1, 0x1c, 0xfb, 0xd4, 0x7d, 0xc5, 0x1c, 0x2f, 0xc0, 0xbe, 0x35, 0x4b, 0x40, 0x9f, 0x42, 0xf9,
+	0x94, 0xd1, 0x81, 0x16, 0xe2, 0x30, 0x37, 0xc4, 0x14, 0x5a, 0x2a, 0x46, 0x66, 0x15, 0xfb, 0xad,
+	0x08, 0x1b, 0x42, 0x31, 0x0d, 0x8d, 0x9e, 0x02, 0x08, 0xd3, 0x22, 0x03, 0xca, 0x12, 0xc1, 0x2a,
+	0xea, 0x43, 0xc6, 0x48, 0x75, 0x95, 0x08, 0x97, 0x7a, 0x84, 0x70, 0xea, 0xf4, 0x3e, 0xc2, 0xcd,
+	0x61, 0xa0, 0x63, 0x58, 0x53, 0x9a, 0x76, 0xa8, 0xdb, 0xa1, 0xb6, 0x1c, 0xa9, 0xa5, 0xb4, 0xe1,
+	0x1e, 0xa7, 0x0c, 0xbb, 0xa4, 0x43, 0x6d, 0xcc, 0x29, 0xb3, 0x32, 0x58, 0xd4, 0x80, 0xf5, 0x89,
+	0xdd, 0xf3, 0xbe, 0x25, 0x72, 0xac, 0x92, 0xbd, 0xca, 0x5e, 0xa1, 0x26, 0x94, 0x27, 0x8e, 0x13,
+	0x1a, 0x05, 0xbc, 0xda, 0xd2, 0xc0, 0x53, 0x77, 0x52, 0xc8, 0xab, 0x59, 0x21, 0xff, 0x31, 0x00,
+	0x09, 0x79, 0xb2, 0x5f, 0x0e, 0x7d, 0x0c, 0x25, 0x8b, 0xd8, 0xaf, 0xe9, 0x99, 0xe7, 0x8b, 0x16,
+	0xea, 0xb9, 0x2d, 0xe8, 0x50, 0x54, 0x87, 0xb5, 0xc4, 0x94, 0x0d, 0x3c, 0xd1, 0x6a, 0xca, 0xdc,
+	0x88, 0x1c, 0x67, 0x9e, 0xff, 0x9a, 0x9e, 0x13, 0x2e, 0x72, 0x34, 0xf2, 0x73, 0x68, 0x50, 0x91,
+	0x23, 0x31, 0x65, 0x8e, 0x5d, 0x3d, 0x87, 0x7e, 0x23, 0xbb, 0xbe, 0x9e, 0xed, 0x7a, 0x57, 0x35,
+	0x7d, 0xe6, 0xf9, 0xb8, 0x4f, 0x02, 0xfe, 0xc5, 0xc0, 0xc1, 0x5c, 0x81, 0xbd, 0x59, 0xf0, 0x5f,
+	0x45, 0xd8, 0xd2, 0xd1, 0xcf, 0x03, 0x2e, 0xa7, 0xad, 0xd4, 0xc1, 0x21, 0x7f, 0x19, 0xd0, 0x6f,
+	0x82, 0xee, 0x45, 0xb5, 0x52, 0x33, 0xea, 0xcb, 0xed, 0x47, 0x71, 0xf5, 0x25, 0xf9, 0xcc, 0x5c,
+	0x44, 0xfd, 0x4b, 0xc2, 0xfe, 0xfe, 0xa1, 0x56, 0xb0, 0x74, 0x2c, 0x3a, 0x84, 0xd5, 0x8e, 0x17,
+	0x10, 0x8b, 0xd8, 0x78, 0x10, 0xcf, 0xd7, 0x86, 0x9a, 0xd3, 0x89, 0x3b, 0x79, 0xe7, 0x26, 0x0e,
+	0xf4, 0x02, 0x1e, 0xca, 0xc3, 0xec, 0x84, 0x36, 0xe6, 0x4d, 0xe8, 0x1c, 0x02, 0xfa, 0x08, 0x40,
+	0xc5, 0x95, 0x8b, 0xa2, 0x9e, 0xcb, 0x2d, 0x55, 0x40, 0x8f, 0x63, 0x4e, 0xb2, 0x6b, 0x92, 0x42,
+	0xf3, 0xd6, 0xa4, 0xf9, 0xbe, 0x6b, 0x22, 0x75, 0xae, 0x9c, 0x2f, 0xae, 0x3c, 0xc8, 0xaa, 0xfd,
+	0xfd, 0x82, 0xfa, 0x99, 0xd1, 0xb6, 0xf3, 0x43, 0xd0, 0xf5, 0x94, 0xc3, 0xb8, 0xdc, 0xae, 0xdc,
+	0x23, 0xb5, 0xa5, 0x1b, 0xa8, 0x09, 0x2b, 0x62, 0x5e, 0x88, 0xfb, 0xe2, 0x54, 0xaa, 0xbc, 0xd4,
+	0xde, 0x8c, 0x39, 0x13, 0xbf, 0x35, 0x39, 0x4d, 0x3d, 0xb7, 0x8d, 0xff, 0xf3, 0xdc, 0x7e, 0x02,
+	0x1b, 0x5d, 0x46, 0xbe, 0xd6, 0x6b, 0x3b, 0x98, 0x5f, 0xdb, 0x34, 0x16, 0x1d, 0xc1, 0x9a, 0x70,
+	0x4d, 0x6a, 0x3c, 0x9c, 0x53, 0x63, 0x06, 0x85, 0x9e, 0x42, 0x59, 0xd8, 0x5a, 0xad, 0x47, 0xf3,
+	0x6a, 0x9d, 0x02, 0xa2, 0x23, 0x80, 0xf8, 0x33, 0x38, 0xed, 0x9b, 0xea, 0xb3, 0x9c, 0x5f, 0x3a,
+	0x0d, 0x27, 0xb7, 0xa2, 0xb0, 0xf3, 0x00, 0xd6, 0xf4, 0xe1, 0x50, 0xde, 0x76, 0xf3, 0xf6, 0x0f,
+	0xd3, 0xf8, 0x79, 0x64, 0x1a, 0xb7, 0x23, 0xd3, 0x78, 0x3b, 0x32, 0x8d, 0xbb, 0x91, 0x69, 0xfc,
+	0x3e, 0x32, 0x0b, 0xdf, 0x8d, 0xcd, 0xc2, 0x4f, 0x63, 0xd3, 0x78, 0x3b, 0x36, 0x0b, 0x77, 0x63,
+	0xb3, 0xf0, 0xe7, 0x8f, 0xdb, 0xc6, 0xe5, 0x92, 0xfc, 0x47, 0xe2, 0xf0, 0xbf, 0x00, 0x00, 0x00,
+	0xff, 0xff, 0x07, 0xf1, 0xc5, 0x3b, 0xf5, 0x08, 0x00, 0x00,
 }
 
 func (this *RCtlPlashStart) Equal(that interface{}) bool {
@@ -547,6 +628,21 @@ func (this *RCtlPlashStart) Equal(that interface{}) bool {
 	if this.Version != that1.Version {
 		return false
 	}
+	if !this.NodeRef.Equal(&that1.NodeRef) {
+		return false
+	}
+	if !this.PulseData.Equal(&that1.PulseData) {
+		return false
+	}
+	if !this.PulseEpochData.Equal(&that1.PulseEpochData) {
+		return false
+	}
+	if !this.PopulationRef.Equal(&that1.PopulationRef) {
+		return false
+	}
+	if !this.Population.Equal(&that1.Population) {
+		return false
+	}
 	return true
 }
 func (this *RCtlPlashSummary) Equal(that interface{}) bool {
@@ -567,6 +663,28 @@ func (this *RCtlPlashSummary) Equal(that interface{}) bool {
 		return this == nil
 	} else if this == nil {
 		return false
+	}
+	if !this.MerkleRoot.Equal(&that1.MerkleRoot) {
+		return false
+	}
+	if !this.MerkleProducerSignature.Equal(&that1.MerkleProducerSignature) {
+		return false
+	}
+	if len(this.SectionSummaryOrd) != len(that1.SectionSummaryOrd) {
+		return false
+	}
+	for i := range this.SectionSummaryOrd {
+		if this.SectionSummaryOrd[i] != that1.SectionSummaryOrd[i] {
+			return false
+		}
+	}
+	if len(this.DropSummaryOrd) != len(that1.DropSummaryOrd) {
+		return false
+	}
+	for i := range this.DropSummaryOrd {
+		if this.DropSummaryOrd[i] != that1.DropSummaryOrd[i] {
+			return false
+		}
 	}
 	return true
 }
@@ -595,13 +713,13 @@ func (this *RCtlDropSummary) Equal(that interface{}) bool {
 	if !this.ReportProducerSignature.Equal(&that1.ReportProducerSignature) {
 		return false
 	}
-	if this.FilToMklLoc != that1.FilToMklLoc {
+	if this.MerkleLogLoc != that1.MerkleLogLoc {
 		return false
 	}
-	if this.FilToMklSize != that1.FilToMklSize {
+	if this.MerkleLogSize != that1.MerkleLogSize {
 		return false
 	}
-	if this.FilToMklCount != that1.FilToMklCount {
+	if this.MerkleLogCount != that1.MerkleLogCount {
 		return false
 	}
 	return true
@@ -789,6 +907,76 @@ func (m *RCtlPlashStart) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
+	{
+		size, err := m.Population.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecCtl(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0xea
+		}
+	}
+	{
+		size, err := m.PopulationRef.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecCtl(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0xe2
+		}
+	}
+	{
+		size, err := m.PulseEpochData.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecCtl(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0xda
+		}
+	}
+	{
+		size, err := m.PulseData.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecCtl(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0xd2
+		}
+	}
+	{
+		size, err := m.NodeRef.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecCtl(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0xca
+		}
+	}
 	if m.Version != 0 {
 		i = encodeVarintProtoRecCtl(dAtA, i, uint64(m.Version))
 		i--
@@ -833,6 +1021,74 @@ func (m *RCtlPlashSummary) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
+	if len(m.DropSummaryOrd) > 0 {
+		dAtA7 := make([]byte, len(m.DropSummaryOrd)*10)
+		var j6 int
+		for _, num := range m.DropSummaryOrd {
+			for num >= 1<<7 {
+				dAtA7[j6] = uint8(uint64(num)&0x7f | 0x80)
+				num >>= 7
+				j6++
+			}
+			dAtA7[j6] = uint8(num)
+			j6++
+		}
+		i -= j6
+		copy(dAtA[i:], dAtA7[:j6])
+		i = encodeVarintProtoRecCtl(dAtA, i, uint64(j6))
+		i--
+		dAtA[i] = 0x3
+		i--
+		dAtA[i] = 0x9a
+	}
+	if len(m.SectionSummaryOrd) > 0 {
+		dAtA9 := make([]byte, len(m.SectionSummaryOrd)*10)
+		var j8 int
+		for _, num := range m.SectionSummaryOrd {
+			for num >= 1<<7 {
+				dAtA9[j8] = uint8(uint64(num)&0x7f | 0x80)
+				num >>= 7
+				j8++
+			}
+			dAtA9[j8] = uint8(num)
+			j8++
+		}
+		i -= j8
+		copy(dAtA[i:], dAtA9[:j8])
+		i = encodeVarintProtoRecCtl(dAtA, i, uint64(j8))
+		i--
+		dAtA[i] = 0x3
+		i--
+		dAtA[i] = 0x92
+	}
+	{
+		size, err := m.MerkleProducerSignature.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecCtl(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0xca
+		}
+	}
+	{
+		size, err := m.MerkleRoot.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecCtl(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0xc2
+		}
+	}
 	i = encodeVarintProtoRecCtl(dAtA, i, uint64(101))
 	i--
 	dAtA[i] = 0x1
@@ -870,23 +1126,23 @@ func (m *RCtlDropSummary) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
-	if m.FilToMklCount != 0 {
-		i = encodeVarintProtoRecCtl(dAtA, i, uint64(m.FilToMklCount))
+	if m.MerkleLogCount != 0 {
+		i = encodeVarintProtoRecCtl(dAtA, i, uint64(m.MerkleLogCount))
 		i--
 		dAtA[i] = 0x2
 		i--
 		dAtA[i] = 0xf0
 	}
-	if m.FilToMklSize != 0 {
-		i = encodeVarintProtoRecCtl(dAtA, i, uint64(m.FilToMklSize))
+	if m.MerkleLogSize != 0 {
+		i = encodeVarintProtoRecCtl(dAtA, i, uint64(m.MerkleLogSize))
 		i--
 		dAtA[i] = 0x2
 		i--
 		dAtA[i] = 0xe8
 	}
-	if m.FilToMklLoc != 0 {
+	if m.MerkleLogLoc != 0 {
 		i -= 8
-		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(m.FilToMklLoc))
+		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(m.MerkleLogLoc))
 		i--
 		dAtA[i] = 0x2
 		i--
@@ -1281,6 +1537,21 @@ func (m *RCtlPlashStart) ProtoSize() (n int) {
 	if m.Version != 0 {
 		n += 2 + sovProtoRecCtl(uint64(m.Version))
 	}
+	if l = m.NodeRef.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecCtl(uint64(l))
+	}
+	if l = m.PulseData.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecCtl(uint64(l))
+	}
+	if l = m.PulseEpochData.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecCtl(uint64(l))
+	}
+	if l = m.PopulationRef.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecCtl(uint64(l))
+	}
+	if l = m.Population.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecCtl(uint64(l))
+	}
 	n += 2 + sovProtoRecCtl(100)
 	return n
 }
@@ -1291,6 +1562,26 @@ func (m *RCtlPlashSummary) ProtoSize() (n int) {
 	}
 	var l int
 	_ = l
+	if l = m.MerkleRoot.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecCtl(uint64(l))
+	}
+	if l = m.MerkleProducerSignature.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecCtl(uint64(l))
+	}
+	if len(m.SectionSummaryOrd) > 0 {
+		l = 0
+		for _, e := range m.SectionSummaryOrd {
+			l += sovProtoRecCtl(uint64(e))
+		}
+		n += 2 + sovProtoRecCtl(uint64(l)) + l
+	}
+	if len(m.DropSummaryOrd) > 0 {
+		l = 0
+		for _, e := range m.DropSummaryOrd {
+			l += sovProtoRecCtl(uint64(e))
+		}
+		n += 2 + sovProtoRecCtl(uint64(l)) + l
+	}
 	n += 2 + sovProtoRecCtl(101)
 	return n
 }
@@ -1307,14 +1598,14 @@ func (m *RCtlDropSummary) ProtoSize() (n int) {
 	if l = m.ReportProducerSignature.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoRecCtl(uint64(l))
 	}
-	if m.FilToMklLoc != 0 {
+	if m.MerkleLogLoc != 0 {
 		n += 10
 	}
-	if m.FilToMklSize != 0 {
-		n += 2 + sovProtoRecCtl(uint64(m.FilToMklSize))
+	if m.MerkleLogSize != 0 {
+		n += 2 + sovProtoRecCtl(uint64(m.MerkleLogSize))
 	}
-	if m.FilToMklCount != 0 {
-		n += 2 + sovProtoRecCtl(uint64(m.FilToMklCount))
+	if m.MerkleLogCount != 0 {
+		n += 2 + sovProtoRecCtl(uint64(m.MerkleLogCount))
 	}
 	n += 2 + sovProtoRecCtl(102)
 	return n
@@ -1476,6 +1767,171 @@ func (m *RCtlPlashStart) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([
 					break
 				}
 			}
+		case 41:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NodeRef", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.NodeRef.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 42:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PulseData", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.PulseData.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 43:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PulseEpochData", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.PulseEpochData.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 44:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PopulationRef", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.PopulationRef.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 45:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Population", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Population.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipFn(dAtA[iNdEx:])
@@ -1538,6 +1994,224 @@ func (m *RCtlPlashSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func
 			return fmt.Errorf("proto: RCtlPlashSummary: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 40:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MerkleRoot", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.MerkleRoot.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 41:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MerkleProducerSignature", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.MerkleProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 50:
+			if wireType == 0 {
+				var v CatalogOrdinal
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoRecCtl
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					v |= CatalogOrdinal(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				m.SectionSummaryOrd = append(m.SectionSummaryOrd, v)
+			} else if wireType == 2 {
+				var packedLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoRecCtl
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					packedLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if packedLen < 0 {
+					return ErrInvalidLengthProtoRecCtl
+				}
+				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoRecCtl
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				var elementCount int
+				var count int
+				for _, integer := range dAtA[iNdEx:postIndex] {
+					if integer < 128 {
+						count++
+					}
+				}
+				elementCount = count
+				if elementCount != 0 && len(m.SectionSummaryOrd) == 0 {
+					m.SectionSummaryOrd = make([]CatalogOrdinal, 0, elementCount)
+				}
+				for iNdEx < postIndex {
+					var v CatalogOrdinal
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowProtoRecCtl
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						v |= CatalogOrdinal(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					m.SectionSummaryOrd = append(m.SectionSummaryOrd, v)
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field SectionSummaryOrd", wireType)
+			}
+		case 51:
+			if wireType == 0 {
+				var v CatalogOrdinal
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoRecCtl
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					v |= CatalogOrdinal(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				m.DropSummaryOrd = append(m.DropSummaryOrd, v)
+			} else if wireType == 2 {
+				var packedLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoRecCtl
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					packedLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if packedLen < 0 {
+					return ErrInvalidLengthProtoRecCtl
+				}
+				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoRecCtl
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				var elementCount int
+				var count int
+				for _, integer := range dAtA[iNdEx:postIndex] {
+					if integer < 128 {
+						count++
+					}
+				}
+				elementCount = count
+				if elementCount != 0 && len(m.DropSummaryOrd) == 0 {
+					m.DropSummaryOrd = make([]CatalogOrdinal, 0, elementCount)
+				}
+				for iNdEx < postIndex {
+					var v CatalogOrdinal
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowProtoRecCtl
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						v |= CatalogOrdinal(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					m.DropSummaryOrd = append(m.DropSummaryOrd, v)
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field DropSummaryOrd", wireType)
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipFn(dAtA[iNdEx:])
@@ -1668,19 +2342,19 @@ func (m *RCtlDropSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func(
 			iNdEx = postIndex
 		case 44:
 			if wireType != 1 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FilToMklLoc", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MerkleLogLoc", wireType)
 			}
-			m.FilToMklLoc = 0
+			m.MerkleLogLoc = 0
 			if (iNdEx + 8) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.FilToMklLoc = StorageLocator(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
+			m.MerkleLogLoc = StorageLocator(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
 			iNdEx += 8
 		case 45:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FilToMklSize", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MerkleLogSize", wireType)
 			}
-			m.FilToMklSize = 0
+			m.MerkleLogSize = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoRecCtl
@@ -1690,16 +2364,16 @@ func (m *RCtlDropSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func(
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.FilToMklSize |= uint32(b&0x7F) << shift
+				m.MerkleLogSize |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
 		case 46:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FilToMklCount", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MerkleLogCount", wireType)
 			}
-			m.FilToMklCount = 0
+			m.MerkleLogCount = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoRecCtl
@@ -1709,7 +2383,7 @@ func (m *RCtlDropSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func(
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.FilToMklCount |= uint32(b&0x7F) << shift
+				m.MerkleLogCount |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
