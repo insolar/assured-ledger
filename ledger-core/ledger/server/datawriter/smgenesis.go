@@ -26,7 +26,7 @@ type SMGenesis struct {
 	smachine.StateMachineDeclTemplate
 
 	// provided by creator
-	jetAssist buildersvc.PlashAssistant
+	jetAssist  buildersvc.PlashAssistant
 	jetGenesis jet.LegID
 
 	// injected
@@ -35,7 +35,8 @@ type SMGenesis struct {
 	treeSvc    treesvc.Service
 
 	// runtime
-	lastPN     pulse.Number
+	lastPN       pulse.Number
+	pulseChanger conveyor.PulseChanger
 }
 
 func (p *SMGenesis) GetStateMachineDeclaration() smachine.StateMachineDeclaration {

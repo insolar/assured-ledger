@@ -19,13 +19,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
+const MinStoragePageSize = directoryEntrySize*16
+
 func NewMemoryStorageWriter(maxSection ledger.SectionID, pageSize int) *MemoryStorageWriter {
 	switch {
 	case maxSection == 0:
 		panic(throw.IllegalValue())
 	case maxSection > ledger.MaxSectionID:
 		panic(throw.IllegalValue())
-	case pageSize < directoryEntrySize*16:
+	case pageSize < MinStoragePageSize:
 		panic(throw.IllegalValue())
 	}
 

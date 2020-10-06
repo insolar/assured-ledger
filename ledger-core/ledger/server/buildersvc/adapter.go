@@ -14,9 +14,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/crypto"
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/dropstorage"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -47,10 +44,7 @@ func NewAdapterComponent(cfg smadapter.Config, ps crypto.PlatformScheme, plashLi
 	svc := newService(
 		jetalloc.NewMaterialAllocationStrategy(false),
 		ps.ConsensusScheme().NewMerkleDigester(),
-
-		func(pulse.Number) bundle.SnapshotWriter {
-			return dropstorage.NewMemoryStorageWriter(ledger.DefaultDustSection, 1<<17)
-		},
+		newStorageFactory(ledger.DefaultDustSection, 1<<17),
 		plashLimit,
 	)
 

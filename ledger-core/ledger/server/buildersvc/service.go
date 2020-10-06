@@ -8,13 +8,13 @@ package buildersvc
 import (
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -22,23 +22,24 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type StorageSnapshotFactoryFunc = func(pulse.Number) bundle.SnapshotWriter
-
 var _ Service = &serviceImpl{}
 var _ ReadService = &serviceImpl{}
 
 func newService(allocStrategy jetalloc.MaterialAllocationStrategy, merklePair cryptkit.PairDigester,
-	storageFactoryFn StorageSnapshotFactoryFunc, plashLimit int,
+	storageFactory StorageFactory, plashLimit int,
 ) *serviceImpl {
-	if plashLimit <= 0 {
+	switch {
+	case plashLimit <= 0:
+		panic(throw.IllegalValue())
+	case storageFactory == nil:
 		panic(throw.IllegalValue())
 	}
 
 	return &serviceImpl{
-		allocStrategy: allocStrategy,
-		merklePair: merklePair,
-		storageFactoryFn: storageFactoryFn,
-		plashLimiter: make(chan pulse.Number, plashLimit),
+		allocStrategy:  allocStrategy,
+		merklePair:     merklePair,
+		storageFactory: storageFactory,
+		plashLimiter:   make(chan pulse.Number, plashLimit),
 	}
 }
 
@@ -46,7 +47,7 @@ type serviceImpl struct {
 	allocStrategy jetalloc.MaterialAllocationStrategy
 	merklePair    cryptkit.PairDigester
 
-	storageFactoryFn StorageSnapshotFactoryFunc
+	storageFactory StorageFactory
 
 	mapMutex sync.RWMutex
 	lastPN   pulse.Number
@@ -119,13 +120,13 @@ func (p *serviceImpl) get(pn pulse.Number) *plashAssistant {
 	return p.plashes[pn]
 }
 
-func (p *serviceImpl) CreatePlash(pr pulse.Range, treePrev, tree jet.Tree, population census.OnlinePopulation) (PlashAssistant, []jet.ExactID) {
+func (p *serviceImpl) CreatePlash(cfg BasicPlashConfig, treePrev, tree jet.Tree) (PlashAssistant, conveyor.PulseChanger, []jet.ExactID) {
 	if tree == nil || tree.IsEmpty() {
 		// missing value or genesis tree
 		panic(throw.IllegalValue())
 	}
 
-	pd := pr.RightBoundData()
+	pd := cfg.PulseRange.RightBoundData()
 	pd.EnsurePulsarData()
 
 	p.mapMutex.Lock()
@@ -139,26 +140,27 @@ func (p *serviceImpl) CreatePlash(pr pulse.Range, treePrev, tree jet.Tree, popul
 		panic(throw.E("retrograde plash", struct { PN, LastPN pulse.Number }{ pn, p.lastPN }))
 	}
 
-	return p.createPlash(pr, *tree, population)
+	return p.createPlash(cfg, *tree)
 }
 
-func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, population census.OnlinePopulation) (PlashAssistant, []jet.ExactID) {
-	localNodeID := population.GetLocalProfile().GetNodeID()
+func (p *serviceImpl) createPlash(cfg BasicPlashConfig, tree jet.PrefixTree) (PlashAssistant, conveyor.PulseChanger, []jet.ExactID) {
+	localNodeID := cfg.Population.GetLocalProfile().GetNodeID()
 	if localNodeID.IsAbsent() {
 		panic(throw.IllegalValue())
 	}
 
-	pd := pr.RightBoundData()
+	pd := cfg.PulseRange.RightBoundData()
 	pd.EnsurePulsarData()
 	pn := pd.PulseNumber
 
 	pa := &plashAssistant{
-		pulseData: pd,
-		tree:      tree,
-		population: population,
+		pulseData:   pd,
+		tree:        tree,
+		population:  cfg.Population,
+		callbackFn:  cfg.CallbackFn,
 		dropAssists: map[jet.ID]*dropAssistant{},
-		merkle: merkler.NewForkingCalculator(p.merklePair, cryptkit.Digest{}),
-		nextReady: smsync.NewConditionalBool(false, "plash.nextReady"),
+		merkle:      merkler.NewForkingCalculator(p.merklePair, cryptkit.Digest{}),
+		nextReady:   smsync.NewConditionalBool(false, "plash.nextReady"),
 	}
 
 	{
@@ -177,17 +179,20 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 		return false
 	})
 
-	pa.calc = p.allocStrategy.CreateCalculator(pa.pulseData.PulseEntropy, population)
+	pa.calc = p.allocStrategy.CreateCalculator(pa.pulseData.PulseEntropy, cfg.Population)
 	jet2nodes := pa.calc.AllocationOfJets(jets, pn)
 
 	if len(jet2nodes) != len(jets) {
 		panic(throw.IllegalState())
 	}
 
-	sw := p.storageFactoryFn(pn)
+	sw := p.storageFactory.CreateSnapshotWriter(pn)
 	pa.dirtyReader = sw.DirtyReader()
 	bw := bundle.NewWriter(sw) // NB! MUST be one writer per storage
 	pa.writer = bw
+	pa.writerCloseFn = func() error {
+		return p.storageFactory.DepositReadOnlyWriter(sw)
+	}
 
 	result := jets[:0]
 	for _, jetPID := range jets {
@@ -239,7 +244,8 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 		panic(err)
 	}
 
-	return pa, result
+	// TODO isolate PlashAssistant from conveyor.PulseChanger
+	return pa, pa, result
 }
 
 func (p *serviceImpl) addAndExpire(pn pulse.Number) {
@@ -255,8 +261,8 @@ func (p *serviceImpl) addAndExpire(pn pulse.Number) {
 	delete(p.plashes, expiredPN)
 }
 
-func (p *serviceImpl) CreateGenesis(pr pulse.Range, population census.OnlinePopulation) (PlashAssistant, jet.ExactID) {
-	pd := pr.RightBoundData()
+func (p *serviceImpl) CreateGenesis(cfg BasicPlashConfig) (PlashAssistant, conveyor.PulseChanger, jet.ExactID) {
+	pd := cfg.PulseRange.RightBoundData()
 	pd.EnsurePulsarData()
 
 	p.mapMutex.Lock()
@@ -267,13 +273,13 @@ func (p *serviceImpl) CreateGenesis(pr pulse.Range, population census.OnlinePopu
 		panic(throw.E("duplicate genesis", struct { PN pulse.Number }{ pn }))
 	}
 
-	pa, jets := p.createPlash(pr, jet.NewPrefixTree(true), population)
+	pa, pc, jets := p.createPlash(cfg, jet.NewPrefixTree(true))
 
 	switch len(jets) {
 	case 0:
-		return pa, jet.UnknownExactID
+		return pa, pc, jet.UnknownExactID
 	case 1:
-		return pa, jets[0]
+		return pa, pc, jets[0]
 	}
 	panic(throw.Impossible())
 }

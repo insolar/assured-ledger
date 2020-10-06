@@ -17,17 +17,21 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
+type BasicPlashConfig struct {
+	PulseRange pulse.Range
+	Population census.OnlinePopulation
+	CallbackFn func(error)
+}
+
 type Service interface {
-	CreatePlash(pr pulse.Range, treePrev, treeCur jet.Tree, online census.OnlinePopulation) (PlashAssistant, []jet.ExactID)
-	CreateGenesis(pulse.Range, census.OnlinePopulation) (PlashAssistant, jet.ExactID)
+	CreatePlash(cfg BasicPlashConfig, treePrev, treeCur jet.Tree) (PlashAssistant, conveyor.PulseChanger, []jet.ExactID)
+	CreateGenesis(BasicPlashConfig) (PlashAssistant, conveyor.PulseChanger, jet.ExactID)
 	AppendToDrop(jet.DropID, AppendFuture, lineage.UpdateBundle)
 	AppendToDropSummary(jet.DropID, lineage.LineSummary)
 	FinalizeDropSummary(jet.DropID) catalog.DropReport
 }
 
 type PlashAssistant interface {
-	conveyor.PulseChanger
-
 	CalculateJetDrop(reference.Holder) jet.DropID
 	IsGenesis() bool
 

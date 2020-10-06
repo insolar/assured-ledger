@@ -45,14 +45,17 @@ type plashAssistant struct {
 	dirtyReader bundle.DirtyReader
 	writer      bundle.Writer
 
+	writerCloseFn func() error
+	callbackFn func(error)
+
+	ctlWriter  ctlsection.WriteAssistant
+
 	nextPlash *plashAssistant
 	nextReady smsync.BoolConditionalLink
 
 	status atomickit.Uint32
 	commit sync.Mutex // LOCK: Spans across methods
 	merkle merkler.ForkingCalculator
-
-	ctlWriter ctlsection.WriteAssistant
 }
 
 func (p *plashAssistant) setNextPlash(next *plashAssistant) {
@@ -271,16 +274,7 @@ func (p *plashAssistant) getDropsOfJet(id jet.ExactID) (result []jet.DropID) {
 }
 
 func (p *plashAssistant) init(localDropCount int) {
-	p.ctlWriter.Init(p.writer, localDropCount, p.writeError)
-}
-
-func (p *plashAssistant) writeError(err error) {
-	if err == nil {
-		return
-	}
-	// this func is called in a new subroutine, so err must be logged
-	// TODO log error
-	panic(err)
+	p.ctlWriter.Init(p.writer, localDropCount, p.callbackFn)
 }
 
 func (p *plashAssistant) writeStartAndSharedData() error {
@@ -289,7 +283,7 @@ func (p *plashAssistant) writeStartAndSharedData() error {
 
 func (p *plashAssistant) runWriteSectionSummaries() {
 	if err := p.writeSectionSummaries(); err != nil {
-		p.writeError(err)
+		p.callbackFn(err)
 	}
 }
 
@@ -331,7 +325,7 @@ func (p *plashAssistant) finalizeDropSummary(id jet.DropID) (catalog.DropReport,
 
 func (p *plashAssistant) runFinalizeSummaryWrites() {
 	if err := p.finalizeSummaryWrites(); err != nil {
-		p.writeError(err)
+		p.callbackFn(err)
 	}
 }
 
@@ -350,9 +344,16 @@ func (p *plashAssistant) finalizeSummaryWrites() error {
 	// NB! This method does returns as soon as call back is added to the wait chain.
 	p.writer.WaitWriteBundlesAsync(nil, func(bool) {
 		p.status.Store(plashClosed)
+
 		if err := p.writer.MarkReadOnly(); err != nil {
-			p.writeError(throw.W(err, "failed to mark storage as read-only"))
+			p.callbackFn(throw.W(err, "failed to mark storage as read-only"))
 		}
+
+		// This is the final point.
+		// Calling callback with (nil) will indicate proper closure of plash.
+
+		err := p.writerCloseFn()
+		p.callbackFn(err)
 	})
 
 	return nil

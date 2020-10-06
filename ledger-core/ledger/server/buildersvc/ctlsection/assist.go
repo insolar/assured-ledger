@@ -22,8 +22,8 @@ import (
 )
 
 type WriteAssistant struct {
-	w bundle.Writer
-	errFn func (error)
+	w          bundle.Writer
+	callbackFn func (error)
 	// signature hasher etc
 	expectedDropCount int
 
@@ -35,17 +35,17 @@ type WriteAssistant struct {
 	drops    []ledger.Ordinal
 }
 
-func (p *WriteAssistant) Init(writer bundle.Writer, localDropCount int, errFn func (error)) {
+func (p *WriteAssistant) Init(writer bundle.Writer, localDropCount int, callbackFn func (error)) {
 	switch {
 	case writer == nil:
 		panic(throw.IllegalValue())
-	case errFn == nil:
+	case callbackFn == nil:
 		panic(throw.IllegalValue())
 	case localDropCount < 0:
 		panic(throw.IllegalValue())
 	}
 
-	p.errFn = errFn
+	p.callbackFn = callbackFn
 	p.expectedDropCount = localDropCount
 	p.w = writer
 }
@@ -78,7 +78,8 @@ func (p *WriteAssistant) WritePlashStart(pd pulse.Data, population census.Online
 
 		err = p.w.WriteBundle(ew, func(indices []ledger.DirectoryIndex, err error) bool {
 			if err != nil {
-				p.errFn(err)
+				p.callbackFn(err)
+				return false
 			}
 
 			p.mutex.Lock()
@@ -106,7 +107,8 @@ func (p *WriteAssistant) WriteSectionSummary(reader bundle.DirtyReader, section 
 	}
 	return p.w.WriteBundle(sw, func(indices []ledger.DirectoryIndex, err error) bool {
 		if err != nil {
-			p.errFn(err)
+			p.callbackFn(err)
+			return false
 		}
 
 		p.mutex.Lock()
@@ -132,7 +134,8 @@ func (p *WriteAssistant) WriteLineSummary(id jet.DropID, recap lineage.FilamentS
 
 	return p.w.WriteBundle(ew, func(_ []ledger.DirectoryIndex, err error) bool {
 		if err != nil {
-			p.errFn(err)
+			p.callbackFn(err)
+			return false
 		}
 		return true
 	})
@@ -151,7 +154,8 @@ func (p *WriteAssistant) WriteFilamentSummary(id jet.DropID, lineBase reference.
 
 	return p.w.WriteBundle(ew, func(_ []ledger.DirectoryIndex, err error) bool {
 		if err != nil {
-			p.errFn(err)
+			p.callbackFn(err)
+			return false
 		}
 		return true
 	})
@@ -173,7 +177,8 @@ func (p *WriteAssistant) WriteDropSummary(id jet.DropID, finalizeFn func ()) (ca
 
 	err := p.w.WriteBundle(ew, func(indices []ledger.DirectoryIndex, err error) bool {
 		if err != nil {
-			p.errFn(err)
+			p.callbackFn(err)
+			return false
 		}
 
 		p.mutex.Lock()
@@ -204,7 +209,8 @@ func (p *WriteAssistant) WritePlashSummary() (err error) {
 
 		err = p.w.WriteBundle(ew, func(indices []ledger.DirectoryIndex, err error) bool {
 			if err != nil {
-				p.errFn(err)
+				p.callbackFn(err)
+				return false
 			}
 
 			p.mutex.Lock()

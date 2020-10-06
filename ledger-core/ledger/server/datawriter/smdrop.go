@@ -7,7 +7,6 @@ package datawriter
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -76,17 +75,7 @@ func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.St
 	return ctx.Jump(p.stepWaitPrevDrop)
 }
 
-const passiveWaitPortion = 50 // wait for 1/50th of pulse
-
-func (p *SMDropBuilder) getPassiveDeadline(startedAt time.Time, pulseDelta uint16) time.Time {
-	switch {
-	case startedAt.IsZero():
-		panic(throw.IllegalValue())
-	case pulseDelta == 0:
-		panic(throw.IllegalValue())
-	}
-	return startedAt.Add(time.Second * time.Duration(pulseDelta) / passiveWaitPortion)
-}
+const passiveWaitPortion = 0.02 // wait for 1/50th of pulse
 
 func (p *SMDropBuilder) stepWaitPrevDrop(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	// TODO this is a temporary stub
@@ -95,7 +84,7 @@ func (p *SMDropBuilder) stepWaitPrevDrop(ctx smachine.ExecutionContext) smachine
 		return ctx.Jump(p.stepDropStart)
 	}
 
-	passiveUntil := p.getPassiveDeadline(p.pulseSlot.PulseStartedAt(), p.pulseSlot.PulseData().NextPulseDelta)
+	passiveUntil := p.pulseSlot.PulseRelativeDeadline(passiveWaitPortion)
 	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 		if !p.prevReport.IsZero() {
 			return ctx.Jump(p.stepDropStart)

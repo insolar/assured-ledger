@@ -47,6 +47,7 @@ type LocalTree struct {
 	treeCurr    jet.PrefixTree
 	treeNext    jet.PrefixTree
 	last        pulse.Number
+	genesisPN   pulse.Number
 	postGenesis bool
 }
 
@@ -77,7 +78,7 @@ func (p *LocalTree) PulseMigration(_ managed.Holder, pr pulse.Range) {
 		}
 		panic(throw.IllegalValue())
 	case p.isGenesis():
-		// genesis can only be switched explicitly
+		// trees during genesis can only be switched explicitly
 		p.last = pn
 		return
 	default:
@@ -87,6 +88,31 @@ func (p *LocalTree) PulseMigration(_ managed.Holder, pr pulse.Range) {
 		panic(throw.IllegalState())
 	}
 	p.treePrev, p.treeCurr = p.treeCurr, p.treeNext
+}
+
+func (p *LocalTree) TryLockGenesis(pn pulse.Number) bool {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	switch {
+	case !pn.IsTimePulse():
+		panic(throw.IllegalValue())
+	case !p.isGenesis():
+		return false
+	case !p.last.IsUnknown() && pn > p.last:
+		panic(throw.IllegalValue())
+	case !p.genesisPN.IsUnknown():
+		return false
+	}
+	p.genesisPN = pn
+	return true
+}
+
+func (p *LocalTree) GenesisPulse() pulse.Number {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
+	return p.genesisPN
 }
 
 func (p *LocalTree) GetTrees(pn pulse.Number) (prev, cur jet.PrefixTree, ok bool) {
@@ -118,12 +144,13 @@ func (p *LocalTree) FinishGenesis(depth uint8, lastGenesisPulse pulse.Number) {
 	switch {
 	case !lastGenesisPulse.IsTimePulse():
 		panic(throw.IllegalValue())
+	case p.genesisPN > lastGenesisPulse:
+		panic(throw.IllegalValue())
 	case !p.isGenesis():
 		panic(throw.IllegalState())
 	}
 
 	p.treeNext.MakePerfect(depth)
-	p.postGenesis = true
 
 	switch {
 	case p.last < lastGenesisPulse:
@@ -140,6 +167,12 @@ func (p *LocalTree) FinishGenesis(depth uint8, lastGenesisPulse pulse.Number) {
 		// this pulse is current
 		// so don't switch trees - wait for pulse
 	}
+
+	if p.genesisPN.IsUnknown() {
+		p.genesisPN = lastGenesisPulse
+	}
+
+	p.postGenesis = true
 }
 
 func (p *LocalTree) SplitNext(id jet.DropID) {
