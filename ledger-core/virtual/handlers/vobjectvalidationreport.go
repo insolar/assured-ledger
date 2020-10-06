@@ -115,7 +115,7 @@ func (s *SMVObjectValidationReport) stepWaitIndefinitely(ctx smachine.ExecutionC
 
 func (s *SMVObjectValidationReport) stepGetMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	subSM := &statemachine.SMGetCachedMemory{
-		Object: s.Payload.Object.GetValue(), State: s.Payload.Validated.GetValue().GetLocal(), Class: s.Payload.Class.GetValue(),
+		Object: s.Payload.Object.GetValue(), State: s.Payload.Validated.GetValue().GetLocal(),
 	}
 	return ctx.CallSubroutine(subSM, s.migrationDefault, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		if subSM.Result == nil {

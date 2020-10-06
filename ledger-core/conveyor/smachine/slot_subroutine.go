@@ -158,7 +158,8 @@ func (s *Slot) prepareSubroutineStop(lastError error, worker DetachableSlotWorke
 	s.restoreSubroutineAliases(prev.copyAliases, prev.cleanupMode)
 
 	// TODO logging
-	bc := subroutineExitContext{bargingInContext{ slotContext{s: s, w: worker}, false},
+	bc := subroutineExitContext{
+		bargingInContext{ slotContext{s: s, w: worker}, false, false},
 		lastResult, lastError}
 	su := bc.executeSubroutineExit(returnFn)
 

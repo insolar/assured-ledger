@@ -36,7 +36,6 @@ type SMGetCachedMemory struct {
 	// input
 	Object reference.Global
 	State  reference.Local
-	Class  reference.Global
 	// output
 	Result descriptor.Object
 
@@ -170,7 +169,7 @@ func (s *SMGetCachedMemory) stepProcessResponse(ctx smachine.ExecutionContext) s
 	s.Result = descriptor.NewObject(
 		s.Object,
 		s.State,
-		s.Class,
+		s.response.Class.GetValue(),
 		s.response.Memory.GetBytes(),
 		s.response.Inactive,
 	)

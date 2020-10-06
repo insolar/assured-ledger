@@ -50,7 +50,6 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 	callRequest := utils.GenerateVCallRequestConstructor(server)
 	outgoing := callRequest.CallOutgoing
 	objectRef := reference.NewSelf(outgoing.GetValue().GetLocal())
-	class := server.RandomGlobalWithPulse()
 	p := server.GetPulse().PulseNumber
 
 	stateHash := append([]byte("init state"), objectRef.AsBytes()...)
@@ -89,7 +88,6 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 		pl := rms.VObjectTranscriptReport{
 			AsOf:   p,
 			Object: rms.NewReference(objectRef),
-			Class:  rms.NewReference(class),
 			ObjectTranscript: rms.Transcript{
 				Entries: []rms.Any{
 					rms.NewAny(
@@ -198,7 +196,6 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 		pl := rms.VObjectTranscriptReport{
 			AsOf:   p,
 			Object: rms.NewReference(objectRef),
-			Class:  rms.NewReference(classRef),
 			ObjectTranscript: rms.Transcript{
 				Entries: []rms.Any{
 					rms.NewAny(
@@ -299,7 +296,6 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 		pl := rms.VObjectTranscriptReport{
 			AsOf:   p,
 			Object: rms.NewReference(objectRef),
-			Class:  rms.NewReference(class),
 			ObjectTranscript: rms.Transcript{
 				Entries: []rms.Any{{}, {}, {}, {}},
 			},
@@ -447,7 +443,6 @@ func TestValidation_ObjectTranscriptReport_AfterTwoInterleaving(t *testing.T) {
 		pl := rms.VObjectTranscriptReport{
 			AsOf:   p,
 			Object: rms.NewReference(objectRef),
-			Class:  rms.NewReference(classRef),
 			ObjectTranscript: rms.Transcript{
 				Entries: []rms.Any{{}, {}, {}, {}},
 			},
@@ -589,7 +584,6 @@ func TestValidation_ObjectTranscriptReport_AfterTwoSequential(t *testing.T) {
 		pl := rms.VObjectTranscriptReport{
 			AsOf:   p,
 			Object: rms.NewReference(objectRef),
-			Class:  rms.NewReference(classRef),
 			ObjectTranscript: rms.Transcript{
 				Entries: []rms.Any{{}, {}, {}, {}},
 			},
@@ -763,7 +757,6 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 		pl := rms.VObjectTranscriptReport{
 			AsOf:   currentPulse,
 			Object: rms.NewReference(objectRef),
-			Class:  rms.NewReference(classRef),
 			PendingTranscripts: []rms.Transcript{
 				{
 					Entries: []rms.Any{{}, {}},
