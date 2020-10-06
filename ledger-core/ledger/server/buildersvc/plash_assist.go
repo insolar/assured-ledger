@@ -15,7 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/ctlsec"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/ctlsection"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
@@ -52,7 +52,7 @@ type plashAssistant struct {
 	commit sync.Mutex // LOCK: Spans across methods
 	merkle merkler.ForkingCalculator
 
-	ctlWriter ctlsec.WriteAssistant
+	ctlWriter ctlsection.WriteAssistant
 }
 
 func (p *plashAssistant) setNextPlash(next *plashAssistant) {
