@@ -31,8 +31,9 @@ const (
 	_ = iota
 	plashStarted
 	plashPendingPulse
-	plashClosed
+	plashSummingUp
 	plashSummarized
+	plashClosed
 )
 
 type plashAssistant struct {
@@ -60,6 +61,13 @@ func (p *plashAssistant) setNextPlash(next *plashAssistant) {
 	}
 	p.nextPlash = next
 	smachine.ApplyAdjustmentAsync(p.nextReady.NewValue(true))
+}
+
+func (p *plashAssistant) checkClosed() {
+	if p.status.Load() != plashClosed {
+		// TODO log error
+		panic(throw.FailHere("plash was not closed"))
+	}
 }
 
 // EXTREME LOCK WARNING!
@@ -110,12 +118,12 @@ func (p *plashAssistant) CancelPulseChange() {
 func (p *plashAssistant) CommitPulseChange() {
 	p.commitPulseChange()
 
-	go p.writeSectionSummaries()
+	go p.runWriteSectionSummaries()
 }
 
 func (p *plashAssistant) commitPulseChange() {
 	// plash will not accept writes anymore
-	if !p.status.CompareAndSwap(plashPendingPulse, plashClosed) {
+	if !p.status.CompareAndSwap(plashPendingPulse, plashSummingUp) {
 		panic(throw.IllegalState())
 	}
 
@@ -263,32 +271,50 @@ func (p *plashAssistant) getDropsOfJet(id jet.ExactID) (result []jet.DropID) {
 }
 
 func (p *plashAssistant) init(localDropCount int) {
-	p.ctlWriter.Init(p.writer, localDropCount)
+	p.ctlWriter.Init(p.writer, localDropCount, p.writeError)
 }
 
-func (p *plashAssistant) writeStartAndSharedData() {
-	p.ctlWriter.WritePlashStart(p.pulseData, p.population)
+func (p *plashAssistant) writeError(err error) {
+	if err == nil {
+		return
+	}
+	// this func is called in a new subroutine, so err must be logged
+	// TODO log error
+	panic(err)
 }
 
-func (p *plashAssistant) writeSectionSummaries() {
-	// RCtlPlashStart
+func (p *plashAssistant) writeStartAndSharedData() error {
+	return p.ctlWriter.WritePlashStart(p.pulseData, p.population)
+}
 
-	// RCtlSectionSummary[]
-	// RCtlFilamentEntry[]
-	// RCtlDropSummary[]
+func (p *plashAssistant) runWriteSectionSummaries() {
+	if err := p.writeSectionSummaries(); err != nil {
+		p.writeError(err)
+	}
+}
 
-	// RCtlPlashSummary
+func (p *plashAssistant) writeSectionSummaries() error {
+	if p.status.Load() != plashSummingUp {
+		panic(throw.IllegalState())
+	}
 
-	p.ctlWriter.WriteSectionSummary(p.dirtyReader, ledger.DefaultEntrySection)
+	if err := p.ctlWriter.WriteSectionSummary(p.dirtyReader, ledger.DefaultEntrySection); err != nil {
+		return err
+	}
+	return p.ctlWriter.WriteSectionSummary(p.dirtyReader, ledger.DefaultDustSection)
 }
 
 func (p *plashAssistant) appendToDropSummary(id jet.DropID, summary lineage.LineSummary) error {
+	if p.status.Load() != plashSummingUp {
+		panic(throw.IllegalState())
+	}
+
 	if err := p.ctlWriter.WriteLineSummary(id, summary.LineRecap, summary.LineReport); err != nil {
 		return err
 	}
 
 	for _, fil := range summary.Filaments {
-		if err := p.ctlWriter.WriteFilamentSummary(id, fil); err != nil {
+		if err := p.ctlWriter.WriteFilamentSummary(id, summary.LineRecap.Local, fil); err != nil {
 			return err
 		}
 	}
@@ -296,26 +322,38 @@ func (p *plashAssistant) appendToDropSummary(id jet.DropID, summary lineage.Line
 }
 
 func (p *plashAssistant) finalizeDropSummary(id jet.DropID) (catalog.DropReport, error) {
-	rep, err := p.ctlWriter.WriteDropSummary(id)
-	switch {
-	case err != nil:
-		return catalog.DropReport{}, err
-	case p.ctlWriter.HasAllDropReports():
-		go p.finalizeSummary()
+	if p.status.Load() != plashSummingUp {
+		panic(throw.IllegalState())
 	}
-	return rep, nil
+
+	return p.ctlWriter.WriteDropSummary(id, p.runFinalizeSummaryWrites)
 }
 
-func (p *plashAssistant) finalizeSummary()  {
-	if err := p.ctlWriter.WritePlashSummary(); err != nil {
-		panic(err)
+func (p *plashAssistant) runFinalizeSummaryWrites() {
+	if err := p.finalizeSummaryWrites(); err != nil {
+		p.writeError(err)
 	}
-	// // underlying writer will be marked read only as soon as all writing bundles are completed / discarded
-	// // but CommitPulseChange will be released immediately after putting the closure into the write chain
-	// // and any further calls to WaitWriteBundles() or to WriteBundle() will wait for this closure to complete.
-	// p.writer.WaitWriteBundlesAsync(nil, func(bool) {
-	// 	if err := p.writer.MarkReadOnly(); err != nil {
-	// 		panic(throw.W(err, "failed to mark storage as read-only"))
-	// 	}
-	// })
+}
+
+func (p *plashAssistant) finalizeSummaryWrites() error {
+	if !p.status.CompareAndSwap(plashSummingUp, plashSummarized) {
+		panic(throw.IllegalState())
+	}
+
+	if err := p.ctlWriter.WritePlashSummary(); err != nil {
+		return err
+	}
+
+	// underlying writer will be marked read only as soon as all writing bundles are completed / discarded
+	// but CommitPulseChange will be released immediately after putting the closure into the write chain
+	// and any further calls to WaitWriteBundles() or to WriteBundle() will wait for this closure to complete.
+	// NB! This method does returns as soon as call back is added to the wait chain.
+	p.writer.WaitWriteBundlesAsync(nil, func(bool) {
+		p.status.Store(plashClosed)
+		if err := p.writer.MarkReadOnly(); err != nil {
+			p.writeError(throw.W(err, "failed to mark storage as read-only"))
+		}
+	})
+
+	return nil
 }

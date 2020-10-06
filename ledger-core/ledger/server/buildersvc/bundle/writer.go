@@ -31,7 +31,7 @@ type bundleWriter struct {
 }
 
 func (p *bundleWriter) WaitWriteBundlesAsync(cancel synckit.SignalChannel, fn func(cancelled bool)) {
-	if fn != nil {
+	if fn == nil {
 		panic(throw.IllegalValue())
 	}
 

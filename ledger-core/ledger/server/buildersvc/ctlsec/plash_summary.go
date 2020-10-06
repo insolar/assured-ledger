@@ -139,7 +139,7 @@ func (p *SectionSummaryWriter) PrepareWrite(snapshot bundle.Snapshot) error {
 
 	p.dirIndex = cd.GetNextDirectoryIndex()
 
-	de := bundle.DirectoryEntry{ Key: CtlSectionRef(p.section) }
+	de := bundle.DirectoryEntry{ Key: CtlSectionRef(p.section, true) }
 	p.receptacles[3], de.Loc, err = cd.AllocateEntryStorage(p.summary.ProtoSize())
 	if err != nil {
 		return err

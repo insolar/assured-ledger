@@ -7,18 +7,24 @@ package ctlsec
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 const SPNControlSection = pulse.Number(127)
 // const SPNControlSection = pulse.Number(127)
 
-func CtlSectionRef(id ledger.SectionID) reference.Global {
-	panic(throw.NotImplemented())
-	// return reference.New(
-	// 	reference.NewLocal(SPNControlSection, 0, reference.LocalHash{}),
-	// 	reference.NewLocal(SPNControlSection, 0, reference.LocalHash{}), // TODO key
-	// )
+func CtlSectionRef(id ledger.SectionID, summary bool) reference.Global {
+	return reference.New(
+		reference.NewLocal(SPNControlSection, 0, reference.LocalHash{}),
+		reference.NewLocal(SPNControlSection, 0, reference.LocalHash{}), // TODO key
+	)
+}
+
+func JetRef(id jet.ID) reference.Global {
+	return reference.New(
+		reference.NewLocal(SPNControlSection, 0, reference.LocalHash{}),
+		reference.NewLocal(SPNControlSection, 0, reference.LocalHash{}), // TODO key
+	)
 }

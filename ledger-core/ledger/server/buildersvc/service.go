@@ -228,7 +228,9 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 	if prevPlash != nil {
 		go prevPlash.setNextPlash(pa)
 	}
-	pa.writeStartAndSharedData()
+	if err := pa.writeStartAndSharedData(); err != nil {
+		panic(err)
+	}
 
 	return pa, result
 }

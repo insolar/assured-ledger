@@ -47,12 +47,6 @@ type EventInputer interface {
 type PreparedState = beat.AckData
 type PreparePulseCallbackFunc = func(PreparedState)
 
-type PulseChanger interface {
-	PreparePulseChange(out PreparePulseCallbackFunc) error
-	CancelPulseChange() error
-	CommitPulseChange(pr pulse.Range) error
-}
-
 // PulseSlotPostMigrateFunc is called on migration and on creation of the slot. For creation (prevState) will be zero.
 type PulseSlotPostMigrateFunc = func(prevState PulseSlotState, slot *PulseSlot, h smachine.SlotMachineHolder)
 

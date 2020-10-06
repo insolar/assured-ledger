@@ -8,6 +8,7 @@ package tests
 import (
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -144,6 +145,45 @@ func TestAddRecords(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestAddRecordsThenChangePulse(t *testing.T) {
+	server := lmntestapp.NewTestServer(t)
+	defer server.Stop()
+
+	var recBuilder lmntestapp.RecordBuilder
+
+	server.SetImposer(func(params *insconveyor.ImposedParams) {
+		recBuilder = lmntestapp.NewRecordBuilderFromDependencies(params.AppInject)
+	})
+
+	server.Start()
+	server.RunGenesis()
+	server.IncrementPulse()
+
+	recBuilder.RefTemplate = reference.NewSelfRefTemplate(server.LastPulseNumber(), reference.SelfScopeLifeline)
+
+	genNewLine := generatorNewLifeline{
+		recBuilder: recBuilder,
+		conv:       server.App().Conveyor(),
+		body:       make([]byte, 1<<10),
+	}
+
+	reasonRef := gen.UniqueGlobalRefWithPulse(server.LastPulseNumber())
+
+	var bundleSignatures [][]cryptkit.Signature
+
+	for N := 10; N > 0; N-- {
+		// one bundle per object
+		sg, err := genNewLine.registerNewLine(reasonRef)
+		require.NoError(t, err)
+		require.Len(t, sg, 3)
+		bundleSignatures = append(bundleSignatures, sg)
+	}
+
+	server.IncrementPulse()
+
+	time.Sleep(2*time.Second)
 }
 
 func BenchmarkWriteNew(b *testing.B) {

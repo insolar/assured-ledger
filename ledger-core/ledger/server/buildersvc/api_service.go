@@ -26,9 +26,7 @@ type Service interface {
 }
 
 type PlashAssistant interface {
-	PreparePulseChange(outFn conveyor.PreparePulseCallbackFunc)
-	CancelPulseChange()
-	CommitPulseChange()
+	conveyor.PulseChanger
 
 	CalculateJetDrop(reference.Holder) jet.DropID
 	IsGenesis() bool

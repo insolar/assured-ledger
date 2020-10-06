@@ -149,6 +149,7 @@ func (p *SMDropBuilder) stepFinalize(ctx smachine.ExecutionContext) smachine.Sta
 		ctx.ReleaseAll()
 		return ctx.Yield().ThenRepeat()
 	}
+	ctx.ReleaseAll()
 
 	jetID := p.sd.info.ID
 	p.adapter.PrepareAsync(ctx, func(svc buildersvc.Service) smachine.AsyncResultFunc {
