@@ -71,6 +71,10 @@ func (p *MemoryStorageWriter) TakeSnapshot() (bundle.Snapshot, error) {
 	}, nil
 }
 
+func (p *MemoryStorageWriter) IsReadOnly() bool {
+	return p.state.Load() == stateReadOnly
+}
+
 func (p *MemoryStorageWriter) MarkReadOnly() error {
 	if p.state.CompareAndSwap(0, stateReadOnly) {
 		return nil
@@ -183,32 +187,33 @@ func (p *memorySnapshot) Completed() error {
 }
 
 func (p *memorySnapshot) Commit() error {
-
 	for i := range p.snapshot {
 		cs := p.snapshot[i].section
 		if cs == nil || p.snapshot[i].dirCount == 0 {
 			continue
 		}
-		if err := cs.commit(p.snapshot[i], true); err != nil {
+		if _, err := cs.commit(p.snapshot[i], true); err != nil {
 			return throw.W(err, "pre-commit failed")
 		}
 	}
 
-	hasChanges := false
+	hadChanges := false
 	for i := range p.snapshot {
 		cs := p.snapshot[i].section
 		if cs == nil || p.snapshot[i].dirCount == 0 {
 			continue
 		}
 
-		if err := cs.commit(p.snapshot[i], true); err != nil {
-			if hasChanges {
+		switch hasChanges, err := cs.commit(p.snapshot[i], false); {
+		case err != nil:
+			if hadChanges || hasChanges {
 				p.storage.state.Store(stateBroken)
 				return throw.W(err, "commit failed, storage is broken")
 			}
 			return throw.W(err, "commit failed")
+		case hasChanges:
+			hadChanges = true
 		}
-		hasChanges = true
 	}
 
 	return nil
@@ -439,14 +444,14 @@ func (p *cabinetSection) allocatePayloadStorage(snap *sectionSnapshot, vSize int
 	return byteReceptacle(b[n:]), loc, nil
 }
 
-func (p *cabinetSection) commit(snapshot sectionSnapshot, testOnly bool) error {
-	if testOnly {
-		p.mutex.RLock()
-		defer p.mutex.RUnlock()
-	} else {
-		p.mutex.Lock()
-		defer p.mutex.Unlock()
-	}
+func (p *cabinetSection) commit(snapshot sectionSnapshot, testOnly bool) (hasChanges bool, err error) {
+	err = p.checkCommit(snapshot)
+	return false, err
+}
+
+func (p *cabinetSection) checkCommit(snapshot sectionSnapshot) error {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
 
 	entryOrd := snapshot.dirIndex
 	for i := snapshot.dirCount; i > 0; i, entryOrd = i-1, entryOrd+1 {

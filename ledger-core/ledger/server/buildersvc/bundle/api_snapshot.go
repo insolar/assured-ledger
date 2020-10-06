@@ -81,6 +81,7 @@ type PayloadSection interface {
 type DirectoryEntry struct {
 	Key   reference.Global
 	Loc   ledger.StorageLocator
+	// Fil is a temporary field and it is not preserved
 	Fil   FilamentInfo
 }
 
