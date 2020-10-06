@@ -120,12 +120,12 @@ func TestVStateReport_StopSMIfAsOfOutdated(t *testing.T) {
 						LatestDirtyState: &rms.ObjectState{
 							Reference: rms.NewReferenceLocal(initRef),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes(initState),
+							Memory:    rms.NewBytes(initState),
 						},
 						LatestValidatedState: &rms.ObjectState{
 							Reference: rms.NewReferenceLocal(initRef),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes(initState),
+							Memory:    rms.NewBytes(initState),
 						},
 					},
 				},
