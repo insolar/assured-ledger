@@ -13,6 +13,9 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gojuno/minimock/v3"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
 )
 
@@ -28,8 +31,13 @@ type Mock struct {
 	closed          bool
 }
 
-type Sender interface {
+type BasicSender interface {
 	SendMessage(context.Context, *message.Message)
+}
+
+type Sender interface {
+	BasicSender
+	SendPayload(ctx context.Context, pl rmsreg.GoGoSerializable)
 }
 
 func NewMock() *Mock {
@@ -66,21 +74,63 @@ func (p *Mock) WaitCount(count int, timeout time.Duration) bool {
 	}
 }
 
-func (p *Mock) SetResendMode(ctx context.Context, sender Sender) {
+func (p *Mock) SetResendMode(ctx context.Context, sender BasicSender) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
 	p.checker = checker.NewResend(ctx, sender)
 }
 
-func (p *Mock) SetTypedChecker(ctx context.Context, t minimock.Tester, sender Sender) *checker.Typed {
+func (p *Mock) SetTypedChecker(ctx context.Context, t minimock.Tester, sender BasicSender) *checker.Typed {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	c := checker.NewTyped(ctx, t, sender)
-	p.checker = c
+	typed := checker.NewTyped(ctx, t, sender)
+	p.checker = typed
 
-	return c
+	return typed
+}
+
+func (p *Mock) SetTypedCheckerWithLightStubs(ctx context.Context, t minimock.Tester, sender Sender) *checker.Typed {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	typed := checker.NewTyped(ctx, t, sender)
+	p.checker = typed
+
+	logger := inslogger.FromContext(ctx)
+
+	typed.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
+		if request.Flags == rms.RegistrationFlags_FastSafe {
+			logger.Info("sending Fast and Safe")
+
+			sender.SendPayload(ctx, &rms.LRegisterResponse{
+				Flags:              rms.RegistrationFlags_Fast,
+				AnticipatedRef:     request.AnticipatedRef,
+				RegistrarSignature: rms.NewBytes([]byte("123")),
+			})
+
+			time.Sleep(10 * time.Millisecond)
+
+			sender.SendPayload(ctx, &rms.LRegisterResponse{
+				Flags:              rms.RegistrationFlags_Safe,
+				AnticipatedRef:     request.AnticipatedRef,
+				RegistrarSignature: rms.NewBytes([]byte("123")),
+			})
+		} else {
+			logger.Info("sending ", request.Flags.String())
+
+			sender.SendPayload(ctx, &rms.LRegisterResponse{
+				Flags:              request.Flags,
+				AnticipatedRef:     request.AnticipatedRef,
+				RegistrarSignature: rms.NewBytes([]byte("123")),
+			})
+		}
+
+		return false
+	})
+
+	return typed
 }
 
 func (p *Mock) SetBaseChecker(fn checker.Checker) {

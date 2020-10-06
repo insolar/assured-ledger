@@ -15,8 +15,8 @@ func (m *VCallRequest) validateUnimplemented() error {
 	switch {
 	case !m.CallSiteDeclaration.IsZero():
 		return throw.New("CallSiteDeclaration should be empty")
-	case !m.CallReason.IsZero():
-		return throw.New("CallReason should be empty")
+	// case !m.CallReason.IsZero():
+	// 	return throw.New("CallReason should be empty")
 	case !m.RootTX.IsZero():
 		return throw.New("RootTX should be empty")
 	case !m.CallTX.IsZero():

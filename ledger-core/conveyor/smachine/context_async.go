@@ -46,6 +46,12 @@ var _ BargeInContext = &bargingInContext{}
 type bargingInContext struct {
 	slotContext
 	atOriginal bool
+	callerSM bool
+}
+
+func (p *bargingInContext) AffectedStep() SlotStep {
+	p.ensure(updCtxBargeIn)
+	return p.affectedStep(p.callerSM)
 }
 
 func (p *bargingInContext) IsAtOriginalStep() bool {
@@ -117,7 +123,7 @@ func (p *subroutineExitContext) GetError() error {
 func (p *subroutineExitContext) executeSubroutineExit(fn SubroutineExitFunc) (stateUpdate StateUpdate) {
 	p.setMode(updCtxSubrExit)
 	defer func() {
-		stateUpdate = p.discardAndUpdate("subroutine exit", recover(), stateUpdate, StateArea)
+		stateUpdate = p.discardAndUpdate("subroutine exit", recover(), stateUpdate, StepArea)
 	}()
 
 	return p.ensureAndPrepare(p.s, fn(p))

@@ -230,7 +230,7 @@ func (p *SMRead) stepSendResponse(ctx smachine.ExecutionContext) smachine.StateU
 	response.NextRecordSize = uint32(nextInfo.NextRecordSize)
 	response.NextRecordPayloadsSize = uint32(nextInfo.NextRecordPayloadsSize)
 
-	ctx.SetDefaultTerminationResult(response)
+	ctx.SetTerminationResult(response)
 
 	// TODO send response back
 

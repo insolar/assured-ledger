@@ -39,14 +39,14 @@ func (s *Slot) getTopSubroutineMarker() subroutineMarker {
 // 	}
 // }
 
-func (s *Slot) forceTopSubroutineUpdate(su StateUpdate) StateUpdate {
+func (s *Slot) forceTopSubroutineUpdate(su StateUpdate, worker DetachableSlotWorker) StateUpdate {
 	if !typeOfStateUpdate(su).IsSubroutineSafe() {
-		s._popTillSubroutine(subroutineMarker{})
+		s._popTillSubroutine(subroutineMarker{}, worker)
 	}
 	return su
 }
 
-func (s *Slot) forceSubroutineUpdate(su StateUpdate, producedBy subroutineMarker) StateUpdate {
+func (s *Slot) forceSubroutineUpdate(su StateUpdate, producedBy subroutineMarker, worker DetachableSlotWorker) StateUpdate {
 	switch isCurrent, isValid := s.checkSubroutineMarker(producedBy); {
 	case isCurrent:
 		//
@@ -54,19 +54,19 @@ func (s *Slot) forceSubroutineUpdate(su StateUpdate, producedBy subroutineMarker
 		s.machine.logInternal(s.NewStepLink(), "aborting routine has expired", nil)
 		return StateUpdate{}
 	case !typeOfStateUpdate(su).IsSubroutineSafe():
-		s._popTillSubroutine(producedBy)
+		s._popTillSubroutine(producedBy, worker)
 	}
 	return su
 }
 
 var errTerminatedByCaller = errors.New("subroutine SM is terminated by caller")
 
-func (s *Slot) _popTillSubroutine(producedBy subroutineMarker) {
+func (s *Slot) _popTillSubroutine(producedBy subroutineMarker, worker DetachableSlotWorker) {
 	for ms := s.stateStack; ms != nil; ms = ms.stateStack {
 		if ms.childMarker == producedBy {
 			return
 		}
-		s.prepareSubroutineExit(errTerminatedByCaller)
+		s.applySubroutineStop(errTerminatedByCaller, worker)
 	}
 	if producedBy.step != 0 {
 		panic(throw.IllegalState())
@@ -136,15 +136,20 @@ func (s *Slot) prepareSubroutineStart(ssm SubroutineStateMachine, exitFn Subrout
 }
 
 var defaultSubroutineStartDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<init_subroutine>"}}
-var defaultSubroutineAbortDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<abort_subroutine>"}}
 var defaultSubroutineExitDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<exit_subroutine>"}}
 
-func (s *Slot) prepareSubroutineExit(lastError error) {
-	// TODO logging?
+func (s *Slot) applySubroutineStop(lastError error, worker DetachableSlotWorker) {
+	s.step = s.prepareSubroutineStop(lastError, worker)
+	s.stepDecl = &defaultSubroutineExitDecl
+}
+
+func (s *Slot) prepareSubroutineStop(lastError error, worker DetachableSlotWorker) SlotStep {
 	prev := s.stateStack
 	if prev == nil {
 		panic(throw.IllegalState())
 	}
+
+	lastError = s.callFinalizeOnce(worker, lastError)
 
 	lastResult := s.defResult
 	returnFn := prev.returnFn
@@ -152,14 +157,15 @@ func (s *Slot) prepareSubroutineExit(lastError error) {
 	s.stateMachineData = prev.stateMachineData
 	s.restoreSubroutineAliases(prev.copyAliases, prev.cleanupMode)
 
-	s.step = SlotStep{Transition: func(ctx ExecutionContext) StateUpdate {
-		ec := ctx.(*executionContext)
-		bc := subroutineExitContext{bargingInContext{ec.clone(updCtxInactive), false},
-			lastResult, lastError}
+	// TODO logging
+	bc := subroutineExitContext{
+		bargingInContext{ slotContext{s: s, w: worker}, false, false},
+		lastResult, lastError}
+	su := bc.executeSubroutineExit(returnFn)
 
-		su := bc.executeSubroutineExit(returnFn)
+	return SlotStep{Transition: func(ctx ExecutionContext) StateUpdate {
+		ec := ctx.(*executionContext)
 		su.marker = ec.getMarker()
 		return su
 	}}
-	s.stepDecl = &defaultSubroutineExitDecl
 }

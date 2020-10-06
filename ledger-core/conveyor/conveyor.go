@@ -442,7 +442,7 @@ func (p *PulseConveyor) sendSignal(fn smachine.MachineCallFunc) error {
 	return <-result
 }
 
-func (p *PulseConveyor) PreparePulseChange(out PreparePulseCallbackFunc) error {
+func (p *PulseConveyor) PreparePulseChange(out PreparePulseCallbackFunc) (err error) {
 	p.pdm.awaitPreparingPulse()
 	return p.sendSignal(func(ctx smachine.MachineCallContext) {
 		if p.presentMachine == nil {
@@ -454,12 +454,12 @@ func (p *PulseConveyor) PreparePulseChange(out PreparePulseCallbackFunc) error {
 			return p.presentMachine.preparePulseChange(ctx, out)
 		}) {
 			// TODO handle stuck PulseSlot - need to do p.pdm.unsetPreparingPulse(), then close(out) when relevant code is available on network side
-			panic(throw.FailHere("present slot is busy"))
+			err = p.presentSlotAccessError()
 		}
 	})
 }
 
-func (p *PulseConveyor) CancelPulseChange() error {
+func (p *PulseConveyor) CancelPulseChange() (err error) {
 	return p.sendSignal(func(ctx smachine.MachineCallContext) {
 		if p.presentMachine == nil {
 			// wrong - first pulse can only be committed but not prepared
@@ -467,10 +467,19 @@ func (p *PulseConveyor) CancelPulseChange() error {
 		}
 		p.pdm.unsetPreparingPulse()
 		if !ctx.CallDirectBargeIn(p.presentMachine.SlotLink().GetAnyStepLink(), p.presentMachine.cancelPulseChange) {
-			panic(throw.FailHere("present slot is busy"))
+			err = p.presentSlotAccessError()
 		}
 	})
 }
+
+func (p *PulseConveyor) presentSlotAccessError() error {
+	err := throw.FailCaller("present slot is busy", 1)
+	if p.slotMachine.IsActive() {
+		panic(err)
+	}
+	return err
+}
+
 
 func (p *PulseConveyor) CommitPulseChange(pr pulse.Range, pulseStart time.Time, online census.OnlinePopulation) error {
 	pd := pr.RightBoundData()

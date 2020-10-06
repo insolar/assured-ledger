@@ -41,7 +41,7 @@ type CatalogOrdinal = ledger.Ordinal
 type DropOrdinal = ledger.DropOrdinal
 
 type RecordVisitor = rmsbox.RecordVisitor
-type BasicRecord  = rmsbox.BasicRecord
+type BasicRecord = rmsbox.BasicRecord
 type MessageVisitor = rmsbox.MessageVisitor
 type BasicMessage = rmsbox.BasicMessage
 type Reference = rmsbox.Reference
@@ -59,6 +59,10 @@ func RegisterRecordType(id uint64, special string, t BasicRecord) {
 
 func RegisterMessageType(id uint64, special string, t proto.Message) {
 	rmsreg.GetRegistry().PutSpecial(id, special, reflect.TypeOf(t))
+}
+
+func NewAny(v rmsreg.GoGoSerializable) Any {
+	return rmsbox.NewAny(v)
 }
 
 func NewReference(v reference.Holder) Reference {

@@ -4,6 +4,7 @@ package rms;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "github.com/insolar/assured-ledger/ledger-core/insproto/ins.proto";
+import "proto_common.proto";
 import "rms.proto";
 
 option (insproto.notation_all) = true;
@@ -92,6 +93,9 @@ message RLineActivate {
 message RLineDeactivate {
     option (insproto.id) = 21;
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
 }
 
 message RLineMemory {
@@ -115,30 +119,31 @@ message RLineMemoryExpected {
 message RLineMemoryReuse {
     option (insproto.id) = 26;
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
-}
 
-message RLineInboundRequest {
-    option (insproto.id) = 27;
-    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
-}
-
-message RInboundRequest {
-    option (insproto.id) = 28;
-    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
 }
 
 message RInboundResponse {
-    option (insproto.id) = 29;
+    option (insproto.id) = 27;
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
 }
 
 message ROutboundResponse {
-    option (insproto.id) = 30;
+    option (insproto.id) = 28;
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
 }
 
 message ROutboundRequest {
-    option (insproto.id) = 31;
+    option (insproto.id) = 29;
+    // = 30 RLineInboundRequest
+    // = 31 RInboundRequest
     // = 32 RLifelineStart
     // = 33 RSidelineStart
     // = 34 ROutboundRetryableRequest
@@ -154,5 +159,28 @@ message ROutboundRequest {
     Reference RootRef = 25;
 
     // Add custom fields here
-    string Str = 40;
+    CallType CallType = 40;
+    uint32 CallFlags = 41 [(gogoproto.casttype) = "CallFlags"];
+    uint32 CallAsOf  = 42 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Caller = 43;
+    Reference Callee = 44;
+
+    Reference CallSiteDeclaration = 45;
+    string CallSiteMethod = 46;
+
+    uint32 CallSequence = 47;
+    Reference CallReason = 48;
+    Reference RootTX = 49;
+    Reference CallTX = 50;
+
+    Reference ExpenseCenter = 51;
+    Reference ResourceCenter = 52;
+
+    CallDelegationToken DelegationSpec = 54;
+
+    uint32 TXExpiry = 62 [(gogoproto.casttype) = "PulseNumber"];
+
+    Binary SecurityContext = 63;
+    Binary TXContext = 64;
+    Binary Arguments = 65;
 }

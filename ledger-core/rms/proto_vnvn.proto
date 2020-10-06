@@ -6,6 +6,7 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "github.com/insolar/assured-ledger/ledger-core/insproto/ins.proto";
 import "rms.proto";
 import "proto_records.proto";
+import "proto_common.proto";
 
 option (insproto.notation_all) = true;
 option (insproto.zeroable_all) = true;
@@ -50,16 +51,17 @@ message MessageExample {
     }
 }
 
-enum CallType {
-    CallTypeInvalid = 0; // zero value in Go
-    CallTypeInboundAPI = 1;
-    CallTypeOutboundAPI = 2;
-    CallTypeMethod = 3;
-    CallTypeConstructor = 4;
-    CallTypeNotify = 5;
-    CallTypeSAGA = 6;
-    CallTypeParallel = 7;
-    CallTypeSchedule = 8;
+message MessageExample2 {
+    option (insproto.id) = 999999980;
+
+    //*** Start of predefined section ***//
+    reserved 1 to 18, 20 to 1799;
+    AnyRecordLazy Record = 19 [(gogoproto.embed) = true, (insproto.ctx_apply)="MsgRecord"]; // put proper Record type here
+    //*** End of predefined section ***//
+
+    // Add here custom fields
+    uint64 MsgParam = 1800;
+    bytes MsgBytes = 1801;
 }
 
 message VCallRequest {
@@ -221,19 +223,6 @@ message VDelegatedCallResponse {
     Reference Callee = 20;
     Reference CallIncoming = 21;
     CallDelegationToken ResponseDelegationSpec = 22;
-}
-
-message CallDelegationToken {
-    option (insproto.id) = 1010;
-
-    uint32 TokenTypeAndFlags = 20 [(gogoproto.casttype) = "CallDelegationTokenType"];
-    Reference Approver = 21;
-    Reference DelegateTo = 22;
-    uint32 PulseNumber = 23 [(gogoproto.casttype) = "PulseNumber"];
-    Reference Callee = 24;
-    Reference Caller = 25;
-    Reference Outgoing = 26;
-    Binary ApproverSignature = 27;
 }
 
 message VFindCallRequest {

@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -32,6 +33,9 @@ type TypeRegistry struct {
 	mutex    sync.RWMutex
 	commons  map[uint64]reflect.Type
 	specials map[string]map[uint64]reflect.Type
+
+	digester  cryptkit.DataDigester
+	digesters map[uint64]cryptkit.DataDigester
 }
 
 func (p *TypeRegistry) getMap(special string) map[uint64]reflect.Type {
@@ -119,7 +123,57 @@ func (p *TypeRegistry) GetSpecial(id uint64, special string) reflect.Type {
 	return p.getMap(special)[id]
 }
 
-func UnmarshalType(b []byte, typeFn func(uint64) reflect.Type) (uint64, reflect.Type, error) {
+func (p *TypeRegistry) SetDefaultPayloadDigester(d cryptkit.DataDigester) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	p.digester = d
+}
+
+func (p *TypeRegistry) SetPayloadDigester(id uint64, d cryptkit.DataDigester) {
+	if id == 0 {
+		panic(throw.IllegalValue())
+	}
+
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	if p.digesters == nil {
+		p.digesters = map[uint64]cryptkit.DataDigester{}
+	}
+
+	p.digesters[id] = d
+}
+
+func (p *TypeRegistry) UnsetPayloadDigester(id uint64) {
+	if id == 0 {
+		panic(throw.IllegalValue())
+	}
+
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	if p.digesters == nil {
+		return
+	}
+
+	delete(p.digesters, id)
+}
+
+func (p *TypeRegistry) GetPayloadDigester(id uint64) cryptkit.DataDigester {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
+	if d, ok := p.digesters[id]; ok {
+		return d
+	}
+	return p.digester
+}
+
+type PayloadDigesterFunc = func(uint64) cryptkit.DataDigester
+type UnmarshalTypeFunc = func(uint64) reflect.Type
+
+func UnmarshalType(b []byte, typeFn UnmarshalTypeFunc) (uint64, reflect.Type, error) {
 	switch ct, id, err := protokit.PeekContentTypeAndPolymorphIDFromBytes(b); {
 	case err != nil:
 		return 0, nil, err
@@ -150,6 +204,10 @@ func UnmarshalAs(b []byte, obj interface{}, skipFn UnknownCallbackFunc) error {
 }
 
 func UnmarshalAsType(b []byte, vType reflect.Type, skipFn UnknownCallbackFunc) (interface{}, error) {
+	if vType.Kind() == reflect.Ptr {
+		vType = vType.Elem()
+	}
+
 	obj := reflect.New(vType).Interface()
 	if err := UnmarshalAs(b, obj, skipFn); err != nil {
 		return nil, err
@@ -157,7 +215,7 @@ func UnmarshalAsType(b []byte, vType reflect.Type, skipFn UnknownCallbackFunc) (
 	return obj, nil
 }
 
-func UnmarshalCustom(b []byte, typeFn func(uint64) reflect.Type, skipFn UnknownCallbackFunc) (uint64, interface{}, error) {
+func UnmarshalCustom(b []byte, typeFn UnmarshalTypeFunc, skipFn UnknownCallbackFunc) (uint64, interface{}, error) {
 	switch id, t, err := UnmarshalType(b, typeFn); {
 	case err == nil:
 		obj, err := UnmarshalAsType(b, t, skipFn)
