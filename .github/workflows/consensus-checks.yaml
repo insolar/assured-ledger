@@ -41,7 +41,7 @@ jobs:
           docker push $ACR_HOST/assured-ledger:"${GITHUB_SHA:0:8}"
       - name: Prepare report config boilerplate
         run: |
-          echo "::set-env name=INSOLAR_BRANCH::$(echo "${{github.ref}}")"
+          echo "::set-env name=INSOLAR_BRANCH::$(echo "${GITHUB_REF#refs/heads/}")"
           echo "::set-env name=INSOLAR_TAG::${GITHUB_SHA:0:8}"
           cat ledger-core/scripts/deploy/kube/report.yaml | envsubst '${INSOLAR_BRANCH} ${INSOLAR_TAG}' >report-config.yaml
       - name: Create base report-config artifact
@@ -68,7 +68,7 @@ jobs:
           echo "::set-env name=INSOLAR_TAG::${GITHUB_SHA:0:8}"
           echo "::set-env name=INSOLAR_NETWORK_SIZE::${TARGET}"
           echo "::set-env name=INSOLAR_NAMESPACE::${GITHUB_SHA:0:8}-${TARGET}"
-          echo "::set-env name=INSOLAR_BRANCH::$(echo "${{github.ref}}")"
+          echo "::set-env name=INSOLAR_BRANCH::$(echo "${GITHUB_REF#refs/heads/}")"
           echo "::set-env name=INSOLAR_NETWORK_SIZE_INT::$(echo $TARGET | awk '{gsub(/[^[0-9]]*/,"");print}')"
       - name: Install utility binaries
         run: |
@@ -128,7 +128,7 @@ jobs:
       - name: Preparation - set prerequisite variables, full sha is ${{github.sha}}
         run: |
           echo "::set-env name=REPORT_WEBDAV_DIRECTORY::consensus-checks/$(date +"%Y%m%d-%H%M")-$(echo ${{github.ref}} | cut -d '/' -f3)-${GITHUB_SHA:0:8}"
-          echo "::set-env name=INSOLAR_BRANCH::$(echo "${{github.ref}}")"
+          echo "::set-env name=INSOLAR_BRANCH::$(echo "${GITHUB_REF#refs/heads/}")"
           echo "::set-env name=INSOLAR_TAG::${GITHUB_SHA:0:8}"
       - name: Install utility binaries
         run: |
@@ -154,5 +154,5 @@ jobs:
           curl --silent --header "Content-Type: application/json" --request POST \
                --data "{ \"text\": \"Headless network test report: ${REPORT_WEBDAV_HOST}/${REPORT_WEBDAV_DIRECTORY}\" }" \
                ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}
-          echo "\n\n\n"
+          echo -e "\n\n\n"
           echo $REPORT_WEBDAV_HOST/$REPORT_WEBDAV_DIRECTORY
