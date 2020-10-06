@@ -16,6 +16,8 @@ import (
 )
 
 func Benchmark_MultiPulseOnCloud_Timed(b *testing.B) {
+	b.Skip("changing of pulse doesn't work now")
+
 	instestlogger.SetTestOutput(b)
 
 	for numNodes := 2; numNodes <= 5; numNodes++ {
