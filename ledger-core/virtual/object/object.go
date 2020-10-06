@@ -182,7 +182,7 @@ func (i *Info) BuildLatestDirtyState() *rms.ObjectState {
 		return &rms.ObjectState{
 			Reference:   rms.NewReferenceLocal(objDescriptor.StateID()),
 			Class:       rms.NewReference(class),
-			State:       rms.NewBytes(objDescriptor.Memory()),
+			Memory:      rms.NewBytes(objDescriptor.Memory()),
 			Deactivated: objDescriptor.Deactivated(),
 		}
 	}

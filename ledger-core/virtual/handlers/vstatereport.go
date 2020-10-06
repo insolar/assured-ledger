@@ -191,7 +191,7 @@ func buildObjectDescriptor(headRef reference.Global, state rms.ObjectState) desc
 		headRef,
 		state.Reference.GetValue().GetLocal(),
 		state.Class.GetValue(),
-		state.State.GetBytes(),
+		state.Memory.GetBytes(),
 		state.Deactivated,
 	)
 }
