@@ -233,3 +233,14 @@ func (p *PulseSlot) SetPulseChanger(changer PulseChanger) bool {
 	p.pulseChanger = changer
 	return true
 }
+
+func (p *PulseSlot) PulseRelativeDeadline(portion float64) time.Time {
+	startedAt := p.pulseData.PulseStartedAt()
+	if portion <= 0 {
+		return startedAt
+	}
+
+	delta := time.Duration(p.pulseData.PulseData().NextPulseDelta) * time.Second
+	relative := portion * float64(delta)
+	return startedAt.Add(time.Duration(relative))
+}
