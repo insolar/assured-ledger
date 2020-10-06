@@ -163,7 +163,9 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 		insconveyor.DisableLogStepInfoMarshaller = true
 		b.StopTimer()
 		for i := 0; i < b.N; i++ {
-			pl := utils.GenerateVCallRequestConstructor(server).Get()
+			plWrapper := utils.GenerateVCallRequestConstructor(server)
+			plWrapper.SetClass(testwalletProxy.ClassReference)
+			pl := plWrapper.Get()
 
 			b.StartTimer()
 			server.SendPayload(ctx, &pl)
@@ -177,7 +179,9 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 		insconveyor.DisableLogStepInfoMarshaller = false
 		b.StopTimer()
 		for i := 0; i < b.N; i++ {
-			pl := utils.GenerateVCallRequestConstructor(server).Get()
+			plWrapper := utils.GenerateVCallRequestConstructor(server)
+			plWrapper.SetClass(testwalletProxy.ClassReference)
+			pl := plWrapper.Get()
 
 			b.StartTimer()
 			server.SendPayload(ctx, &pl)
@@ -283,6 +287,7 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 	testutils.WaitSignalsTimed(b, 10*time.Second, wait)
 
 	b.ResetTimer()
+
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			code, _ := server.CallAPIGetBalance(ctx, object)
