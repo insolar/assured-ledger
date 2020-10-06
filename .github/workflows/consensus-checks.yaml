@@ -70,9 +70,12 @@ jobs:
           echo "::set-env name=INSOLAR_NAMESPACE::${GITHUB_SHA:0:8}-${TARGET}"
           echo "::set-env name=INSOLAR_BRANCH::$(echo "${{github.ref}}")"
           echo "::set-env name=INSOLAR_NETWORK_SIZE_INT::$(echo $TARGET | awk '{gsub(/[^[0-9]]*/,"");print}')"
-          echo "::set-env name=REPORT_WEBDAV_DIRECTORY::consensus-checks/$(date +"%Y%m%d-%H%M")-$(echo ${{github.ref}} | cut -d '/' -f3)-${GITHUB_SHA:0:8}"
-      - name: Install yq - portable yaml processor
-        uses: mikefarah/yq@3.4.0
+      - name: Install utility binaries
+        run: |
+          echo "::add-path::$GITHUB_WORKSPACE/bin"
+          mkdir bin
+          wget -q https://github.com/mikefarah/yq/releases/download/3.4.0/yq_linux_amd64 -O bin/yq
+          chmod +x bin/yq
       - name: Preparation - copy docker auth secret
         run: |
           docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
@@ -122,6 +125,8 @@ jobs:
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
+      - name: Preparation - set prerequisite variables, full sha is ${{github.sha}}
+        run: echo "::set-env name=REPORT_WEBDAV_DIRECTORY::consensus-checks/$(date +"%Y%m%d-%H%M")-$(echo ${{github.ref}} | cut -d '/' -f3)-${GITHUB_SHA:0:8}"
       - name: Install utility binaries
         run: |
           echo "::add-path::$GITHUB_WORKSPACE/bin"
