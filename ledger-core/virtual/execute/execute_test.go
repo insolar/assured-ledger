@@ -962,7 +962,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 	assert.Equal(t, int32(0), report.OrderedPendingCount)
 	assert.Equal(t, int32(0), report.UnorderedPendingCount)
 	state := obj.BuildLatestDirtyState()
-	assert.Equal(t, []byte(stateMemory), state.State.GetBytes())
+	assert.Equal(t, []byte(stateMemory), state.Memory.GetBytes())
 	assert.False(t, state.Deactivated)
 
 	mc.Finish()

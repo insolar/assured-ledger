@@ -186,7 +186,7 @@ message VStateReport {
 message ObjectState {
     Reference Reference = 20;
     Reference Class = 22;
-    Binary State = 23;
+    Binary Memory = 23;
     bool Deactivated = 25;
 }
 
