@@ -137,6 +137,7 @@ type asyncResultContext struct {
 	contextTemplate
 	s      *Slot
 	wakeup bool
+	w      DetachableSlotWorker
 }
 
 func (p *asyncResultContext) SlotLink() SlotLink {
@@ -179,4 +180,14 @@ func (p *asyncResultContext) executeResult(fn AsyncResultFunc) bool {
 
 	fn(p)
 	return p.wakeup
+}
+
+func (p *asyncResultContext) ReleaseAll() bool {
+	p.ensure(updCtxAsyncCallback)
+	return p.s.contextReleaseAll(p.w)
+}
+
+func (p *asyncResultContext) ApplyAdjustment(adj SyncAdjustment) bool {
+	p.ensure(updCtxAsyncCallback)
+	return p.s.contextApplyAdjustment(adj, p.w)
 }

@@ -413,6 +413,7 @@ type ConditionalBuilder interface {
 
 type AsyncResultContext interface {
 	BasicContext
+	minimalSynchronizationContext
 
 	// Returns a slot logger for this context. It is only valid while this context is valid.
 	Log() Logger
