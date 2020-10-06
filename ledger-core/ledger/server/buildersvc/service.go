@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/merkler"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -158,6 +159,12 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 		dropAssists: map[jet.ID]*dropAssistant{},
 		merkle: merkler.NewForkingCalculator(p.merklePair, cryptkit.Digest{}),
 		nextReady: smsync.NewConditionalBool(false, "plash.nextReady"),
+	}
+
+	{
+		// TODO temporary hack
+		b := make([]byte, p.merklePair.GetDigestSize())
+		pa.merkle.AddNext(longbits.WrapBytes(b))
 	}
 
 	pa.tree.SetPropagate() // grants O(1) to find jet

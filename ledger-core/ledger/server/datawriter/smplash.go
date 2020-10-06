@@ -168,7 +168,7 @@ func (p *SMPlash) stepCreateJetDrops(ctx smachine.ExecutionContext) smachine.Sta
 	}
 
 	ctx.ApplyAdjustment(p.sd.enableAccess())
-	return ctx.Stop()
+	return ctx.Jump(p.stepWaitClosedPlash)
 }
 
 func (p *SMPlash) stepGenesis(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -193,6 +193,12 @@ func (p *SMPlash) stepGenesis(ctx smachine.ExecutionContext) smachine.StateUpdat
 
 	// NB! Regular SMs can NOT be allowed to run during genesis-related pulse(s)
 	// ctx.ApplyAdjustment(p.sd.enableAccess())
+
+	return ctx.Jump(p.stepWaitClosedPlash)
+}
+
+func (p *SMPlash) stepWaitClosedPlash(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Stop()
+
 }
 
