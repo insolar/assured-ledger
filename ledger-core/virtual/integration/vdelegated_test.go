@@ -68,7 +68,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 				LatestDirtyState: &rms.ObjectState{
 					Reference: rms.NewReferenceLocal(stateID),
 					Class:     rms.NewReference(testwalletProxy.GetClass()),
-					State:     rms.NewBytes(rawWalletState),
+					Memory:    rms.NewBytes(rawWalletState),
 				},
 			},
 		}

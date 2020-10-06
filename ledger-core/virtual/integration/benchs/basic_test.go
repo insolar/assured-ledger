@@ -40,8 +40,8 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Class: rms.NewReference(class),
-			State: rms.NewBytes(walletMemory),
+			Class:  rms.NewReference(class),
+			Memory: rms.NewBytes(walletMemory),
 		},
 	}
 
@@ -100,8 +100,8 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Class: rms.NewReference(class),
-			State: rms.NewBytes(walletMemory),
+			Class:  rms.NewReference(class),
+			Memory: rms.NewBytes(walletMemory),
 		},
 	}
 
@@ -216,7 +216,7 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 	state := &rms.ObjectState{
 		Reference:   rms.NewReference(stateID),
 		Class:       rms.NewReference(class),
-		State:       rms.NewBytes(walletMemory),
+		Memory:      rms.NewBytes(walletMemory),
 		Deactivated: false,
 	}
 
@@ -267,7 +267,7 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 	state := &rms.ObjectState{
 		Reference:   rms.NewReference(stateID),
 		Class:       rms.NewReference(class),
-		State:       rms.NewBytes(walletMemory),
+		Memory:      rms.NewBytes(walletMemory),
 		Deactivated: false,
 	}
 

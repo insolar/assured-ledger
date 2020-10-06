@@ -18,12 +18,12 @@ func GenerateVStateReport(server *Server, object reference.Global, pulse pulse.N
 		LatestDirtyState: &rms.ObjectState{
 			Reference: rms.NewReferenceLocal(reference.Local{}),
 			Class:     rms.NewReference(testwalletProxy.GetClass()),
-			State:     rms.NewBytes([]byte("dirty")),
+			Memory:    rms.NewBytes([]byte("dirty")),
 		},
 		LatestValidatedState: &rms.ObjectState{
 			Reference: rms.NewReferenceLocal(reference.Local{}),
 			Class:     rms.NewReference(testwalletProxy.GetClass()),
-			State:     rms.NewBytes([]byte("validated")),
+			Memory:    rms.NewBytes([]byte("validated")),
 		},
 	}
 	return &rms.VStateReport{

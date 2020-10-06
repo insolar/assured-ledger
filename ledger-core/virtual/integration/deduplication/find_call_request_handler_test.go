@@ -239,12 +239,12 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 			LatestDirtyState: &rms.ObjectState{
 				Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(s.getP1())),
 				Class:     rms.NewReference(s.getClass()),
-				State:     rms.NewBytes([]byte("object memory")),
+				Memory:    rms.NewBytes([]byte("object memory")),
 			},
 			LatestValidatedState: &rms.ObjectState{
 				Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(s.getP1())),
 				Class:     rms.NewReference(s.getClass()),
-				State:     rms.NewBytes([]byte("object memory")),
+				Memory:    rms.NewBytes([]byte("object memory")),
 			},
 		},
 	}
