@@ -168,9 +168,9 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 		desc            = descriptor.NewObject(
 			objectRef,
-			gen.UniqueLocalRef(),
+			gen.UniqueLocalRefWithPulse(pd.PulseNumber),
 			reference.Global{},
-			[]byte(""),
+			[]byte("dummy"),
 			false,
 		)
 		smObjectAccessor = object.SharedStateAccessor{SharedDataLink: sharedStateData}
