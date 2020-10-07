@@ -24,7 +24,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
@@ -47,14 +46,14 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
-	callRequest := utils.GenerateVCallRequestConstructor(server)
+	plWrapper := utils.GenerateVCallRequestConstructor(server)
+	callRequest := plWrapper.Get()
 	outgoing := callRequest.CallOutgoing
-	objectRef := reference.NewSelf(outgoing.GetValue().GetLocal())
-	p := server.GetPulse().PulseNumber
+	objectRef := plWrapper.GetObject()
+	prevPulse := server.GetPulse().PulseNumber
+	incomingRef := server.RandomGlobalWithPulse()
 
-	stateHash := append([]byte("init state"), objectRef.AsBytes()...)
-	stateID := execute.NewStateID(p, stateHash)
-	stateRef := reference.NewRecordOf(objectRef, stateID)
+	stateRef := reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
 
 	// add runnerMock
 	{
@@ -63,7 +62,7 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 		runnerMock.AddExecutionMock(outgoing.GetValue()).AddStart(
 			func(ctx execution.Context) {
 				assert.Empty(t, ctx.ObjectDescriptor)
-				assertExecutionContext(t, ctx, callRequest, objectRef, p)
+				assertExecutionContext(t, ctx, &callRequest, objectRef, prevPulse)
 			},
 			&execution.Update{
 				Type:   execution.Done,
@@ -76,7 +75,7 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 	{
 		typedChecker.VObjectValidationReport.Set(func(report *rms.VObjectValidationReport) bool {
 			require.Equal(t, objectRef, report.Object.GetValue())
-			require.Equal(t, p, report.In)
+			require.Equal(t, prevPulse, report.In)
 			require.Equal(t, stateRef, report.Validated.GetValue())
 
 			return false
@@ -85,14 +84,18 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 
 	// send VObjectTranscriptReport
 	{
+		// VObjectTranscriptReport is always from previous pulse
+		server.IncrementPulse(ctx)
+
 		pl := rms.VObjectTranscriptReport{
-			AsOf:   p,
+			AsOf:   prevPulse,
 			Object: rms.NewReference(objectRef),
 			ObjectTranscript: rms.Transcript{
 				Entries: []rms.Any{
 					rms.NewAny(
 						&rms.Transcript_TranscriptEntryIncomingRequest{
-							Request: *callRequest,
+							Request:  callRequest,
+							Incoming: rms.NewReference(incomingRef),
 						},
 					),
 					rms.NewAny(
@@ -143,10 +146,7 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 	stateRef := reference.NewRecordOf(objectRef, stateId)
 	objDescriptor := descriptor.NewObject(objectRef, stateId, classRef, []byte("init state"), false)
 
-	newStateHash := append([]byte("new state"), objectRef.AsBytes()...)
-	newStateHash = append(newStateHash, objDescriptor.StateID().AsBytes()...)
-	newStateID := execute.NewStateID(p, newStateHash)
-	newStateRef := reference.NewRecordOf(objectRef, newStateID)
+	newStateRef := reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
 
 	// add typedChecker
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
@@ -244,15 +244,14 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
-	callRequest := utils.GenerateVCallRequestConstructor(server)
+	plWrapper := utils.GenerateVCallRequestConstructor(server)
+	callRequest := plWrapper.Get()
 	outgoing := callRequest.CallOutgoing.GetValue()
-	objectRef := reference.NewSelf(outgoing.GetLocal())
+	objectRef := plWrapper.GetObject()
 	class := callRequest.Caller.GetValue()
 	p := server.GetPulse().PulseNumber
 
-	stateHash := append([]byte("init state"), objectRef.AsBytes()...)
-	stateID := execute.NewStateID(p, stateHash)
-	stateRef := reference.NewRecordOf(objectRef, stateID)
+	stateRef := reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
 
 	outgoingRefFromConstructor := reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
 	calledObjectRef := server.RandomGlobalWithPulse()
@@ -266,7 +265,7 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 		requestResult.SetActivate(server.RandomGlobalWithPulse(), []byte("init state"))
 		runnerMock.AddExecutionMock(outgoing).AddStart(func(ctx execution.Context) {
 			assert.Empty(t, ctx.ObjectDescriptor)
-			assertExecutionContext(t, ctx, callRequest, objectRef, p)
+			assertExecutionContext(t, ctx, &callRequest, objectRef, p)
 		}, &execution.Update{
 			Type:     execution.OutgoingCall,
 			Error:    nil,
@@ -302,7 +301,7 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 		}
 		pl.ObjectTranscript.Entries[0].Set(
 			&rms.Transcript_TranscriptEntryIncomingRequest{
-				Request: *callRequest,
+				Request: callRequest,
 			},
 		)
 		pl.ObjectTranscript.Entries[1].Set(
@@ -381,10 +380,7 @@ func TestValidation_ObjectTranscriptReport_AfterTwoInterleaving(t *testing.T) {
 	stateRef := reference.NewRecordOf(objectRef, stateId)
 	objDescriptor := descriptor.NewObject(objectRef, stateId, classRef, []byte("init state"), false)
 
-	newStateHash := append([]byte("new state"), objectRef.AsBytes()...)
-	newStateHash = append(newStateHash, objDescriptor.StateID().AsBytes()...)
-	newStateID := execute.NewStateID(p, newStateHash)
-	newStateRef := reference.NewRecordOf(objectRef, newStateID)
+	newStateRef := reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
@@ -522,10 +518,7 @@ func TestValidation_ObjectTranscriptReport_AfterTwoSequential(t *testing.T) {
 	stateRef := reference.NewRecordOf(objectRef, stateId)
 	objDescriptor := descriptor.NewObject(objectRef, stateId, classRef, []byte("init state"), false)
 
-	newStateHash := append([]byte("new state"), objectRef.AsBytes()...)
-	newStateHash = append(newStateHash, objDescriptor.StateID().AsBytes()...)
-	newStateID := execute.NewStateID(p, newStateHash)
-	newStateRef := reference.NewRecordOf(objectRef, newStateID)
+	newStateRef := reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
@@ -664,10 +657,7 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 		initStateRef = reference.NewRecordOf(objectRef, stateId)
 		objDescriptor = descriptor.NewObject(objectRef, stateId, classRef, []byte("init state"), false)
 
-		afterPendingStateHash := append([]byte("after pending state"), objectRef.AsBytes()...)
-		afterPendingStateHash = append(afterPendingStateHash, objDescriptor.StateID().AsBytes()...)
-		afterPendingStateID := execute.NewStateID(server.GetPulse().PulseNumber, afterPendingStateHash)
-		pendingFinishedStateRef = reference.NewRecordOf(objectRef, afterPendingStateID)
+		pendingFinishedStateRef = reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
 
 		server.IncrementPulse(ctx)
 
@@ -675,10 +665,7 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 		callRequest.Callee.Set(objectRef)
 		outgoing = callRequest.CallOutgoing
 
-		requestFinishedStateHash := append([]byte("latest state"), objectRef.AsBytes()...)
-		requestFinishedStateHash = append(requestFinishedStateHash, afterPendingStateID.AsBytes()...)
-		requestFinishedStateID := execute.NewStateID(server.GetPulse().PulseNumber, requestFinishedStateHash)
-		requestFinishedStateRef = reference.NewRecordOf(objectRef, requestFinishedStateID)
+		requestFinishedStateRef = reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
 	}
 
 	currentPulse := server.GetPulse().PulseNumber

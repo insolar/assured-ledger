@@ -152,7 +152,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 
 		assert.Empty(t, request.Incoming)
 		assert.Empty(t, request.ObjectMemory)
-		utils.AssertVCallRequestEqual(t, pl, &request.Request)
+		utils.AssertVCallRequestEqual(t, &pl, &request.Request)
 
 		assert.Empty(t, result.IncomingResult)
 		assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), result.ObjectState.Get().GetLocal().Pulse())
@@ -280,7 +280,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 
 		assert.Empty(t, request.Incoming)
 		assert.Empty(t, request.ObjectMemory)
-		utils.AssertVCallRequestEqual(t, pl, &request.Request)
+		utils.AssertVCallRequestEqual(t, &pl, &request.Request)
 
 		assert.Empty(t, result.IncomingResult)
 		assert.Equal(t, currPulse, result.ObjectState.Get().GetLocal().Pulse())
@@ -420,7 +420,7 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 
 			assert.Empty(t, request.Incoming)
 			assert.Empty(t, request.ObjectMemory)
-			utils.AssertVCallRequestEqual(t, pl, &request.Request)
+			utils.AssertVCallRequestEqual(t, &pl, &request.Request)
 
 			assert.Empty(t, result.IncomingResult)
 			assert.Equal(t, p2, result.ObjectState.Get().GetLocal().Pulse())
@@ -901,11 +901,6 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 			Result: objectAResult,
 		})
 	}
-
-	// generate VCallRequest
-	pl := utils.GenerateVCallRequestConstructor(server)
-	pl.Callee.Set(classA)
-	pl.CallOutgoing.Set(outgoing)
 
 	// add checks to typedChecker
 	{

@@ -394,7 +394,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 			if request.Request.CallFlags.GetInterference() == isolation.CallTolerable {
 				require.NotEmpty(t, finished.LatestState)
-				assert.Equal(t, []byte("new memory"), finished.LatestState.State.GetBytes())
+				assert.Equal(t, []byte("new memory"), finished.LatestState.Memory.GetBytes())
 			} else {
 				assert.Empty(t, finished.LatestState)
 			}

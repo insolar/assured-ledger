@@ -566,6 +566,7 @@ func (s *SMExecute) stepRegisterObjectLifeLine(ctx smachine.ExecutionContext) sm
 		}
 
 		s.lmnLastLifelineRef = reference.NewRecordOf(s.execution.Object, subroutineSM.NewLastLifelineRef.GetLocal())
+		s.lmnIncomingRequestRef = subroutineSM.IncomingRequestRef
 
 		return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 			if ctx.Acquire(s.globalSemaphore.PartialLink()).IsNotPassed() {

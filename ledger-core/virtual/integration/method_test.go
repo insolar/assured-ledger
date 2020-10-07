@@ -21,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -54,9 +53,7 @@ func Method_PrepareObject(
 ) {
 
 	bytes := []byte("original object memory")
-	// TODO: FIXME: do we need real state generation?
-	dirtyStateHash := append(bytes, object.AsBytes()...)
-	dirtyStateID := execute.NewStateID(pulse, dirtyStateHash)
+	dirtyStateID := server.RandomLocalWithPulse()
 
 	p := &rms.VStateReport{
 		Status: stateStatus,
@@ -70,16 +67,16 @@ func Method_PrepareObject(
 		state := rms.NewBytes(bytes)
 		p.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &rms.ObjectState{
-				Reference:     rms.NewReferenceLocal(dirtyStateID),
-				Class:         rms.NewReference(testwalletProxy.GetClass()),
-				Memory:        state,
-				Deactivated:   false,
+				Reference:   rms.NewReferenceLocal(dirtyStateID),
+				Class:       rms.NewReference(testwalletProxy.GetClass()),
+				Memory:      state,
+				Deactivated: false,
 			},
 			LatestValidatedState: &rms.ObjectState{
-				Reference:     rms.NewReferenceLocal(dirtyStateID),
-				Class:         rms.NewReference(testwalletProxy.GetClass()),
-				Memory:        state,
-				Deactivated:   false,
+				Reference:   rms.NewReferenceLocal(dirtyStateID),
+				Class:       rms.NewReference(testwalletProxy.GetClass()),
+				Memory:      state,
+				Deactivated: false,
 			},
 		}
 		p.LatestDirtyState = rms.NewReferenceLocal(dirtyStateID)
@@ -976,11 +973,8 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 		validatedState    = reference.NewSelf(validatedStateRef)
 		prevPulse         = server.GetPulse().PulseNumber
 
-		dirtyStateHash = append([]byte(dirtyMem), objectGlobal.AsBytes()...)
-		dirtyStateID   = execute.NewStateID(prevPulse, dirtyStateHash)
-
-		validatedStateHash = append([]byte(validatedMem), objectGlobal.AsBytes()...)
-		validatedStateID   = execute.NewStateID(prevPulse, validatedStateHash)
+		dirtyStateID     = server.RandomLocalWithPulse()
+		validatedStateID = server.RandomLocalWithPulse()
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -1105,11 +1099,8 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 				objectRef = server.RandomGlobalWithPulse()
 				p1        = server.GetPulse().PulseNumber
 
-				dirtyStateHash = append([]byte(origDirtyObjectMem), objectRef.AsBytes()...)
-				dirtyStateID   = execute.NewStateID(p1, dirtyStateHash)
-
-				validatedStateHash = append([]byte(origValidatedObjectMem), objectRef.AsBytes()...)
-				validatedStateID   = execute.NewStateID(p1, validatedStateHash)
+				dirtyStateID     = server.RandomLocalWithPulse()
+				validatedStateID = server.RandomLocalWithPulse()
 
 				pl *rms.VCallRequest
 			)
@@ -1566,8 +1557,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 			State:        isolation.CallValidated,
 		}
 
-		dirtyStateHash = append([]byte(origObjectMem), objectRef.AsBytes()...)
-		dirtyStateID   = execute.NewStateID(p1, dirtyStateHash)
+		dirtyStateID = server.RandomLocalWithPulse()
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)

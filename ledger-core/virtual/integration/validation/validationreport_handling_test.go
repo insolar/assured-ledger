@@ -62,12 +62,12 @@ func TestVirtual_ObjectValidationReport_EmptyCache(t *testing.T) {
 				LatestDirtyState: &rms.ObjectState{
 					Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
 					Class:     class,
-					State:     rms.NewBytes([]byte("dirty state")),
+					Memory:    rms.NewBytes([]byte("dirty state")),
 				},
 				LatestValidatedState: &rms.ObjectState{
 					Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
 					Class:     class,
-					State:     rms.NewBytes([]byte("dirty state")),
+					Memory:    rms.NewBytes([]byte("dirty state")),
 				},
 			},
 		}
@@ -188,18 +188,18 @@ func (s *testSuite) generateStateReport(latestDirtyStateIsEqualValidationReport 
 			LatestDirtyState: &rms.ObjectState{
 				Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
 				Class:     rms.NewReference(s.class),
-				State:     rms.NewBytes([]byte("dirty state")),
+				Memory:    rms.NewBytes([]byte("dirty state")),
 			},
 			LatestValidatedState: &rms.ObjectState{
 				Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
 				Class:     rms.NewReference(s.class),
-				State:     rms.NewBytes([]byte("dirty state")),
+				Memory:    rms.NewBytes([]byte("dirty state")),
 			},
 		},
 	}
 	if latestDirtyStateIsEqualValidationReport {
 		report.ProvidedContent.LatestDirtyState.Reference = rms.NewReferenceLocal(s.objDesc.StateID())
-		report.ProvidedContent.LatestDirtyState.State = rms.NewBytes([]byte("new state"))
+		report.ProvidedContent.LatestDirtyState.Memory = rms.NewBytes([]byte("new state"))
 	}
 
 	s.report = report
