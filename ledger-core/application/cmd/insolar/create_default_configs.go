@@ -13,7 +13,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/application/bootstrap"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	configuration2 "github.com/insolar/assured-ledger/ledger-core/testutils/pulsewatcher/configuration"
 )
 
 func writePulsarConfig(outputDir string) {
@@ -55,7 +54,7 @@ func writeNodeConfig(outputDir string) {
 }
 
 func writePulseWatcher(outputDir string) {
-	raw, err := yaml.Marshal(configuration2.NewPulseWatcherConfiguration())
+	raw, err := yaml.Marshal(configuration.NewPulseWatcherConfiguration())
 	if err != nil {
 		panic(err)
 	}

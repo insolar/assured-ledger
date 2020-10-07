@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/testutils/pulsewatcher/output"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/pulsewatcher/status"
+	"github.com/insolar/assured-ledger/ledger-core/pulsewatcher/output"
+	"github.com/insolar/assured-ledger/ledger-core/pulsewatcher/status"
 )
 
 type Writer struct{}

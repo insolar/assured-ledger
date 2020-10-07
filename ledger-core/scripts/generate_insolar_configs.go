@@ -22,7 +22,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	configuration2 "github.com/insolar/assured-ledger/ledger-core/testutils/pulsewatcher/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -278,7 +277,7 @@ func main() {
 	bootstrapConf, err := bootstrap.ParseConfig(bootstrapFileName)
 	check("Can't read bootstrap config", err)
 
-	pwConfig := configuration2.Config{}
+	pwConfig := configuration.Config{}
 	discoveryNodesConfigs := make([]configuration.Configuration, 0, len(bootstrapConf.DiscoveryNodes))
 
 	promVars := &promConfigVars{
@@ -456,7 +455,7 @@ func writePulsarConfig(pcv *pulsarConfigVars) {
 	check("Can't makeFileWithDir: "+pulsardFileName, err)
 }
 
-func writePulseWatcherConfig(pcv configuration2.Config) {
+func writePulseWatcherConfig(pcv configuration.Config) {
 	templates, err := template.ParseFiles(pulseWatcherConfigTmpl)
 	check("Can't parse template: "+pulseWatcherConfigTmpl, err)
 

@@ -15,10 +15,10 @@ import (
 
 	"github.com/olekukonko/tablewriter"
 
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/pulsewatcher/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/pulsewatcher/output"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/pulsewatcher/status"
+	"github.com/insolar/assured-ledger/ledger-core/pulsewatcher/output"
+	"github.com/insolar/assured-ledger/ledger-core/pulsewatcher/status"
 )
 
 const (
@@ -51,7 +51,7 @@ type Output struct {
 	started time.Time
 }
 
-func NewOutput(cfg configuration.Config) output.Printer {
+func NewOutput(cfg configuration.PulseWatcherConfig) output.Printer {
 	var emoji Emojer
 	if cfg.ShowEmoji {
 		emoji = NewEmoji()

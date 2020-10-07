@@ -17,15 +17,15 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/pulsewatcher/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/pulsewatcher/output"
-	jsonOutput "github.com/insolar/assured-ledger/ledger-core/testutils/pulsewatcher/output/json"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/pulsewatcher/output/text"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/pulsewatcher/status"
+	"github.com/insolar/assured-ledger/ledger-core/pulsewatcher/output"
+	jsonOutput "github.com/insolar/assured-ledger/ledger-core/pulsewatcher/output/json"
+	"github.com/insolar/assured-ledger/ledger-core/pulsewatcher/output/text"
+	"github.com/insolar/assured-ledger/ledger-core/pulsewatcher/status"
 )
 
-func CollectNodesStatuses(cfg configuration.Config, lastResults []status.Node) []status.Node {
+func CollectNodesStatuses(cfg configuration.PulseWatcherConfig, lastResults []status.Node) []status.Node {
 	results := make([]status.Node, len(cfg.Nodes))
 	lock := &sync.Mutex{}
 
@@ -93,15 +93,15 @@ func CollectNodesStatuses(cfg configuration.Config, lastResults []status.Node) [
 	return results
 }
 
-func Run(_ context.Context, cfg configuration.Config) {
+func Run(_ context.Context, cfg configuration.PulseWatcherConfig) {
 	var (
 		results []status.Node
 		printer output.Printer
 	)
 	switch cfg.Format {
-	case configuration.Json:
+	case configuration.PulseWatcherOutputJson:
 		printer = jsonOutput.NewOutput()
-	case configuration.Txt:
+	case configuration.PulseWatcherOutputTxt:
 		printer = text.NewOutput(cfg)
 	default:
 		global.Fatal("Unhandled output format:" + string(cfg.Format))

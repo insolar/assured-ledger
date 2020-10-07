@@ -12,16 +12,16 @@ import (
 
 	"github.com/insolar/insconfig"
 
+	configuration2 "github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/pulsewatcher"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/pulsewatcher/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/pulsewatcher"
 )
 
 const EnvPrefix = "pulsard"
 
 func main() {
-	pCfg := configuration.NewPulseWatcherConfiguration()
+	pCfg := configuration2.NewPulseWatcherConfiguration()
 	paramsCfg := insconfig.Params{
 		EnvPrefix:        EnvPrefix,
 		ConfigPathGetter: &insconfig.DefaultPathGetter{},

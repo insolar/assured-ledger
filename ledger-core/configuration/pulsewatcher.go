@@ -7,32 +7,30 @@ package configuration
 
 import (
 	"time"
-
-	"github.com/insolar/assured-ledger/ledger-core/configuration"
 )
 
-type OutputFormat string
+type PulseWatcherOutputFormat string
 
 const (
-	Txt  OutputFormat = "text"
-	Json OutputFormat = "json"
+	PulseWatcherOutputTxt  PulseWatcherOutputFormat = "text"
+	PulseWatcherOutputJson PulseWatcherOutputFormat = "json"
 )
 
-type Config struct {
+type PulseWatcherConfig struct {
 	Nodes     []string
 	Interval  time.Duration
 	Timeout   time.Duration
-	Log       configuration.Log
-	Format    OutputFormat
+	Log       Log
+	Format    PulseWatcherOutputFormat
 	ShowEmoji bool
 	OneShot   bool
 }
 
-func NewPulseWatcherConfiguration() Config {
-	return Config{
+func NewPulseWatcherConfiguration() PulseWatcherConfig {
+	return PulseWatcherConfig{
 		Interval: 500 * time.Millisecond,
 		Timeout:  1 * time.Second,
-		Log:      configuration.NewLog(),
-		Format:   Txt,
+		Log:      NewLog(),
+		Format:   PulseWatcherOutputTxt,
 	}
 }
