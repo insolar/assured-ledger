@@ -30,7 +30,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: Add bin to path
-        run: echo "::add-path::${{ env.GOPATH }}/bin:$GITHUB_WORKSPACE/bin"
+        run: echo "${{ env.GOPATH }}/bin:$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
       - name: Build docker images
         run: make docker-build
         working-directory: ${{ env.CORE_PATH }}
@@ -41,8 +41,8 @@ jobs:
           docker push $ACR_HOST/assured-ledger:"${GITHUB_SHA:0:8}"
       - name: Prepare report config boilerplate
         run: |
-          echo "::set-env name=INSOLAR_BRANCH::$(echo "${GITHUB_REF#refs/heads/}")"
-          echo "::set-env name=INSOLAR_TAG::${GITHUB_SHA:0:8}"
+          echo "INSOLAR_BRANCH=$(echo "${GITHUB_REF#refs/heads/}")" >> $GITHUB_ENV
+          echo "INSOLAR_TAG=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
           cat ledger-core/scripts/deploy/kube/report.yaml | envsubst '${INSOLAR_BRANCH} ${INSOLAR_TAG}' >report-config.yaml
       - name: Create base report-config artifact
         uses: actions/upload-artifact@v2
@@ -64,15 +64,15 @@ jobs:
         env:
           TARGET: ${{matrix.target}}
         run: |
-          echo "::set-env name=INSOLAR_DESIRED_UPTIME::300"
-          echo "::set-env name=INSOLAR_TAG::${GITHUB_SHA:0:8}"
-          echo "::set-env name=INSOLAR_NETWORK_SIZE::${TARGET}"
-          echo "::set-env name=INSOLAR_NAMESPACE::${GITHUB_SHA:0:8}-${TARGET}"
-          echo "::set-env name=INSOLAR_BRANCH::$(echo "${GITHUB_REF#refs/heads/}")"
-          echo "::set-env name=INSOLAR_NETWORK_SIZE_INT::$(echo $TARGET | awk '{gsub(/[^[0-9]]*/,"");print}')"
+          echo "INSOLAR_DESIRED_UPTIME=300" >> $GITHUB_ENV
+          echo "INSOLAR_TAG=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
+          echo "INSOLAR_NETWORK_SIZE=${TARGET}" >> $GITHUB_ENV
+          echo "INSOLAR_NAMESPACE=${GITHUB_SHA:0:8}-${TARGET}" >> $GITHUB_ENV
+          echo "INSOLAR_BRANCH=$(echo "${GITHUB_REF#refs/heads/}")" >> $GITHUB_ENV
+          echo "INSOLAR_NETWORK_SIZE_INT=$(echo $TARGET | awk '{gsub(/[^[0-9]]*/,"");print}')" >> $GITHUB_ENV
       - name: Install utility binaries
         run: |
-          echo "::add-path::$GITHUB_WORKSPACE/bin"
+          echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
           mkdir bin
           wget -q https://github.com/mikefarah/yq/releases/download/3.4.0/yq_linux_amd64 -O bin/yq
           chmod +x bin/yq
@@ -93,7 +93,7 @@ jobs:
       - name: Provide link to grafana
         run:  echo "https://monitoring.uscifarm.insolar.io/d/LmD-fXFZz/ins-network?orgId=1&refresh=10s&var-phase=All&var-packetType=All&var-namespace=$INSOLAR_NAMESPACE&from=now-10m&to=now"
       - name: Set network start time variable
-        run:  echo "::set-env name=INSOLAR_START_TIME::$(date +'%s')"
+        run:  echo "INSOLAR_START_TIME=$(date +'%s')" >> $GITHUB_ENV
       - name: Keep network running for a desired period of time
         run:  sleep $INSOLAR_DESIRED_UPTIME
       - name: mandatory debug
@@ -127,12 +127,12 @@ jobs:
     steps:
       - name: Preparation - set prerequisite variables, full sha is ${{github.sha}}
         run: |
-          echo "::set-env name=REPORT_WEBDAV_DIRECTORY::consensus-checks/$(date +"%Y%m%d-%H%M")-$(echo ${{github.ref}} | cut -d '/' -f3)-${GITHUB_SHA:0:8}"
-          echo "::set-env name=INSOLAR_BRANCH::$(echo "${GITHUB_REF#refs/heads/}")"
-          echo "::set-env name=INSOLAR_TAG::${GITHUB_SHA:0:8}"
+          echo "REPORT_WEBDAV_DIRECTORY=consensus-checks/$(date +"%Y%m%d-%H%M")-$(echo ${{github.ref}} | cut -d '/' -f3)-${GITHUB_SHA:0:8}" >> $GITHUB_ENV
+          echo "INSOLAR_BRANCH=$(echo "${GITHUB_REF#refs/heads/}")" >> $GITHUB_ENV
+          echo "INSOLAR_TAG=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
       - name: Install utility binaries
         run: |
-          echo "::add-path::$GITHUB_WORKSPACE/bin"
+          echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
           wget -q https://github.com/insolar/consensus-reports/releases/download/v1.0.4/{report,metricreplicator} -P bin/
           chmod +x bin/{report,metricreplicator}
       - name: Download report-config
