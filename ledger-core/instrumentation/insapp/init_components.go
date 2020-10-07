@@ -116,7 +116,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 	roleName := nodeRole.String()
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry(roleName), roleName)
 
-	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
+	availabilityChecker := api.NewDummyNetworkChecker(cfg.AvailabilityChecker)
 
 	mr := nw.CreateMessagesRouter(ctx)
 	// TODO introspection support, cfg.Introspection
