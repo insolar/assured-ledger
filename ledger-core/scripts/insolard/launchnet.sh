@@ -452,8 +452,8 @@ fi
 if [[ "$watch_pulse" == "true" ]]
 then
     echo "starting pulse watcher..."
-    echo "${PULSEWATCHER} --emoji -c ${PULSEWATCHER_CONFIG}"
-    ${PULSEWATCHER} --emoji -c ${PULSEWATCHER_CONFIG}
+    echo "${PULSEWATCHER} --config ${PULSEWATCHER_CONFIG}"
+    ${PULSEWATCHER} --config ${PULSEWATCHER_CONFIG}
 else
     echo "waiting..."
     wait

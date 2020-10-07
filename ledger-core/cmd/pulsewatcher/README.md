@@ -13,9 +13,9 @@ Usage
 
 #### Start pulsewatcher
 
-    ./bin/pulsewatcher -c .artifacts/launchnet/pulsewatcher.yaml
+    ./bin/pulsewatcher --config .artifacts/launchnet/pulsewatcher.yaml
 
 ### Options
 
-        -c config file
+        --config config file
                 Path to configuration file.
