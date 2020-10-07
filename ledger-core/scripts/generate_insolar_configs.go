@@ -19,10 +19,10 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/bootstrap"
-	pulsewatcher "github.com/insolar/assured-ledger/ledger-core/cmd/pulsewatcher/config"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	configuration2 "github.com/insolar/assured-ledger/ledger-core/testutils/pulsewatcher/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -155,7 +155,6 @@ var (
 	fileLogTemplate                  = withBaseDir("logs/discoverynodes/%d/output.log")
 	nodeDataDirectoryTemplate        = "nodes/%d/data"
 	nodeCertificatePathTemplate      = "nodes/%d/cert.json"
-	pulsewatcherFileName             = withBaseDir("pulsewatcher.yaml")
 
 	prometheusConfigTmpl = "scripts/prom/server.yml.tmpl"
 	prometheusFileName   = "prometheus.yaml"
@@ -165,6 +164,9 @@ var (
 
 	pulsardConfigTmpl = "scripts/insolard/pulsar_template.yaml"
 	pulsardFileName   = withBaseDir("pulsar.yaml")
+
+	pulseWatcherConfigTmpl = "scripts/insolard/pulsewatcher_template.yaml"
+	pulseWatcherFileName   = withBaseDir("pulsewatcher.yaml")
 
 	keeperdConfigTmpl = "scripts/insolard/keeperd_template.yaml"
 	keeperdFileName   = withBaseDir("keeperd.yaml")
@@ -276,7 +278,7 @@ func main() {
 	bootstrapConf, err := bootstrap.ParseConfig(bootstrapFileName)
 	check("Can't read bootstrap config", err)
 
-	pwConfig := pulsewatcher.Config{}
+	pwConfig := configuration2.Config{}
 	discoveryNodesConfigs := make([]configuration.Configuration, 0, len(bootstrapConf.DiscoveryNodes))
 
 	promVars := &promConfigVars{
@@ -390,10 +392,8 @@ func main() {
 
 	pwConfig.Interval = 500 * time.Millisecond
 	pwConfig.Timeout = 1 * time.Second
-	mustMakeDir(filepath.Dir(pulsewatcherFileName))
-	err = pulsewatcher.WriteConfig(pulsewatcherFileName, pwConfig)
-	check("couldn't write pulsewatcher config file", err)
-	fmt.Println("generate_insolar_configs.go: write to file", pulsewatcherFileName)
+	writePulseWatcherConfig(pwConfig)
+	fmt.Println("generate_insolar_configs.go: write to file", pulseWatcherFileName)
 }
 
 type node struct {
@@ -454,6 +454,17 @@ func writePulsarConfig(pcv *pulsarConfigVars) {
 	check("Can't process template: "+pulsardConfigTmpl, err)
 	err = makeFile(pulsardFileName, b.String())
 	check("Can't makeFileWithDir: "+pulsardFileName, err)
+}
+
+func writePulseWatcherConfig(pcv configuration2.Config) {
+	templates, err := template.ParseFiles(pulseWatcherConfigTmpl)
+	check("Can't parse template: "+pulseWatcherConfigTmpl, err)
+
+	var b bytes.Buffer
+	err = templates.Execute(&b, &pcv)
+	check("Can't process template: "+pulseWatcherConfigTmpl, err)
+	err = makeFile(pulseWatcherFileName, b.String())
+	check("Can't makeFileWithDir: "+pulseWatcherFileName, err)
 }
 
 func writeKeeperdConfig() {
