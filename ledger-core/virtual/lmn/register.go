@@ -411,6 +411,7 @@ func (s *SubSMRegister) stepRegisterLifeline(ctx smachine.ExecutionContext) smac
 
 	s.Object = anticipatedRef
 	s.LastLifelineRef = anticipatedRef
+	s.IncomingRequestRef = anticipatedRef
 
 	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),

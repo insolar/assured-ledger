@@ -1086,17 +1086,11 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		tEntries = append(tEntries, s.incomingTranscriptEntry())
 	}
 
-	var resultRef reference.Global
-	if s.intolerableCall() {
-		resultRef = s.lmnLastFilamentRef
-	} else {
-		resultRef = s.lmnLastLifelineRef
-	}
 	tEntries = append(tEntries, validation.TranscriptEntry{
 		Reason: s.execution.Outgoing,
 		Custom: validation.TranscriptEntryIncomingResult{
-			IncomingResult: resultRef,
-			ObjectMemory:   s.newObjectMemoryRef(),
+			IncomingResult: s.lmnLastFilamentRef,
+			ObjectMemory:   s.lmnLastLifelineRef,
 		},
 	})
 
@@ -1407,19 +1401,6 @@ func (s *SMExecute) objectMemoryRef() reference.Global {
 		}
 		return reference.NewRecordOf(desc.HeadRef(), desc.StateID())
 	}
-}
-
-func (s *SMExecute) newObjectMemoryRef() reference.Global {
-	var res reference.Global
-	if s.newObjectDescriptor != nil {
-		res = reference.NewRecordOf(
-			s.newObjectDescriptor.HeadRef(),
-			s.newObjectDescriptor.StateID(),
-		)
-	} else {
-		res = s.objectMemoryRef()
-	}
-	return res
 }
 
 type RegisterVariant int
