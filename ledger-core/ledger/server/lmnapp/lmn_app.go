@@ -15,6 +15,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/readersvc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/readersvc/rmemstor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
@@ -49,7 +51,13 @@ func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insc
 				setup.Dependencies.AddInterfaceDependency(&plashCatalog)
 				setup.Dependencies.AddInterfaceDependency(&dropCatalog)
 				setup.Dependencies.AddInterfaceDependency(&lineCatalog)
+			}
 
+
+			cabinetProvider := &rmemstor.Provider{}
+			setup.AddComponent(readersvc.NewAdapterComponent(smadapter.Config{}, comps.CryptoScheme, cabinetProvider))
+
+			{
 				var treeServiceImpl = treesvc.NewEmpty()
 				var treeService treesvc.Service = treeServiceImpl
 
@@ -57,7 +65,8 @@ func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insc
 				setup.Dependencies.AddInterfaceDependency(&treeService)
 			}
 
-			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.Config{}, comps.CryptoScheme, 16))
+			storageFactory := newStorageBuilderFactory(1<<17, cabinetProvider.AddCabinet)
+			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.Config{}, comps.CryptoScheme, storageFactory, 16))
 			setup.AddComponent(inspectsvc.NewAdapterComponent(smadapter.Config{
 				// ExpectedParallelReaders: -1,
 				// MaxBufferCapacity: -1,

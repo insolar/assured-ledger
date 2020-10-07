@@ -10,6 +10,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
@@ -186,7 +187,7 @@ func (p *serviceImpl) createPlash(cfg BasicPlashConfig, tree jet.PrefixTree) (Pl
 		panic(throw.IllegalState())
 	}
 
-	sw := p.storageFactory.CreateSnapshotWriter(pn)
+	sw := p.storageFactory.CreateSnapshotWriter(pn, ledger.DefaultDustSection)
 	pa.dirtyReader = sw.DirtyReader()
 	bw := bundle.NewWriter(sw) // NB! MUST be one writer per storage
 	pa.writer = bw

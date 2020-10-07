@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package dropstorage
+package memstor
 
 import (
 	"testing"
@@ -18,7 +18,7 @@ import (
 )
 
 func TestMemorySnapshot(t *testing.T) {
-	ms := NewMemoryStorageWriter(ledger.DefaultDustSection, directoryEntrySize*16)
+	ms := NewMemoryStorageWriter(0, ledger.DefaultDustSection, directoryEntrySize*16)
 	s, _ := ms.TakeSnapshot()
 
 	es, err := s.GetDirectorySection(ledger.DefaultEntrySection)
@@ -61,7 +61,7 @@ func TestMemorySnapshot(t *testing.T) {
 }
 
 func TestMemorySnapshotDirectoryPaging(t *testing.T) {
-	ms := NewMemoryStorageWriter(ledger.DefaultDustSection, directoryEntrySize*16)
+	ms := NewMemoryStorageWriter(0, ledger.DefaultDustSection, directoryEntrySize*16)
 	s, _ := ms.TakeSnapshot()
 	es, err := s.GetDirectorySection(ledger.DefaultEntrySection)
 	require.NoError(t, err)
@@ -112,8 +112,8 @@ func TestMemorySnapshotDirectoryPaging(t *testing.T) {
 }
 
 func TestMemorySnapshotPayloadPaging(t *testing.T) {
-	pageSize := directoryEntrySize*16
-	ms := NewMemoryStorageWriter(ledger.DefaultDustSection, pageSize)
+	pageSize := directoryEntrySize *16
+	ms := NewMemoryStorageWriter(0, ledger.DefaultDustSection, pageSize)
 	s, _ := ms.TakeSnapshot()
 	es, err := s.GetPayloadSection(ledger.DefaultEntrySection)
 	require.NoError(t, err)
@@ -202,7 +202,7 @@ func (p *benchBundle) ApplyWrite() ([]ledger.DirectoryIndex, error) {
 }
 
 func BenchmarkMemoryStorageWrite(b *testing.B) {
-	ms := NewMemoryStorageWriter(ledger.DefaultEntrySection, 1<<16)
+	ms := NewMemoryStorageWriter(0, ledger.DefaultEntrySection, 1<<16)
 	mw := bundle.NewWriter(ms)
 	src := make([]byte, 1<<12)
 	b.SetBytes(int64(len(src)))
@@ -223,7 +223,7 @@ func BenchmarkMemoryStorageWrite(b *testing.B) {
 }
 
 func BenchmarkMemoryStorageParallelWrite(b *testing.B) {
-	ms := NewMemoryStorageWriter(ledger.DefaultEntrySection, 1<<16)
+	ms := NewMemoryStorageWriter(0, ledger.DefaultEntrySection, 1<<16)
 	mw := bundle.NewWriter(ms)
 	src := make([]byte, 1<<12)
 	b.SetBytes(int64(len(src)))

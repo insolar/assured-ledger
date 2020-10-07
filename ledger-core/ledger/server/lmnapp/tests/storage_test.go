@@ -14,6 +14,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp/lmntestapp"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/readersvc"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
@@ -158,6 +159,14 @@ func TestAddRecordsThenChangePulse(t *testing.T) {
 	})
 
 	server.Start()
+
+	var readSvc readersvc.Service
+	{
+		var readAdapter readersvc.Adapter
+		server.Injector().MustInject(&readAdapter)
+		readSvc = readersvc.GetServiceForTestOnly(readAdapter)
+	}
+
 	server.RunGenesis()
 	server.IncrementPulse()
 
@@ -169,7 +178,8 @@ func TestAddRecordsThenChangePulse(t *testing.T) {
 		body:       make([]byte, 1<<10),
 	}
 
-	reasonRef := gen.UniqueGlobalRefWithPulse(server.LastPulseNumber())
+	pn := server.LastPulseNumber()
+	reasonRef := gen.UniqueGlobalRefWithPulse(pn)
 
 	var bundleSignatures [][]cryptkit.Signature
 
@@ -186,7 +196,10 @@ func TestAddRecordsThenChangePulse(t *testing.T) {
 	time.Sleep(2*time.Second)
 
 	server.IncrementPulse()
-	time.Sleep(time.Second)
+
+	require.Eventually(t, func() bool {
+		return readSvc.FindCabinet(pn) != nil
+	}, 2*time.Second, 10*time.Millisecond)
 }
 
 func BenchmarkWriteNew(b *testing.B) {
@@ -326,4 +339,3 @@ func benchmarkWriteRead(b *testing.B, bodySize int, parallel bool) {
 		b.SetBytes(int64(genNewLine.totalBytes.Load()) / int64(iterCount.Load()))
 	})
 }
-

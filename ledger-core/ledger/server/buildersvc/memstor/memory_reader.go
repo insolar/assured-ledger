@@ -3,13 +3,13 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package dropstorage
+package memstor
 
 import (
 	"math"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/readersvc/readbundle"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
@@ -66,7 +66,7 @@ func (v cabinetReadSection) getStorage(locator ledger.StorageLocator) ([]byte, e
 	return chapter[chapterOfs:], nil
 }
 
-var _ bundle.Reader = MemoryStorageReader{}
+var _ readbundle.Reader = MemoryStorageReader{}
 
 type MemoryStorageReader struct {
 	sections []cabinetReadSection
@@ -106,7 +106,7 @@ func (v MemoryStorageReader) GetDirectoryEntry(index ledger.DirectoryIndex) (led
 	return loc, nil
 }
 
-func (v MemoryStorageReader) GetEntryStorage(locator ledger.StorageLocator) (bundle.ReadSlice, error) {
+func (v MemoryStorageReader) GetEntryStorage(locator ledger.StorageLocator) (readbundle.ReadSlice, error) {
 	section, err := v.getSection(locator.SectionID(), true)
 	if err == nil {
 		var b []byte
@@ -124,7 +124,7 @@ func (v MemoryStorageReader) GetEntryStorage(locator ledger.StorageLocator) (bun
 	return nil, throw.WithDetails(err, struct { Locator ledger.StorageLocator }{locator})
 }
 
-func (v MemoryStorageReader) GetPayloadStorage(locator ledger.StorageLocator, size int) (bundle.ReadSlice, error) {
+func (v MemoryStorageReader) GetPayloadStorage(locator ledger.StorageLocator, size int) (readbundle.ReadSlice, error) {
 	if size <= 0 {
 		panic(throw.IllegalValue())
 	}
@@ -141,13 +141,10 @@ func (v MemoryStorageReader) GetPayloadStorage(locator ledger.StorageLocator, si
 	}
 }
 
-func (v MemoryStorageReader) readData(b []byte, ofs, size int) (bundle.ReadSlice, error) {
+func (v MemoryStorageReader) readData(b []byte, ofs, size int) (readbundle.ReadSlice, error) {
 	end := ofs + size
 	if end > len(b) {
 		return nil, throw.E("invalid data slice", struct { Offset, Length int}{ ofs, size})
 	}
 	return longbits.WrapBytes(b[ofs:end:end]), nil
 }
-
-
-

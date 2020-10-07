@@ -12,7 +12,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/crypto"
-	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -39,12 +38,11 @@ func NewReadAdapter(adapterID smachine.AdapterID, executor smachine.AdapterExecu
 	}
 }
 
-func NewAdapterComponent(cfg smadapter.Config, ps crypto.PlatformScheme, plashLimit int) managed.Component {
-
+func NewAdapterComponent(cfg smadapter.Config, ps crypto.PlatformScheme, storageFactory StorageFactory, plashLimit int) managed.Component {
 	svc := newService(
 		jetalloc.NewMaterialAllocationStrategy(false),
 		ps.ConsensusScheme().NewMerkleDigester(),
-		newStorageFactory(ledger.DefaultDustSection, 1<<17),
+		storageFactory,
 		plashLimit,
 	)
 
@@ -55,8 +53,8 @@ func NewAdapterComponent(cfg smadapter.Config, ps crypto.PlatformScheme, plashLi
 		holder.AddDependency(writeAdapter)
 		holder.AddDependency(readAdapter)
 	}, cfg, cfg)
-	writeAdapter = NewWriteAdapter("NewDropBuilder", executors[0], svc)
-	readAdapter = NewReadAdapter("NewDropReader", executors[1], svc)
+	writeAdapter = NewWriteAdapter("DropBuilder", executors[0], svc)
+	readAdapter = NewReadAdapter("DropDirtyReader", executors[1], svc)
 	return component
 }
 

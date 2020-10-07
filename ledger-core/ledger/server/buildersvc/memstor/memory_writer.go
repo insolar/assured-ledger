@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package dropstorage
+package memstor
 
 import (
 	"io"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -19,9 +20,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-const MinStoragePageSize = directoryEntrySize*16
+const MinStoragePageSize = directoryEntrySize *16
 
-func NewMemoryStorageWriter(maxSection ledger.SectionID, pageSize int) *MemoryStorageWriter {
+func NewMemoryStorageWriter(pn pulse.Number, maxSection ledger.SectionID, pageSize int) *MemoryStorageWriter {
 	switch {
 	case maxSection == 0:
 		panic(throw.IllegalValue())
@@ -31,7 +32,7 @@ func NewMemoryStorageWriter(maxSection ledger.SectionID, pageSize int) *MemorySt
 		panic(throw.IllegalValue())
 	}
 
-	mc := &MemoryStorageWriter{}
+	mc := &MemoryStorageWriter{ pn: pn}
 	mc.sections = make([]cabinetSection, maxSection + 1)
 	dirSize := pageSize / directoryEntrySize
 
@@ -54,6 +55,7 @@ var _ bundle.SnapshotWriter = &MemoryStorageWriter{}
 type MemoryStorageWriter struct {
 	sections []cabinetSection
 	state    atomickit.Uint32
+	pn       pulse.Number
 }
 
 const (
@@ -61,6 +63,10 @@ const (
 	stateReadOnly
 	stateBroken
 )
+
+func (p *MemoryStorageWriter) PulseNumber() pulse.Number {
+	return p.pn
+}
 
 func (p *MemoryStorageWriter) TakeSnapshot() (bundle.Snapshot, error) {
 	if err := p.checkWriteable(); err != nil {
