@@ -6,6 +6,7 @@
 package reftypes
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
@@ -14,6 +15,8 @@ type RefTypeDef interface {
 	VerifyGlobalRef(base, local reference.Local) error
 	VerifyLocalRef(reference.Local) error
 	DetectSubType(base, local reference.Local) RefType
+	RefFrom(base, local reference.Local) (reference.Global, error)
+	CanBeDerivedWith(base pulse.Number, local reference.Local) bool
 }
 
 const (
@@ -38,8 +41,14 @@ func typeDefinition(t RefType) RefTypeDef {
 		return tDefJetDrop
 	case JetLeg:
 		return tDefJetLeg
+	case JetRecord:
+		return tDefJetRecord
 	case RecordPayload:
 		return tDefRecPayload
+	case BuiltinContract:
+		return tDefBuiltinContract
+	case Object:
+		return tDefObject
 	default:
 		return nil
 	}
@@ -52,7 +61,10 @@ var (
 	tDefJet = typeDefJet{}
 	tDefJetDrop = typeDefJetDrop{}
 	tDefJetLeg = typeDefJetLeg{}
+	tDefJetRecord = typeDefJetRecord{}
 	tDefRecPayload = typeDefRecPayload{}
+	tDefBuiltinContract = typeDefBuiltinContract{}
+	tDefObject = typeDefObject{}
 )
 
 // APISession128: {usage: UseAsSelf},

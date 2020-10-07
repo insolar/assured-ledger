@@ -30,7 +30,7 @@ func JetRecordRefByDrop(id jet.DropID, recordRef reference.LocalHolder) referenc
 
 func UnpackJetRecordRef(ref reference.Holder) (jet.DropID, reference.Local, error) {
 	if ref == nil {
-		return 0, reference.Local{}, ErrIllegalRefValue
+		return 0, reference.Local{}, newRefTypeErr(ErrIllegalRefValue, JetRecord, reference.Local{}, reference.Local{})
 	}
 
 	base, local := ref.GetBase(), ref.GetLocal()
@@ -46,10 +46,9 @@ func UnpackJetRecordRef(ref reference.Holder) (jet.DropID, reference.Local, erro
 		default:
 			return id.AsDrop(lpn), local, nil
 		}
-		return 0, reference.Local{}, err
+		return 0, reference.Local{}, newRefTypeErr(err, JetRecord, base, local)
 	}
-
-	return 0, reference.Local{}, ErrIllegalRefValue
+	return 0, reference.Local{}, newRefTypeErr(ErrIllegalRefValue, JetRecord, base, local)
 }
 
 func JetRecordOf(ref reference.Holder) reference.Global {
@@ -112,8 +111,19 @@ func UnpackAsJetRecordOf(ref reference.Holder) (jet.DropID, reference.Local, err
 var _ RefTypeDef = typeDefJetRecord{}
 type typeDefJetRecord struct {}
 
+func (typeDefJetRecord) CanBeDerivedWith(pulse.Number, reference.Local) bool {
+	return false
+}
+
 func (typeDefJetRecord) Usage() Usage {
 	return UseAsBase
+}
+
+func (v typeDefJetRecord) RefFrom(base, local reference.Local) (reference.Global, error) {
+	if err := v.VerifyGlobalRef(base, local); err != nil {
+		return reference.Global{}, err
+	}
+	return reference.New(base, local), nil
 }
 
 func (typeDefJetRecord) VerifyGlobalRef(base, local reference.Local) error {

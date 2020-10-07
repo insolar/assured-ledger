@@ -21,7 +21,8 @@ func APICallRef(nodeRef reference.Holder, sidPN pulse.Number, reqHash reference.
 		panic(err)
 	}
 
-	return reference.New(base, reference.NewLocal(sidPN, 0, reqHash))
+	apiBase := reference.NewLocal(pulse.ExternalCall, 0, base.IdentityHash())
+	return reference.New(apiBase, reference.NewLocal(sidPN, 0, reqHash))
 }
 
 func UnpackAPICallRef(ref reference.Holder) (nodeRef reference.Global, sidPN pulse.Number, reqHash reference.LocalHash, err error) {
@@ -36,7 +37,7 @@ func UnpackAPICallRef(ref reference.Holder) (nodeRef reference.Global, sidPN pul
 		return NodeRef(base.IdentityHash()), lpn, local.IdentityHash(), nil
 	}
 
-	err = throw.WithDetails(err, DetailErrRef { Node, base.GetHeader(), local.GetHeader() })
+	err = newRefTypeErr(err, APICall, base, local)
 	return reference.Global{}, 0, reference.LocalHash{}, err
 }
 
@@ -45,8 +46,19 @@ func UnpackAPICallRef(ref reference.Holder) (nodeRef reference.Global, sidPN pul
 var _ RefTypeDef = typeDefAPICall{}
 type typeDefAPICall struct {}
 
+func (typeDefAPICall) CanBeDerivedWith(pulse.Number, reference.Local) bool {
+	return false
+}
+
 func (typeDefAPICall) Usage() Usage {
 	return UseAsBase
+}
+
+func (v typeDefAPICall) RefFrom(base, local reference.Local) (reference.Global, error) {
+	if err := v.VerifyGlobalRef(base, local); err != nil {
+		return reference.Global{}, err
+	}
+	return reference.New(base, local), nil
 }
 
 func (typeDefAPICall) VerifyGlobalRef(base, local reference.Local) error {

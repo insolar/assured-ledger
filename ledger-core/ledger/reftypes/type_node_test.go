@@ -6,84 +6,95 @@
 package reftypes
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/stretchr/testify/assert"
-	"reflect"
-	"testing"
 )
 
-func TestLocalNodeRef(t *testing.T) {
+func TestNodeRefLocal(t *testing.T) {
 	localNodeRef := NodeLocalRef(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF})
-	assert.Equal(t, "260/insolar:0AAABBN6tvu8.record", localNodeRef.String())
+	assert.Equal(t, pulse.Node, localNodeRef.Pulse())
+	assert.EqualValues(t, 0, localNodeRef.SubScope())
 
 	tDefNode = typeDefNode{}
 	err := tDefNode.VerifyLocalRef(localNodeRef)
-	assert.Equal(t, nil, err)
+	assert.NoError(t, err)
 
 	unpackedLocalNodeRef, err := UnpackNodeLocalRef(localNodeRef)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, pulse.Node, unpackedLocalNodeRef.GetPulseNumber())
-	assert.Equal(t, reference.SubScopeLifeline, unpackedLocalNodeRef.SubScope())
-	assert.True(t, reflect.DeepEqual(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF}, unpackedLocalNodeRef.GetHash()))
+	assert.NoError(t, err)
+	assert.Equal(t, localNodeRef, unpackedLocalNodeRef)
 
 	pn, nrl := nodeLocalRefOf(localNodeRef)
 	assert.Equal(t, pulse.Node, pn)
-	assert.Equal(t, "260/insolar:0AAABBN6tvu8.record", nrl.String())
-	assert.Equal(t, pulse.Node, nrl.GetPulseNumber())
-	assert.Equal(t, reference.SubScopeLifeline, nrl.SubScope())
-	assert.True(t, reflect.DeepEqual(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF}, nrl.GetHash()))
+	assert.Equal(t, localNodeRef, nrl)
+
+	callLocalNodeRef := APICallRef(reference.NewSelf(localNodeRef), pulse.MinTimePulse, reference.LocalHash{})
+
+	pn, nrl = nodeLocalRefOf(callLocalNodeRef.GetBase())
+	assert.Equal(t, pulse.ExternalCall, pn)
+	assert.Equal(t, localNodeRef, nrl)
 
 	localNodeRef1 := NodeLocalRef(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF})
-	assert.True(t, localNodeRef.Equal(localNodeRef1))
+	assert.Equal(t, localNodeRef, localNodeRef1)
 }
 
-
-func TestGlobalNodeRef(t *testing.T) {
+func TestNodeRef(t *testing.T) {
 	nodeRef := NodeRef(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF})
-	assert.Equal(t, "insolar:0AAABBN6tvu8", nodeRef.String())
-	assert.Equal(t, "260/insolar:0AAABBN6tvu8.record", nodeRef.GetBase().String())
-	assert.Equal(t, "260/insolar:0AAABBN6tvu8.record", nodeRef.GetLocal().String())
+
 	assert.Equal(t, pulse.Node, nodeRef.GetBase().GetPulseNumber())
-	assert.Equal(t, reference.SubScopeLifeline, nodeRef.GetBase().SubScope())
-	assert.Equal(t, pulse.Node, nodeRef.GetLocal().GetPulseNumber())
-	assert.Equal(t, reference.SubScopeLifeline, nodeRef.GetLocal().SubScope())
+	assert.EqualValues(t, 0, nodeRef.GetBase().SubScope())
+	assert.Equal(t, nodeRef.GetBase(), nodeRef.GetLocal())
 
 	tDefNode = typeDefNode{}
 	err := tDefNode.VerifyGlobalRef(nodeRef.GetBase(), nodeRef.GetLocal())
-	assert.Equal(t, nil, err)
+	assert.NoError(t, err)
+
 	err = tDefNode.VerifyLocalRef(nodeRef.GetLocal())
-	assert.Equal(t, nil, err)
-	assert.Equal(t, Node, tDefNode.DetectSubType(nodeRef.GetBase(), nodeRef.GetLocal()))
+	assert.NoError(t, err)
 
 	unpackedLocalNodeRef, err := UnpackNodeLocalRef(nodeRef)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, pulse.Node, unpackedLocalNodeRef.GetPulseNumber())
-	assert.Equal(t, reference.SubScopeLifeline, unpackedLocalNodeRef.SubScope())
-	assert.True(t, reflect.DeepEqual(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF}, unpackedLocalNodeRef.GetHash()))
-	assert.True(t, unpackedLocalNodeRef.Equal(nodeRef.GetLocal()))
+	assert.NoError(t, err)
+	assert.Equal(t, nodeRef.GetLocal(), unpackedLocalNodeRef)
 
 	unpackedNodeRef, err := UnpackNodeRef(nodeRef)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, pulse.Node, unpackedNodeRef.GetLocal().GetPulseNumber())
-	assert.Equal(t, reference.SubScopeLifeline, unpackedNodeRef.GetLocal().SubScope())
-	assert.True(t, reflect.DeepEqual(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF}, unpackedNodeRef.GetLocal().GetHash()))
-	assert.Equal(t, pulse.Node, unpackedNodeRef.GetBase().GetPulseNumber())
-	assert.Equal(t, reference.SubScopeLifeline, unpackedNodeRef.GetBase().SubScope())
-	assert.True(t, reflect.DeepEqual(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF}, unpackedNodeRef.GetBase().GetHash()))
-	assert.Equal(t, "260/insolar:0AAABBN6tvu8.record", unpackedNodeRef.GetBase().String())
-	assert.True(t, unpackedNodeRef.GetLocal().Equal(nodeRef.GetLocal()))
-	assert.True(t, unpackedNodeRef.GetBase().Equal(nodeRef.GetBase()))
-
+	assert.NoError(t, err)
+	assert.Equal(t, nodeRef, unpackedNodeRef)
 
 	unpackedNodeRefAsLocal, err := UnpackNodeRefAsLocal(nodeRef)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, pulse.Node, unpackedNodeRefAsLocal.GetLocal().GetPulseNumber())
-	assert.Equal(t, reference.SubScopeLifeline, unpackedNodeRefAsLocal.GetLocal().SubScope())
-	assert.True(t, reflect.DeepEqual(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF}, unpackedNodeRefAsLocal.GetLocal().GetHash()))
-	assert.True(t, unpackedNodeRefAsLocal.GetLocal().Equal(nodeRef.GetLocal()))
+	assert.Equal(t, nodeRef.GetLocal(), unpackedNodeRefAsLocal)
 
 	_, _, err = UnpackNodeContractRef(nodeRef)
-	assert.NotNil(t, err)
-
+	assert.Error(t, err)
 }
+
+func TestNodeContractRef(t *testing.T) {
+	nodeRef := NodeRef(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF})
+
+	contractLoc := reference.NewLocal(pulse.MinTimePulse, reference.SubScopeLocal, reference.LocalHash{})
+	nodeContractRef := NodeContractRef(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF}, contractLoc)
+
+	require.Equal(t, nodeRef.GetBase(), nodeContractRef.GetBase())
+	require.Equal(t, contractLoc, nodeContractRef.GetLocal())
+
+	_, _, err := UnpackNodeContractRef(nodeRef)
+	assert.Error(t, err)
+
+	unpackedNodeRef, unpackedContractRef, err := UnpackNodeContractRef(nodeContractRef)
+	assert.NoError(t, err)
+	require.Equal(t, nodeRef, unpackedNodeRef)
+	require.Equal(t, contractLoc, unpackedContractRef)
+}
+
+func TestNodeRefDetect(t *testing.T) {
+	nodeRef := NodeRef(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF})
+	assert.Equal(t, Node, tDefNode.DetectSubType(nodeRef.GetBase(), nodeRef.GetLocal()))
+
+	contractLoc := reference.NewLocal(pulse.MinTimePulse, reference.SubScopeLocal, reference.LocalHash{})
+	nodeContractRef := NodeContractRef(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF}, contractLoc)
+	assert.Equal(t, NodeContract, tDefNode.DetectSubType(nodeContractRef.GetBase(), nodeContractRef.GetLocal()))
+}
+

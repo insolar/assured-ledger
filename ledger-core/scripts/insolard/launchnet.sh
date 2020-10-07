@@ -119,7 +119,8 @@ stop_listening()
     ports="$ports 58090" # Pulsar
 
     transport_ports=$( grep "host:" ${BOOTSTRAP_CONFIG} | grep -o ":\d\+" | grep -o "\d\+" | tr '\n' ' ' )
-    keeperd_port=$( grep "listenaddress:" ${KEEPERD_CONFIG} | grep -o ":\d\+" | grep -o "\d\+" | tr '\n' ' ' )
+    # keeperd_port=$( grep "listenaddress:" ${KEEPERD_CONFIG} | grep -o ":\d\+" | grep -o "\d\+" | tr '\n' ' ' )
+    keeperd_port=""
     ports="$ports $transport_ports $keeperd_port"
 
     for port in $ports
@@ -386,7 +387,7 @@ else
     echo "Skip launching of pulsar"
 fi
 
-launch_keeperd
+# launch_keeperd
 
 handle_sigchld()
 {
@@ -451,8 +452,8 @@ fi
 if [[ "$watch_pulse" == "true" ]]
 then
     echo "starting pulse watcher..."
-    echo "${PULSEWATCHER} --emoji -c ${PULSEWATCHER_CONFIG}"
-    ${PULSEWATCHER} --emoji -c ${PULSEWATCHER_CONFIG}
+    echo "${PULSEWATCHER} --config ${PULSEWATCHER_CONFIG}"
+    ${PULSEWATCHER} --config ${PULSEWATCHER_CONFIG}
 else
     echo "waiting..."
     wait

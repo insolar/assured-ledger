@@ -11,10 +11,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-var ErrInvalidRef = throw.E("invalid reference")
+var ErrIllegalRefValue = throw.E("illegal reference value")
+var ErrInvalidRef = throw.W(ErrIllegalRefValue, "invalid reference")
 var ErrEmptyRef = throw.E("empty reference")
 var ErrNotEmptyRef = throw.E("not empty reference")
-var ErrIllegalRefValue = throw.E("illegal reference value")
 var ErrIllegalSelfRefValue = throw.W(ErrIllegalRefValue,"self-reference expected")
 
 func pulseZeroScope(h reference.LocalHeader) pulse.Number {
