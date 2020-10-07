@@ -6,12 +6,13 @@ quantiles:
 tmpdir: "/tmp/metricreplicator"
 groups:
   - description: "Network size grows with fixed latency"
-    ranges:
-      - starttime: ${INSOLAR_START_TIME}
-        interval: "${INTERVAL}"
-        props:
-          - name: "network_size"
-            value: "${INSOLAR_NETWORK_SIZE_INT}"
+    ranges: # Ranges will be set here by the yq script
 git:
   branch: "${INSOLAR_BRANCH}"
   hash: "${INSOLAR_TAG}"
+
+#      - starttime: ${INSOLAR_START_TIME}
+#        interval: "${INTERVAL}"
+#        props:
+#          - name: "network_size"
+#            value: "${INSOLAR_NETWORK_SIZE_INT}"
