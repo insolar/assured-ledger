@@ -11,12 +11,20 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func NodeLocalRef(hash reference.LocalHash) reference.Local {
-	return reference.NewLocal(pulse.Node, 0, hash)
+func NodeLocalRef(nodeHash reference.LocalHash) reference.Local {
+	return reference.NewLocal(pulse.Node, 0, nodeHash)
 }
 
-func NodeRef(hash reference.LocalHash) reference.Global {
-	return reference.NewSelf(NodeLocalRef(hash))
+func NodeRef(nodeHash reference.LocalHash) reference.Global {
+	return reference.NewSelf(NodeLocalRef(nodeHash))
+}
+
+func NodeContractRef(nodeHash reference.LocalHash, locContract reference.LocalHolder) reference.Global {
+	local := locContract.GetLocal()
+	if !local.Pulse().IsTimePulse() {
+		panic(throw.IllegalValue())
+	}
+	return reference.New(NodeLocalRef(nodeHash), local)
 }
 
 func nodeLocalRefOf(loc reference.LocalHolder) (pulse.Number, reference.Local) {

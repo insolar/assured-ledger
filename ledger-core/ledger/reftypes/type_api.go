@@ -21,7 +21,8 @@ func APICallRef(nodeRef reference.Holder, sidPN pulse.Number, reqHash reference.
 		panic(err)
 	}
 
-	return reference.New(base, reference.NewLocal(sidPN, 0, reqHash))
+	apiBase := reference.NewLocal(pulse.ExternalCall, 0, base.IdentityHash())
+	return reference.New(apiBase, reference.NewLocal(sidPN, 0, reqHash))
 }
 
 func UnpackAPICallRef(ref reference.Holder) (nodeRef reference.Global, sidPN pulse.Number, reqHash reference.LocalHash, err error) {
