@@ -13,7 +13,7 @@ type PulseWatcherOutputFormat string
 
 const (
 	PulseWatcherOutputTxt  PulseWatcherOutputFormat = "text"
-	PulseWatcherOutputJson PulseWatcherOutputFormat = "json"
+	PulseWatcherOutputJSON PulseWatcherOutputFormat = "json"
 )
 
 type PulseWatcherConfig struct {

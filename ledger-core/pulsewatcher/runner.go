@@ -61,7 +61,10 @@ func CollectNodesStatuses(cfg configuration.PulseWatcherConfig, lastResults []st
 					results[i] = lastResults[i]
 					results[i].ErrStr = errStr
 				} else {
-					results[i] = status.Node{url, requester.StatusResponse{}, errStr}
+					results[i] = status.Node{
+						URL:    url,
+						Reply:  requester.StatusResponse{},
+						ErrStr: errStr}
 				}
 				lock.Unlock()
 				wg.Done()
@@ -82,7 +85,7 @@ func CollectNodesStatuses(cfg configuration.PulseWatcherConfig, lastResults []st
 			}
 			lock.Lock()
 
-			results[i] = status.Node{url, out.Result, ""}
+			results[i] = status.Node{URL: url, Reply: out.Result, ErrStr: ""}
 
 			lock.Unlock()
 			wg.Done()
@@ -99,7 +102,7 @@ func Run(_ context.Context, cfg configuration.PulseWatcherConfig) {
 		printer output.Printer
 	)
 	switch cfg.Format {
-	case configuration.PulseWatcherOutputJson:
+	case configuration.PulseWatcherOutputJSON:
 		printer = jsonOutput.NewOutput()
 	case configuration.PulseWatcherOutputTxt:
 		printer = text.NewOutput(cfg)

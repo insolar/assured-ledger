@@ -18,7 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulsewatcher"
 )
 
-const EnvPrefix = "pulsard"
+const EnvPrefix = "pulsewatcher"
 
 func main() {
 	pCfg := configuration.NewPulseWatcherConfiguration()
