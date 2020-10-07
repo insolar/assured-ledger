@@ -134,3 +134,11 @@ func (nc *NetworkChecker) IsAvailable(ctx context.Context) bool {
 	defer nc.lock.RUnlock()
 	return nc.isAvailable
 }
+
+type DummyNetworkChecker struct{}
+
+func NewDummyNetworkChecker(_ configuration.AvailabilityChecker) *DummyNetworkChecker {
+	return &DummyNetworkChecker{}
+}
+
+func (d DummyNetworkChecker) IsAvailable(ctx context.Context) bool { return true }

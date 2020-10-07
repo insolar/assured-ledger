@@ -87,11 +87,12 @@ func TestSMExecute_Init(t *testing.T) {
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
-		pd        = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		caller    = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		callee    = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		meRef     = gen.UniqueGlobalRef()
+		pd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot    = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		caller       = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
+		callee       = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
+		callOutgoing = reference.NewRecordOf(caller, gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		meRef        = gen.UniqueGlobalRef()
 
 		callFlags = rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 
@@ -101,7 +102,7 @@ func TestSMExecute_Init(t *testing.T) {
 			CallSiteMethod: "New",
 			Caller:         rms.NewReference(caller),
 			Callee:         rms.NewReference(callee),
-			CallOutgoing:   rms.NewReference(gen.UniqueGlobalRef()),
+			CallOutgoing:   rms.NewReference(callOutgoing),
 			Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 		}
 
