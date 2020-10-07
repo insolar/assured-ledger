@@ -133,6 +133,7 @@ func validSelfScopedGlobalWithPulseBefore(global reference.Global, before pulse.
 	return validSelfScopedGlobalWithPulseCheck(global, before, fieldName, timePulseBefore{})
 }
 
+//nolint:unparam
 func validSelfScopedGlobalWithPulseBeforeOrEq(global reference.Global, before pulse.Number, fieldName string) (pulse.Number, error) {
 	return validSelfScopedGlobalWithPulseCheck(global, before, fieldName, timePulseBeforeOrEq{})
 }
