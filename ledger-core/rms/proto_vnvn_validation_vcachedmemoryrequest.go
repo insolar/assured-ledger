@@ -14,10 +14,6 @@ func (m *VCachedMemoryRequest) Validate(currentPulse PulseNumber) error {
 		return err
 	}
 
-	if m.Object.IsEmpty() {
-		return throw.New("Object should not be empty")
-	}
-
 	if m.StateID.IsEmpty() {
 		return throw.New("StateID should not be empty")
 	}

@@ -23,9 +23,6 @@ func (m *VCachedMemoryResponse) Validate(currentPulse PulseNumber) error {
 		}
 		fallthrough
 	case CachedMemoryStateUnknown:
-		if m.Object.IsEmpty() {
-			return throw.New("Object should not be empty")
-		}
 		if m.StateID.IsEmpty() {
 			return throw.New("StateID should not be empty")
 		}
