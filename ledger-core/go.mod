@@ -16,7 +16,6 @@ require (
 	github.com/google/gops v0.3.11
 	github.com/grpc-ecosystem/grpc-gateway v1.9.6
 	github.com/insolar/component-manager v0.2.1-0.20191028200619-751a91771d2f
-	github.com/insolar/consensus-reports v0.0.0-20200515131339-fea7a784f1d6 // indirect
 	github.com/insolar/gls v0.0.0-20200427111849-9a08a622625d
 	github.com/insolar/insconfig v0.0.0-20200513150834-977022bc1445
 	github.com/insolar/rpc v1.2.2-0.20190812143745-c27e1d218f1f
@@ -35,7 +34,6 @@ require (
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/spf13/afero v1.3.2 // indirect
 	github.com/spf13/cobra v1.0.0
-	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.7.0
 	github.com/stretchr/testify v1.5.1
