@@ -72,12 +72,12 @@ func UnpackJetRef(ref reference.Holder) (jet.ID, error) {
 	}
 }
 
-func unpackJetLocalRef(local reference.Local, checkTailingZeros bool) (jet.ID, error) {
+func unpackJetLocalRef(local reference.Local, checkTrailingZeros bool) (jet.ID, error) {
 	if pulseZeroScope(local.GetHeader()) != pulse.Jet {
 		return 0, ErrIllegalRefValue
 	}
 
-	pn, id, err := DecodeJetData(local.IdentityHash(), checkTailingZeros)
+	pn, id, err := DecodeJetData(local.IdentityHash(), checkTrailingZeros)
 	switch {
 	case err != nil:
 		return 0, err
