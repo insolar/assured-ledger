@@ -23,6 +23,10 @@ func (m *VCachedMemoryResponse) Validate(currentPulse PulseNumber) error {
 		}
 		fallthrough
 	case CachedMemoryStateUnknown:
+		// TODO need to add check for m.Class, it doesn't exist at master right now
+		// TODO add check for correlation between object and class
+
+		// TODO stateID and object are from one chain
 		if m.StateID.IsEmpty() {
 			return throw.New("StateID should not be empty")
 		}
