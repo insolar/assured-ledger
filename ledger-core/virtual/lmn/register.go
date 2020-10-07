@@ -202,11 +202,11 @@ func (s *SubSMRegister) bargeInHandler(param interface{}) smachine.BargeInCallba
 func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.LRegisterRequest) error {
 	var (
 		waitFlag   = msg.Flags
-		bargeInKey = NewResultAwaitKey(msg.AnticipatedRef, waitFlag)
+		bargeInKey ResultAwaitKey
 	)
 
 	if s.DryRun {
-		s.messages.AppendMessage(msg, bargeInKey)
+		s.messages.AppendMessage(msg, ResultAwaitKey{})
 
 		return nil
 	}
@@ -228,9 +228,8 @@ func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.
 
 		fallthrough
 	case rms.RegistrationFlags_Fast, rms.RegistrationFlags_Safe:
-		var (
-			bargeIn = ctx.NewBargeInWithParam(s.bargeInHandler)
-		)
+		bargeIn := ctx.NewBargeInWithParam(s.bargeInHandler)
+		bargeInKey = NewResultAwaitKey(msg.AnticipatedRef, waitFlag)
 
 		if !ctx.PublishGlobalAliasAndBargeIn(bargeInKey, bargeIn) {
 			return throw.E("failed to publish bargeIn callback")
@@ -239,7 +238,7 @@ func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.
 		panic(throw.IllegalValue())
 	}
 
-	s.messages.AppendMessage(msg, bargeInKey)
+	s.messages.AppendMessage(msg, NewResultAwaitKey(msg.AnticipatedRef, waitFlag))
 
 	return nil
 }
