@@ -63,5 +63,15 @@ func (m *VDelegatedRequestFinished) Validate(currentPulse pulse.Number) error {
 		return throw.New("LatestState should be non-empty on Constructor call")
 	}
 
+	transcript := m.GetPendingTranscript()
+	if len(transcript.GetEntries()) == 0 {
+		return throw.New("PendingTranscript mustn't be empty")
+	}
+
+	transcriptErr := validateEntries(transcript.GetEntries())
+	if transcriptErr != nil {
+		return throw.W(transcriptErr, "PendingTranscript validation failed")
+	}
+
 	return nil
 }
