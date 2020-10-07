@@ -166,7 +166,11 @@ func (i *Info) BuildStateReport() rms.VStateReport {
 		panic(throw.IllegalValue())
 	}
 
-	if objDescriptor := i.DescriptorDirty(); objDescriptor != nil && !objDescriptor.Deactivated() {
+	switch objDescriptor := i.DescriptorDirty(); {
+	case objDescriptor == nil:
+	case objDescriptor.Deactivated():
+	case len(objDescriptor.Memory()) == 0:
+	default:
 		res.LatestDirtyState.Set(objDescriptor.HeadRef())
 	}
 
@@ -179,7 +183,7 @@ func (i *Info) BuildLatestDirtyState() *rms.ObjectState {
 		return &rms.ObjectState{
 			Reference:   rms.NewReferenceLocal(objDescriptor.StateID()),
 			Class:       rms.NewReference(class),
-			State:       rms.NewBytes(objDescriptor.Memory()),
+			Memory:      rms.NewBytes(objDescriptor.Memory()),
 			Deactivated: objDescriptor.Deactivated(),
 		}
 	}

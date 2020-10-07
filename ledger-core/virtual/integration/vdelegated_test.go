@@ -43,7 +43,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 		incoming = reference.NewRecordOf(objectRef, outgoing.GetLocal())
 	)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VDelegatedCallResponse.Set(func(pl *rms.VDelegatedCallResponse) bool {
 		require.NotEmpty(t, pl.ResponseDelegationSpec)
 		assert.Equal(t, objectRef, pl.ResponseDelegationSpec.Callee.GetValue())
@@ -68,7 +68,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 				LatestDirtyState: &rms.ObjectState{
 					Reference: rms.NewReferenceLocal(stateID),
 					Class:     rms.NewReference(testwalletProxy.GetClass()),
-					State:     rms.NewBytes(rawWalletState),
+					Memory:    rms.NewBytes(rawWalletState),
 				},
 			},
 		}

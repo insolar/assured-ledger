@@ -103,7 +103,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 				})
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 			{ // Checks
 				typedChecker.VCallResult.SetResend(false)
@@ -220,7 +220,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 				})
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			// Checks
 			{
 				var firstResult *rms.VCallResult
@@ -548,7 +548,7 @@ func (s *deduplicateMethodUsingPrevVETest) initServer(t *testing.T) context.Cont
 
 	server.Init(ctx)
 
-	s.typedChecker = s.server.PublisherMock.SetTypedChecker(ctx, s.mc, server)
+	s.typedChecker = s.server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, s.mc, server)
 
 	return ctx
 }
@@ -704,7 +704,7 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 				LatestDirtyState: &rms.ObjectState{
 					Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(s.getP1())),
 					Class:     rms.NewReference(s.getClass()),
-					State:     rms.NewBytes([]byte("object memory")),
+					Memory:    rms.NewBytes([]byte("object memory")),
 				},
 			},
 		}

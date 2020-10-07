@@ -433,13 +433,14 @@ func (s *SMVObjectTranscriptReport) makeNewDescriptor(
 	memory []byte,
 	deactivated bool,
 ) descriptor.Object {
-	return execute.MakeDescriptor(
-		s.objDesc,
-		s.object,
-		class, memory, deactivated,
-		// FIXME: incorrect pulse
-		s.pulseSlot.PulseData().GetPulseNumber(),
-	)
+	panic(throw.NotImplemented())
+	//return execute.MakeDescriptor(
+	//	s.objDesc,
+	//	s.object,
+	//	class, memory, deactivated,
+	//	// FIXME: incorrect pulse
+	//	s.pulseSlot.PulseData().GetPulseNumber(),
+	//)
 }
 
 func (s *SMVObjectTranscriptReport) prepareExecution(ctx context.Context) {
