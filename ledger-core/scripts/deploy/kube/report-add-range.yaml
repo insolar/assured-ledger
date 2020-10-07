@@ -1,0 +1,8 @@
+- command: "update"
+  path: "groups[0].ranges[+]"
+  value:
+    starttime: "${INSOLAR_START_TIME}"
+    interval: "${INTERVAL}"
+    props:
+      - name: "network_size"
+        value: "${INSOLAR_NETWORK_SIZE_INT}"
