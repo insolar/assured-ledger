@@ -33,7 +33,7 @@ jobs:
       - name: Install Protoc
         uses: arduino/setup-protoc@master
       - name: Add bin to path
-        run: echo "::add-path::${{env.GOPATH}}/bin"
+        run: echo "${{env.GOPATH}}/bin" >> $GITHUB_PATH
       - name: Go mod cache setup
         uses: actions/cache@v2
         with:
@@ -85,7 +85,7 @@ jobs:
       - name: Install Protoc
         uses: arduino/setup-protoc@master
       - name: Add bin to path
-        run: echo "::add-path::${{env.GOPATH}}/bin"
+        run: echo "${{env.GOPATH}}/bin" >> $GITHUB_PATH
       - name: Go mod cache setup
         uses: actions/cache@v2
         with:
@@ -175,18 +175,18 @@ jobs:
         env:
           TARGET: ${{matrix.target}}
         run: |
-          echo "::set-env name=INSOLAR_TAG::${GITHUB_SHA:0:8}"
-          echo "::set-env name=INSOLAR_NETWORK_SIZE::${TARGET}"
-          echo "::set-env name=INSOLAR_NAMESPACE::${GITHUB_SHA:0:8}-${TARGET}"
-          echo "::set-env name=INSOLAR_DESIRED_UPTIME::300"
-          echo "::set-env name=INSOLAR_NETWORK_SIZE_INT::$(echo $TARGET | awk '{gsub(/[^[0-9]]*/,"");print}')"
-          echo "::set-env name=REPORT_WEBDAV_DIRECTORY::consensus-checks/$(date +"%Y%m%d-%H%M")-pull-$(echo ${{github.ref}} | cut -d '/' -f3)-${GITHUB_SHA:0:8}"
+          echo "INSOLAR_TAG=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
+          echo "INSOLAR_NETWORK_SIZE=${TARGET}" >> $GITHUB_ENV
+          echo "INSOLAR_NAMESPACE=${GITHUB_SHA:0:8}-${TARGET}" >> $GITHUB_ENV
+          echo "INSOLAR_DESIRED_UPTIME=300" >> $GITHUB_ENV
+          echo "INSOLAR_NETWORK_SIZE_INT=$(echo $TARGET | awk '{gsub(/[^[0-9]]*/,"");print}')" >> $GITHUB_ENV
+          echo "REPORT_WEBDAV_DIRECTORY=consensus-checks/$(date +"%Y%m%d-%H%M")-pull-$(echo ${{github.ref}} | cut -d '/' -f3)-${GITHUB_SHA:0:8}" >> $GITHUB_ENV
       - name: Set up go ${{env.GO_VERSION}}
         uses: actions/setup-go@v1
         with:
           go-version: ${{env.GO_VERSION}}
       - name: Add bin to path
-        run: echo "::add-path::${{env.GOPATH}}/bin"
+        run: echo "${{env.GOPATH}}/bin" >> $GITHUB_PATH
       - name: k3s
         uses: insolar/k3s-gha@master
         with:
