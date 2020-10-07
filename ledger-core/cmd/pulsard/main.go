@@ -15,7 +15,6 @@ import (
 
 	"github.com/insolar/component-manager"
 	"github.com/insolar/insconfig"
-	jww "github.com/spf13/jwalterweatherman"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
@@ -36,7 +35,6 @@ const EnvPrefix = "pulsard"
 
 // Need to fix problem with start pulsar
 func main() {
-	jww.SetStdoutThreshold(jww.LevelDebug)
 	var err error
 
 	pCfg := configuration.NewPulsarConfiguration()
