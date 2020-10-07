@@ -14,7 +14,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -37,7 +36,6 @@ func main() {
 }
 
 func rootCommand(cmd *cobra.Command, args []string) {
-	jww.SetStdoutThreshold(jww.LevelInfo)
 	var err error
 
 	vp := viper.New()
