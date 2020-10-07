@@ -296,8 +296,19 @@ func EncodeJetData(b *reference.LocalHash, pn pulse.Number, id jet.ExactID) {
 var _ RefTypeDef = typeDefJet{}
 type typeDefJet struct {}
 
+func (typeDefJet) CanBeDerivedWith(_ pulse.Number, local reference.Local) bool {
+	return pulseZeroScope(local.GetHeader()).IsTimePulse()
+}
+
 func (typeDefJet) Usage() Usage {
 	return UseAsBase|UseAsSelf|UseAsLocalValue
+}
+
+func (typeDefJet) RefFrom(base, local reference.Local) (reference.Global, error) {
+	if base := JetLocalRefOf(reference.New(base, local)); !base.IsEmpty() {
+		return reference.NewSelf(base), nil
+	}
+	return reference.Global{}, newRefTypeErr(ErrUnexpectedJetRef, Jet, base, local)
 }
 
 func (typeDefJet) VerifyGlobalRef(base, local reference.Local) error {
@@ -348,8 +359,20 @@ func (typeDefJet) detectJetSubType(base reference.Local, mustBeDrop bool) RefTyp
 var _ RefTypeDef = typeDefJetDrop{}
 type typeDefJetDrop struct {}
 
+func (typeDefJetDrop) CanBeDerivedWith(pulse.Number, reference.Local) bool {
+	return false
+}
+
 func (typeDefJetDrop) Usage() Usage {
 	return UseAsSelf|UseAsLocalValue
+}
+
+func (typeDefJetDrop) RefFrom(base, local reference.Local) (reference.Global, error) {
+	id, err := UnpackJetDropRef(reference.New(base, local))
+	if err == nil {
+		return JetDropRef(id), nil
+	}
+	return reference.Global{}, err
 }
 
 func (typeDefJetDrop) VerifyGlobalRef(base, local reference.Local) error {
@@ -369,8 +392,20 @@ func (typeDefJetDrop) DetectSubType(_, _ reference.Local) RefType {
 var _ RefTypeDef = typeDefJetLeg{}
 type typeDefJetLeg struct {}
 
+func (typeDefJetLeg) CanBeDerivedWith(pulse.Number, reference.Local) bool {
+	return false
+}
+
 func (typeDefJetLeg) Usage() Usage {
 	return UseAsSelf|UseAsLocalValue
+}
+
+func (typeDefJetLeg) RefFrom(base, local reference.Local) (reference.Global, error) {
+	id, err := UnpackJetLegRef(reference.New(base, local))
+	if err == nil {
+		return JetLegRef(id), nil
+	}
+	return reference.Global{}, err
 }
 
 func (typeDefJetLeg) VerifyGlobalRef(base, local reference.Local) error {

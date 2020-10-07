@@ -45,11 +45,20 @@ func RecordPayloadRefByDrop(id jet.DropID, recordRef reference.LocalHolder, offs
 	return reference.New(reference.NewLocal(pulse.Jet, 0, data), local)
 }
 
-func UnpackRecordPayloadRef(ref reference.Holder) (id jet.ID, record reference.Local, offset, length, extID uint32, err error) {
+func UnpackRecordPayloadRef(ref reference.Holder) (id jet.ID, local reference.Local, offset, length, extID uint32, err error) {
 	base := ref.GetBase()
+	local = ref.GetLocal()
+
 	id, err = PartialUnpackJetLocalRef(base)
-	if err == nil {
+	switch {
+	case err == nil:
 		offset, length, extID, err = DecodeJetPayloadPosition(base.IdentityHash(), true)
+	case !pulseZeroScope(local.GetHeader()).IsTimePulse():
+		err = throw.W(ErrIllegalRefValue,"invalid local")
+	}
+
+	if err != nil {
+		err = newRefTypeErr(err, RecordPayload, base, local)
 	}
 	return
 }
@@ -91,8 +100,19 @@ func EncodeJetPayloadPosition(b *reference.LocalHash, offset, length, extID uint
 var _ RefTypeDef = typeDefRecPayload{}
 type typeDefRecPayload struct {}
 
+func (typeDefRecPayload) CanBeDerivedWith(pulse.Number, reference.Local) bool {
+	return false
+}
+
 func (typeDefRecPayload) Usage() Usage {
 	return UseAsBase
+}
+
+func (v typeDefRecPayload) RefFrom(base, local reference.Local) (reference.Global, error) {
+	if err := v.VerifyGlobalRef(base, local); err != nil {
+		return reference.Global{}, err
+	}
+	return reference.New(base, local), nil
 }
 
 func (typeDefRecPayload) VerifyGlobalRef(base, local reference.Local) error {

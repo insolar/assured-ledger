@@ -109,6 +109,17 @@ func UnpackNodeContractRef(ref reference.Holder) (nodeRef reference.Global, cont
 var _ RefTypeDef = typeDefNode{}
 type typeDefNode struct {}
 
+func (typeDefNode) CanBeDerivedWith(_ pulse.Number, local reference.Local) bool {
+	return local.Pulse().IsTimePulse()
+}
+
+func (typeDefNode) RefFrom(base, local reference.Local) (reference.Global, error) {
+	if base := NodeLocalRefOf(reference.New(base, local)); !base.IsEmpty() {
+		return reference.NewSelf(base), nil
+	}
+	return reference.Global{}, newRefTypeErr(ErrIllegalRefValue, Node, base, local)
+}
+
 func (typeDefNode) Usage() Usage {
 	return UseAsBase|UseAsSelf|UseAsLocalValue
 }
@@ -136,8 +147,19 @@ func (typeDefNode) DetectSubType(base, local reference.Local) RefType {
 var _ RefTypeDef = typeDefNodeContract{}
 type typeDefNodeContract struct {}
 
+func (typeDefNodeContract) CanBeDerivedWith(pulse.Number, reference.Local) bool {
+	return false
+}
+
 func (typeDefNodeContract) Usage() Usage {
 	return UseAsBase
+}
+
+func (v typeDefNodeContract) RefFrom(base, local reference.Local) (reference.Global, error) {
+	if err := v.VerifyGlobalRef(base, local); err != nil {
+		return reference.Global{}, err
+	}
+	return reference.New(base, local), nil
 }
 
 func (typeDefNodeContract) VerifyGlobalRef(base, local reference.Local) error {

@@ -76,7 +76,7 @@ func (v RefType) IsDerivedType() bool {
 	return v.SubType() != 0
 }
 
-func (v RefType) IsRelated(ref reference.Holder) bool {
+func (v RefType) IsDerived(ref reference.Holder) bool {
 	return !v.IsDerivedType() && v == TypeOf(ref).BaseType()
 }
 
@@ -96,11 +96,64 @@ func (v RefType) Is(ref reference.Holder) bool {
 	return err == nil
 }
 
-// func (v RefType) Of(ref reference.Holder) reference.Global {
-// }
-//
-// func (v RefType) DeriveOf(ref reference.Holder, local reference.LocalHolder) reference.Global {
-// }
+func (v RefType) Ensure(ref reference.Holder) reference.Holder {
+	if _, _, err := v.Inspect(ref); err != nil {
+		panic(err)
+	}
+	return ref
+}
+
+func (v RefType) Of(ref reference.Holder) reference.Global {
+	if ref == nil {
+		panic(throw.IllegalValue())
+	}
+	def := v.def()
+	if def == nil {
+		panic(throw.Unsupported())
+	}
+
+	switch dRef, err := def.RefFrom(ref.GetBase(), ref.GetLocal()); {
+	case err != nil:
+		panic(err)
+	case dRef.IsEmpty():
+		panic(throw.Impossible())
+	default:
+		return dRef
+	}
+}
+
+func (v RefType) OfOrEmpty(ref reference.Holder) reference.Global {
+	if def := v.def(); ref != nil && def != nil {
+		dRef, _ := def.RefFrom(ref.GetBase(), ref.GetLocal())
+		return dRef
+	}
+	return reference.Global{}
+}
+
+func (v RefType) DeriveFrom(ref reference.Holder, loc reference.LocalHolder) reference.Global {
+	switch {
+	case ref == nil:
+		panic(throw.IllegalValue())
+	case loc == nil || loc.IsEmpty():
+		panic(throw.IllegalValue())
+	}
+
+	local := loc.GetLocal()
+	def := v.def()
+	if def == nil || def.Usage() & UseAsBase == 0 || !def.CanBeDerivedWith(0, local) {
+		err := newRefTypeErr(throw.Unsupported(), v, ref.GetBase(), ref.GetLocal())
+		panic(err)
+	}
+
+	switch dRef, err := def.RefFrom(ref.GetBase(), ref.GetLocal()); {
+	case err != nil:
+		panic(err)
+	case dRef.IsEmpty():
+		panic(throw.Impossible())
+	default:
+		return reference.New(dRef.GetBase(), local)
+	}
+}
 
 func (v RefType) Inspect(ref reference.Holder) (base, local reference.Local, err error) {
 	switch v {
