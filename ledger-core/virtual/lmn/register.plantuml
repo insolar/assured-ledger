@@ -28,6 +28,14 @@ T01_S006 : SubSMRegister
 T01_S006 --[dotted]> T01_S006
 T01_S006 --> [*]
 state "s.messageSender" as T01_S014 <<sdlreceive>>
+state "stepDone" as T01_S016
+T01_S016 : SubSMRegister
+T01_S016 --[dotted]> T01_S002
+T01_S016 --[dotted]> T01_S003
+T01_S016 --[dotted]> T01_S004
+T01_S016 --[dotted]> T01_S005
+T01_S016 --[dotted]> T01_S006
+T01_S016 --> [*]
 state "stepRegisterIncoming" as T01_S008
 T01_S008 : SubSMRegister
 T01_S008 --[dotted]> T01_S003
@@ -65,6 +73,7 @@ T01_S012 --[dotted]> T01_S003
 T01_S012 --[dotted]> T01_S004
 T01_S012 --[dotted]> T01_S005
 T01_S012 --[dotted]> T01_S006
+T01_S012 --> T01_S016 : [s.DryRun]
 T01_S012 --> T01_S012 : [!stateUpdate.IsEmpty()]
 T01_S012 --> T01_S013
 state "stepSendMessage" as T01_S013
@@ -74,7 +83,7 @@ T01_S013 --[dotted]> T01_S003
 T01_S013 --[dotted]> T01_S004
 T01_S013 --[dotted]> T01_S005
 T01_S013 --[dotted]> T01_S006
-T01_S013 --> [*] : [msg==nil]
+T01_S013 --> T01_S016 : [msg==nil]
 T01_S013 --> T01_S014 : PrepareAsync(ctx).WithoutAutoWakeUp()
 T01_S013 --> T01_S015
 state "stepWaitResponse" as T01_S015

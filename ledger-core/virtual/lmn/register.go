@@ -106,6 +106,7 @@ type SubSMRegister struct {
 	IncomingResult    *execution.Update
 	Interference      isolation.InterferenceFlag
 	ObjectSharedState object.SharedStateAccessor
+	DryRun            bool
 
 	Object          reference.Global
 	LastFilamentRef reference.Global
@@ -200,7 +201,16 @@ func (s *SubSMRegister) bargeInHandler(param interface{}) smachine.BargeInCallba
 }
 
 func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.LRegisterRequest) error {
-	waitFlag := msg.Flags
+	var (
+		waitFlag   = msg.Flags
+		bargeInKey ResultAwaitKey
+	)
+
+	if s.DryRun {
+		s.messages.AppendMessage(msg, ResultAwaitKey{})
+
+		return nil
+	}
 
 	switch msg.Flags {
 	case rms.RegistrationFlags_FastSafe:
@@ -219,18 +229,17 @@ func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.
 
 		fallthrough
 	case rms.RegistrationFlags_Fast, rms.RegistrationFlags_Safe:
-		var (
-			bargeInKey = NewResultAwaitKey(msg.AnticipatedRef, waitFlag)
-			bargeIn    = ctx.NewBargeInWithParam(s.bargeInHandler)
-		)
+		bargeIn := ctx.NewBargeInWithParam(s.bargeInHandler)
+		bargeInKey = NewResultAwaitKey(msg.AnticipatedRef, waitFlag)
 
 		if !ctx.PublishGlobalAliasAndBargeIn(bargeInKey, bargeIn) {
 			return throw.E("failed to publish bargeIn callback")
 		}
-		s.messages.AppendMessage(msg, bargeInKey)
 	default:
 		panic(throw.IllegalValue())
 	}
+
+	s.messages.AppendMessage(msg, NewResultAwaitKey(msg.AnticipatedRef, waitFlag))
 
 	return nil
 }
@@ -664,6 +673,10 @@ func (s *SubSMRegister) stepSaveSafeCounter(ctx smachine.ExecutionContext) smach
 		panic(throw.IllegalState())
 	}
 
+	if s.DryRun {
+		return ctx.Jump(s.stepDone)
+	}
+
 	stateUpdate := shared.CounterIncrement(ctx, s.SafeResponseCounter, s.requiredSafe)
 	if !stateUpdate.IsEmpty() {
 		return stateUpdate
@@ -684,7 +697,7 @@ func (s *SubSMRegister) stepSendMessage(ctx smachine.ExecutionContext) smachine.
 	)
 
 	if msg == nil {
-		return ctx.Stop()
+		return ctx.Jump(s.stepDone)
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
@@ -707,4 +720,16 @@ func (s *SubSMRegister) stepWaitResponse(ctx smachine.ExecutionContext) smachine
 	}
 
 	return ctx.Jump(s.stepSendMessage)
+}
+
+func (s *SubSMRegister) stepDone(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.Stop()
+}
+
+func (s *SubSMRegister) GetMessages() []rmsreg.GoGoSerializable {
+	messages := make([]rmsreg.GoGoSerializable, 0, len(s.messages.messages))
+	for _, msg := range s.messages.messages {
+		messages = append(messages, msg.payload)
+	}
+	return messages
 }
