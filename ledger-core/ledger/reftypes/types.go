@@ -40,6 +40,8 @@ func typeDefinition(t RefType) RefTypeDef {
 		return tDefJetLeg
 	case RecordPayload:
 		return tDefRecPayload
+	case BuiltinContract:
+		return tDefBuiltinContract
 	default:
 		return nil
 	}
@@ -53,6 +55,7 @@ var (
 	tDefJetDrop = typeDefJetDrop{}
 	tDefJetLeg = typeDefJetLeg{}
 	tDefRecPayload = typeDefRecPayload{}
+	tDefBuiltinContract = typeDefBuiltinContract{}
 )
 
 // APISession128: {usage: UseAsSelf},

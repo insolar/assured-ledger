@@ -63,22 +63,22 @@ func UnpackBuiltinContractRef(ref reference.Holder) (t BuiltinContractType, prim
 
 /*****************************************************/
 
-var _ RefTypeDef = TypeDefBuiltinContract{}
-type TypeDefBuiltinContract struct {}
+var _ RefTypeDef = typeDefBuiltinContract{}
+type typeDefBuiltinContract struct {}
 
-func (TypeDefBuiltinContract) Usage() Usage {
+func (typeDefBuiltinContract) Usage() Usage {
 	return UseAsBase
 }
 
-func (TypeDefBuiltinContract) VerifyGlobalRef(base, local reference.Local) error {
+func (typeDefBuiltinContract) VerifyGlobalRef(base, local reference.Local) error {
 	_, _, _, err := UnpackBuiltinContractRef(reference.New(base, local))
 	return err
 }
 
-func (TypeDefBuiltinContract) VerifyLocalRef(reference.Local) error {
+func (typeDefBuiltinContract) VerifyLocalRef(reference.Local) error {
 	panic(throw.Unsupported())
 }
 
-func (TypeDefBuiltinContract) DetectSubType(_, _ reference.Local) RefType {
+func (typeDefBuiltinContract) DetectSubType(_, _ reference.Local) RefType {
 	return 0 // no subtypes
 }

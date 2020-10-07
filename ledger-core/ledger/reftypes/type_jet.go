@@ -318,15 +318,15 @@ func (v typeDefJet) DetectSubType(base, local reference.Local) RefType {
 		return Invalid
 	}
 
-	switch pulseZeroScope(base.GetHeader()) {
-	case pulse.Jet:
-		if base != local {
-			return Invalid
-		}
-		return v.detectJetSubType(base, false)
-	case pulse.RecordPayload:
-		if pulseZeroScope(local.GetHeader()).IsTimePulse() {
-			return v.detectJetSubType(base, true)
+	switch {
+	case pulseZeroScope(base.GetHeader()) != pulse.Jet:
+	case base.IsZero():
+		fallthrough
+	case base == local:
+		return v.detectJetSubType(local, false)
+	case local.Pulse().IsTimePulse():
+		if v.detectJetSubType(local, false) == Jet {
+			return JetRecord
 		}
 	}
 	return Invalid

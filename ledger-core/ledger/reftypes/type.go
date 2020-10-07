@@ -25,7 +25,8 @@ const (
 	JetRecord = Jet + subType
 	JetLeg = Jet + subType * 2
 	JetDrop = Jet + subType * 3
-//	TODO JetContract
+
+	// TODO JetContract
 
 	BuiltinContract = RefType(pulse.BuiltinContract)
 
