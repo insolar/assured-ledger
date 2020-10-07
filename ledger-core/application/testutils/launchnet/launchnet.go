@@ -149,7 +149,10 @@ func customRun(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int, cb
 	code := cb(apiAddresses)
 
 	if code != 0 {
-		out, err := exec.Command(pulseWatcher, "-c", config, "-s").CombinedOutput()
+		pulseWatcherCmd := exec.Command(pulseWatcher, "--config", config)
+
+		pulseWatcherCmd.Env = append(pulseWatcherCmd.Env, fmt.Sprintf("PULSEWATCHER_ONESHOT=TRUE"))
+		out, err := pulseWatcherCmd.CombinedOutput()
 		if err != nil {
 			fmt.Println("PulseWatcher execution error: ", err)
 			return 1

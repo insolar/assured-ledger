@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	jww "github.com/spf13/jwalterweatherman"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -57,8 +56,6 @@ var psAgentLauncher = func() error { return nil }
 
 // nolint:unparam
 func runInsolardServer(configPath, genesisConfigPath, roleString string) {
-	jww.SetStdoutThreshold(jww.LevelDebug)
-
 	certRole, err := readRoleFromCertificate(configPath)
 	if err != nil {
 		global.Fatal(errors.W(err, "readRole failed"))
@@ -86,8 +83,6 @@ func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 }
 
 func runHeadlessNetwork(configPath string) {
-	jww.SetStdoutThreshold(jww.LevelDebug)
-
 	if err := psAgentLauncher(); err != nil {
 		global.Warnf("Failed to launch gops agent: %s", err)
 	}

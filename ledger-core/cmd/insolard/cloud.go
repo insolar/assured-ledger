@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	jww "github.com/spf13/jwalterweatherman"
 	"gopkg.in/yaml.v2"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
@@ -29,8 +28,6 @@ func readConfig(cfgPath string) configuration.Configuration {
 }
 
 func runInsolardCloud(configPath string) {
-	jww.SetStdoutThreshold(jww.LevelDebug)
-
 	if err := psAgentLauncher(); err != nil {
 		global.Fatal("Failed to launch gops agent: %s", err)
 	}
