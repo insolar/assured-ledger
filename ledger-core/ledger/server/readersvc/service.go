@@ -30,12 +30,9 @@ func newService(allocStrategy jetalloc.MaterialAllocationStrategy, merklePair cr
 type serviceImpl struct {
 	// allocStrategy jetalloc.MaterialAllocationStrategy
 	// merklePair    cryptkit.PairDigester
-	// mapMutex sync.RWMutex
-	// lastPN   pulse.Number
 	provider readbundle.Provider
 }
 
 func (p *serviceImpl) FindCabinet(pn pulse.Number) readbundle.ReadCabinet {
 	return p.provider.FindCabinet(pn)
 }
-
