@@ -277,7 +277,7 @@ func main() {
 	bootstrapConf, err := bootstrap.ParseConfig(bootstrapFileName)
 	check("Can't read bootstrap config", err)
 
-	pwConfig := configuration.Config{}
+	pwConfig := configuration.NewPulseWatcherConfiguration()
 	discoveryNodesConfigs := make([]configuration.Configuration, 0, len(bootstrapConf.DiscoveryNodes))
 
 	promVars := &promConfigVars{
@@ -455,7 +455,7 @@ func writePulsarConfig(pcv *pulsarConfigVars) {
 	check("Can't makeFileWithDir: "+pulsardFileName, err)
 }
 
-func writePulseWatcherConfig(pcv configuration.Config) {
+func writePulseWatcherConfig(pcv configuration.PulseWatcherConfig) {
 	templates, err := template.ParseFiles(pulseWatcherConfigTmpl)
 	check("Can't parse template: "+pulseWatcherConfigTmpl, err)
 
