@@ -493,6 +493,9 @@ type LimitedExecutionContext interface {
 	SharedStateContext
 	minimalSynchronizationContext
 
+	// Log returns a slot logger for this context. It is only valid while this context is valid.
+	Log() Logger
+
 	// NewChild - See ExecutionContext.NewChild
 	NewChild(CreateFunc) SlotLink
 	// InitChild - See ExecutionContext.InitChild

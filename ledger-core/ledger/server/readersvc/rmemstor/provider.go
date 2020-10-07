@@ -20,13 +20,13 @@ type Provider struct {
 	m map[pulse.Number]storageCabinet
 }
 
-func (p *Provider) FindCabinet(pn pulse.Number) readbundle.ReadCabinet {
+func (p *Provider) FindCabinet(pn pulse.Number) (readbundle.ReadCabinet, error) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 	if cab, ok := p.m[pn]; ok {
-		return cab
+		return cab, nil
 	}
-	return nil
+	return nil, nil
 }
 
 func (p *Provider) AddCabinet(pn pulse.Number, rd readbundle.Reader) error {
@@ -59,9 +59,15 @@ func (v storageCabinet) PulseNumber() pulse.Number {
 	return v.pn
 }
 
-func (v storageCabinet) Open() (readbundle.Reader, error) {
-	return v.rd, nil
+func (v storageCabinet) Open() error {
+	return nil
 }
 
-func (v storageCabinet) Close() {}
+func (v storageCabinet) Reader() readbundle.Reader {
+	return v.rd
+}
+
+func (v storageCabinet) Close() error {
+	return nil
+}
 

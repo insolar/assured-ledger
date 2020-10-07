@@ -193,12 +193,15 @@ func TestAddRecordsThenChangePulse(t *testing.T) {
 
 	server.IncrementPulse()
 
-	time.Sleep(2*time.Second)
+	time.Sleep(2*time.Second) // TODO
 
 	server.IncrementPulse()
 
 	require.Eventually(t, func() bool {
-		return readSvc.FindCabinet(pn) != nil
+		cab, err := readSvc.FindCabinet(pn)
+		require.NoError(t, err)
+
+		return cab != nil
 	}, 2*time.Second, 10*time.Millisecond)
 }
 

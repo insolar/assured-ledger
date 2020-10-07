@@ -5,6 +5,6 @@
 
 package datareader
 
-type SMPlashBatcher struct {
+type SMReadBatcher struct {
 	
 }

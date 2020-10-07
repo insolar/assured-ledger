@@ -79,6 +79,11 @@ func (v Adapter) SendNotify(ctx smachine.LimitedExecutionContext, callFn func(Se
 	})
 }
 
+func (v Adapter) ServiceNeedsBatching() bool {
+	return v.service.NeedsBatching()
+}
+
+
 func GetServiceForTestOnly(a Adapter) Service {
 	return a.service
 }

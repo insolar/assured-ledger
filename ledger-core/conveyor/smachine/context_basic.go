@@ -272,7 +272,7 @@ func (p *slotContext) _newChild(fn CreateFunc, postInitFn PostInitFunc, defValue
 }
 
 func (p *slotContext) Log() Logger {
-	p.ensureAtLeast(updCtxSubrStart)
+	p.ensureAtLeast(updCtxFinalize)
 	return p._newLogger()
 }
 
