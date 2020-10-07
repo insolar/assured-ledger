@@ -17,22 +17,17 @@ func (m *VCachedMemoryResponse) Validate(currentPulse PulseNumber) error {
 	}
 
 	switch m.CallStatus {
+	case CachedMemoryStateFound:
+		if m.Memory.IsEmpty() {
+			return throw.New("Memory should not be empty")
+		}
+		fallthrough
 	case CachedMemoryStateUnknown:
 		if m.Object.IsEmpty() {
 			return throw.New("Object should not be empty")
 		}
 		if m.StateID.IsEmpty() {
 			return throw.New("StateID should not be empty")
-		}
-	case CachedMemoryStateFound:
-		if m.Object.IsEmpty() {
-			return throw.New("Object should not be empty")
-		}
-		if m.StateID.IsEmpty() {
-			return throw.New("StateID should not be empty")
-		}
-		if m.Memory.IsEmpty() {
-			return throw.New("Memory should not be empty")
 		}
 
 	default:
