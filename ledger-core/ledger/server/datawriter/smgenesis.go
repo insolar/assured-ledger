@@ -26,8 +26,8 @@ type SMGenesis struct {
 	smachine.StateMachineDeclTemplate
 
 	// provided by creator
-	jetAssist  buildersvc.PlashAssistant
-	jetGenesis jet.LegID
+	jetGenesis   jet.LegID
+	createDropFn func(smachine.ExecutionContext)
 
 	// injected
 	pulseSlot  *conveyor.PulseSlot
@@ -61,7 +61,7 @@ func (p *SMGenesis) stepInit(ctx smachine.InitializationContext) smachine.StateU
 	p.lastPN = p.pulseSlot.PulseNumber()
 
 	// Genesis procedure can run through multiple pulses
-	ctx.SetDefaultMigration(p.migrateTracker)
+	ctx.SetDefaultMigration(p.migrateTrackPN)
 
 	return ctx.Jump(p.stepPrepare)
 }
@@ -72,15 +72,23 @@ func (p *SMGenesis) stepPrepare(ctx smachine.ExecutionContext) smachine.StateUpd
 	//
 	// ...
 
-	// FinishGenesis must be immediately before the stop
+
+	// ============================================================================
+	// ATTN! Drop must ONLY be created as the end to avoid migrations
+	// SM for drop is created to handle drop summary/report generation and distribution
+	p.createDropFn(ctx)
+
+	if p.pulseChanger != nil && !p.pulseSlot.SetPulseChanger(p.pulseChanger) {
+		return ctx.Error(throw.IllegalState())
+	}
+	// FinishGenesis must be the last one
 	p.treeSvc.FinishGenesis(DefaultGenesisSplitDepth, p.lastPN)
 	return ctx.Stop()
 }
 
-func (p *SMGenesis) migrateTracker(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (p *SMGenesis) migrateTrackPN(ctx smachine.MigrationContext) smachine.StateUpdate {
 	// access to CurrentPulseNumber() from migrate handler is guaranteed from racing
 	p.lastPN = p.pulseSlot.CurrentPulseNumber()
 
 	return ctx.Stay()
 }
-

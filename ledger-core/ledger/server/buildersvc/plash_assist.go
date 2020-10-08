@@ -242,7 +242,7 @@ func (p *plashAssistant) getDropsOfJet(id jet.ExactID) (result []jet.DropID) {
 
 	pn := p.pulseData.PulseNumber
 
-	if pLen <= id.BitLen() {
+	if idLen := id.BitLen(); pLen <= idLen {
 		// jet was merged or remains same - there will be only one descendant
 		result = []jet.DropID{ prefix.AsID().AsDrop(pn) }
 	} else {
@@ -258,7 +258,7 @@ func (p *plashAssistant) getDropsOfJet(id jet.ExactID) (result []jet.DropID) {
 		// generate ids for all sub-jets
 		for splitPrefix > 0 {
 			splitPrefix--
-			subJetPrefix := (splitPrefix<<pLen)|prefix
+			subJetPrefix := (splitPrefix<<idLen)|prefix
 			result[splitPrefix] = subJetPrefix.AsID().AsDrop(pn)
 		}
 	}
@@ -295,7 +295,11 @@ func (p *plashAssistant) writeSectionSummaries() error {
 	if err := p.ctlWriter.WriteSectionSummary(p.dirtyReader, ledger.DefaultEntrySection); err != nil {
 		return err
 	}
-	return p.ctlWriter.WriteSectionSummary(p.dirtyReader, ledger.DefaultDustSection)
+	if err := p.ctlWriter.WriteSectionSummary(p.dirtyReader, ledger.DefaultDustSection); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (p *plashAssistant) appendToDropSummary(id jet.DropID, summary lineage.LineSummary) error {

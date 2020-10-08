@@ -218,16 +218,28 @@ func (p *SMPlash) stepGenesis(ctx smachine.ExecutionContext) smachine.StateUpdat
 	}
 
 	// NB! Genesis does NOT follow pulse changes
-	// TODO make sure that genesis will not be triggered in other pulse slots
 
 	switch len(p.jets) {
 	case 1:
+		jetGenesis := p.jets[0].AsLeg(p.pulseSlot.PulseNumber())
+
+		dropInfo := DropInfo{
+			ID:         jetGenesis.AsDrop(),
+			PrevID:     jetGenesis.AsDrop(),
+			LastOp:     JetGenesis,
+			AssistData: p.sd,
+		}
+		cataloger := p.cataloger
+
 		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			return &SMGenesis{
-				jetAssist: p.sd.jetAssist,
 				// LegID remembers the pulse when genesis was started
-				jetGenesis: p.jets[0].AsLeg(p.pulseSlot.PulseNumber()),
+				jetGenesis: jetGenesis,
 				pulseChanger: p.pulseChanger,
+
+				createDropFn: func(ctx smachine.ExecutionContext) {
+					cataloger.Create(ctx, dropInfo, dropInfo.AssistData.onDropStop)
+				},
 			}
 		})
 	case 0:
@@ -239,7 +251,8 @@ func (p *SMPlash) stepGenesis(ctx smachine.ExecutionContext) smachine.StateUpdat
 	// NB! Regular SMs can NOT be allowed to run during genesis-related pulse(s)
 	// ctx.ApplyAdjustment(p.sd.enableAccess())
 
-	ctx.SetDefaultMigration(p.migrateWaitClosedPlash)
+	// NB! Genesis can take multiple pulses - do NOT stop waiting
+	ctx.SetDefaultMigration(nil)
 	return ctx.Jump(p.stepWaitClosedPlash)
 }
 
@@ -254,7 +267,10 @@ func (p *SMPlash) stepWaitClosedPlash(ctx smachine.ExecutionContext) smachine.St
 
 func (p *SMPlash) migrateWaitClosedPlash(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(nil)
-	return ctx.Jump(p.stepWaitClosedPlashWithDeadline)
+	if !p.plashWasClosed {
+		return ctx.Jump(p.stepWaitClosedPlashWithDeadline)
+	}
+	return ctx.Jump(p.stepPlashClosed)
 }
 
 func (p *SMPlash) stepWaitClosedPlashWithDeadline(ctx smachine.ExecutionContext) smachine.StateUpdate {

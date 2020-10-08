@@ -7,7 +7,6 @@ package tests
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -39,11 +38,13 @@ func TestGenesisTree(t *testing.T) {
 	inject.MustInject(&treeSvc)
 
 	ch := jrn.WaitStopOf(&datawriter.SMGenesis{}, 1)
+	ch2 := jrn.WaitInitOf(&datawriter.SMDropBuilder{}, 1)
 
 	server.IncrementPulse()
 
 	// genesis will run here and will initialize jet tree
 	<-ch
+	<-ch2
 
 	// but the jet tree is not available till pulse change
 	prev, cur, ok := treeSvc.GetTrees(server.LastPulseNumber())
@@ -51,8 +52,10 @@ func TestGenesisTree(t *testing.T) {
 	require.True(t, prev.IsEmpty())
 	require.True(t, cur.IsEmpty())
 
+
 	ch = jrn.WaitStopOf(&datawriter.SMPlash{}, 1)
-	ch2 := jrn.WaitInitOf(&datawriter.SMDropBuilder{}, 1<<datawriter.DefaultGenesisSplitDepth)
+	ch2 = jrn.WaitStopOf(&datawriter.SMDropBuilder{}, 1)
+	ch3 := jrn.WaitInitOf(&datawriter.SMDropBuilder{}, 1<<datawriter.DefaultGenesisSplitDepth)
 
 	server.IncrementPulse() // tree will switch and drops will be created
 
@@ -62,10 +65,9 @@ func TestGenesisTree(t *testing.T) {
 	require.True(t, prev.IsEmpty())
 	require.False(t, cur.IsEmpty())
 
-	time.Sleep(time.Second / 4)
-
 	<-ch
 	<-ch2
+	<-ch3
 }
 
 func TestReadyTree(t *testing.T) {

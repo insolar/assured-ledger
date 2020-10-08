@@ -21,7 +21,8 @@ type DropCataloger interface {
 type JetTreeOp uint8
 
 const (
-	JetStraight JetTreeOp = iota
+	JetGenesis JetTreeOp = iota
+	JetStraight
 	JetGenesisSplit
 	JetSplit
 	JetMerge
