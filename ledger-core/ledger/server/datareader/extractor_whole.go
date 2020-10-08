@@ -33,8 +33,8 @@ func (p *WholeExtractor) AddLineRecord(record lineage.ReadRecord) bool {
 
 	p.records = append(p.records, ExtractedRecord{
 		RecordType:         record.Excerpt.RecordType,
-		Payloads:           nil,
-		RecordBinary:       nil,
+		// Payloads:           nil,
+		// RecordBinary:       nil,
 		PayloadDigests:     record.Excerpt.PayloadDigests,
 		RecordRef:          rms.NewReference(record.RecRef),
 		PrevRef:            record.Excerpt.PrevRef,
@@ -89,7 +89,7 @@ func (p *WholeExtractor) ExtractAllRecordsWithReader(reader bundle.DirtyReader) 
 
 		if bodySize > 0 && !ce.BodyLoc.IsZero() {
 			b := reader.GetPayloadStorage(ce.BodyLoc)
-			r.RecordBinary = append([]byte(nil), b[:bodySize]...)
+			r.RecordBinary.SetBytes(append([]byte(nil), b[:bodySize]...))
 		}
 
 		if payloadSize > 0 && !ce.PayloadLoc.IsZero() {

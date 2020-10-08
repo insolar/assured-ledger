@@ -64,7 +64,7 @@ func (p *SMLineReader) stepInit(ctx smachine.InitializationContext) smachine.Sta
 }
 
 func (p *SMLineReader) stepDirectRead(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	pn := p.request.TargetRef.GetPulseOfLocal()
+	pn := p.request.TargetStartRef.GetPulseOfLocal()
 
 	return p.readAdapter.PrepareAsync(ctx, func(svc readersvc.Service) smachine.AsyncResultFunc {
 		cab, err := svc.FindCabinet(pn)

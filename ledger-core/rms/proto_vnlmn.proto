@@ -74,16 +74,22 @@ message LRegisterResponse {
 }
 
 enum ReadFlags {
-    option allow_alias = true;
+//    option allow_alias = true;
 
-    IgnoreAllPayloads = 0;
-    TakeEarliestPayload = 1;
-    TakeLatestPayload = 2;
-    TakeAllPayloads = 4; // Supersedes TakeEarliest and TakeLatest
+    PastToPresent = 0;
+    PresentToPast = 1;
 
-    TransparentRedirection = 0;
-    ExplicitRedirection = 8;
-    IgnoreRedirection = 16; // Supersedes ExplicitRedirection
+    StartIsReason = 2;
+
+    ExcludeStart = 4;
+    ExcludeStop  = 8;
+
+    IncludePrevReport = 16;
+    IncludeNextReport = 32;
+
+//    TransparentRedirection = 0;
+//    ExplicitRedirection = 8;
+//    IgnoreRedirection = 16; // Supersedes ExplicitRedirection
 }
 
 message LReadRequest {
@@ -96,10 +102,15 @@ message LReadRequest {
     // Add custom fields below
 
     ReadFlags Flags = 1800;
-    Reference TargetRef = 1801;
-    Reference LimitRef = 1802;
-    uint32    LimitCount = 1803;
-    uint32    LimitSize = 1804;
+    uint32    TargetPulse = 1801 [(gogoproto.casttype) = "PulseNumber"];
+    Reference TargetRootRef = 1802;
+    Reference TargetStartRef = 1803;
+    Reference TargetStopRef = 1804;
+
+    uint32    LimitSize = 1810;
+    uint32    LimitCount = 1811;
+    uint32    LimitRecordWithBodyCount = 1812;
+    uint32    LimitRecordWithPayloadCount = 1813;
 }
 
 message LReadResponse {
@@ -118,7 +129,7 @@ message LReadResponse {
         uint32 RecordType = 16;
 
         repeated bytes Payloads = 17;
-        bytes RecordBinary = 18;
+        Binary RecordBinary = 18;
         RecordBodyDigests PayloadDigests = 19;
         Reference RecordRef = 20;
 

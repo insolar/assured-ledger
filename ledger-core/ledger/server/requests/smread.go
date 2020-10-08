@@ -53,7 +53,7 @@ func (p *SMRead) stepInit(ctx smachine.InitializationContext) smachine.StateUpda
 	switch ps := p.pulseSlot.State(); {
 	case p.request == nil:
 		return ctx.Error(throw.E("missing request"))
-	case p.request.TargetRef.IsEmpty():
+	case p.request.TargetStartRef.IsEmpty():
 		return ctx.Error(throw.E("missing target"))
 	case ps == conveyor.Antique:
 		return ctx.Jump(p.stepCleanRead)

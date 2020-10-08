@@ -119,7 +119,7 @@ func (p *generatorNewLifeline) callRead(ref reference.Holder) (*rms.LReadRespons
 	pn := p.recBuilder.RefTemplate.LocalHeader().Pulse()
 
 	request := &rms.LReadRequest{}
-	request.TargetRef.Set(ref)
+	request.TargetStartRef.Set(ref)
 
 	ch := make(chan smachine.TerminationData, 1)
 	err := p.conv.AddInputExt(pn,

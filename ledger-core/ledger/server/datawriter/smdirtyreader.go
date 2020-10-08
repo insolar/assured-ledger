@@ -61,13 +61,13 @@ func (p *SubSMDirtyReader) GetInitStateFor(smachine.StateMachine) smachine.InitF
 
 func (p *SubSMDirtyReader) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
 	switch {
-	case p.request.TargetRef.IsEmpty():
+	case p.request.TargetStartRef.IsEmpty():
 		return ctx.Error(throw.E("missing target"))
-	case p.request.Flags & (rms.ReadFlags_ExplicitRedirection|rms.ReadFlags_IgnoreRedirection) != 0:
+	case p.request.Flags != 0:
 		panic(throw.NotImplemented())
 	}
 
-	if tpn := p.request.TargetRef.Get().GetLocal().Pulse(); tpn != p.pn {
+	if tpn := p.request.TargetStartRef.Get().GetLocal().Pulse(); tpn != p.pn {
 		return ctx.Error(throw.E("wrong target pulse", struct { TargetPN, SlotPN pulse.Number }{ tpn, p.pn}))
 	}
 
@@ -83,7 +83,7 @@ func (p *SubSMDirtyReader) stepInit(ctx smachine.InitializationContext) smachine
 
 func (p *SubSMDirtyReader) stepFindLine(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if p.sdl.IsZero() {
-		normTargetRef := reference.NormCopy(p.request.TargetRef.Get())
+		normTargetRef := reference.NormCopy(p.request.TargetStartRef.Get())
 		lineRef := reference.NewSelf(normTargetRef.GetBase())
 
 		p.sdl = p.cataloger.Get(ctx, lineRef)
@@ -133,7 +133,7 @@ func (p *SubSMDirtyReader) stepLineIsReady(ctx smachine.ExecutionContext) smachi
 
 		sd.TrimStages()
 
-		normTargetRef := reference.NormCopy(p.request.TargetRef.Get())
+		normTargetRef := reference.NormCopy(p.request.TargetStartRef.Get())
 		// TODO do a few sub-cycles when too many record
 		_, future = sd.FindSequence(normTargetRef, p.extractor.AddLineRecord)
 
@@ -174,7 +174,7 @@ func (p *SubSMDirtyReader) stepDataIsReady(ctx smachine.ExecutionContext) smachi
 	switch p.sdl.TryAccess(ctx, func(sd *LineSharedData) (wakeup bool) {
 		sd.TrimStages()
 
-		normTargetRef := reference.NormCopy(p.request.TargetRef.Get())
+		normTargetRef := reference.NormCopy(p.request.TargetStartRef.Get())
 		if _, future := sd.FindSequence(normTargetRef, p.extractor.AddLineRecord); future != nil {
 			panic(throw.Impossible())
 		}

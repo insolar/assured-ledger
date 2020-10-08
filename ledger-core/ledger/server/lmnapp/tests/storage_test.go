@@ -142,7 +142,7 @@ func TestAddRecords(t *testing.T) {
 				require.Equal(t, expected.AnticipatedRef.GetValue(), actual.RecordRef.GetValue(), i)
 				require.NotEmpty(t, actual.RecordBinary)
 
-				require.True(t, expected.AnyRecordLazy.TryGetLazy().EqualBytes(actual.RecordBinary))
+				require.True(t, expected.AnyRecordLazy.TryGetLazy().EqualBytes(actual.RecordBinary.GetBytes()))
 			}
 		}
 	})
