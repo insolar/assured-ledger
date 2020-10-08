@@ -74,7 +74,7 @@ jobs:
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Aggregate logs into a single archive
         if: always()
-        run: tar --warning=no-file-changed -cvzf nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log || true
+        run: tar -cvzf nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log || true
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Upload logs to artifacts
         if: always()
