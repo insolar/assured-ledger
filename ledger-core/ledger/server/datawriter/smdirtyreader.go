@@ -9,7 +9,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datareader"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/dataextractor"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
@@ -39,7 +39,7 @@ type SubSMDirtyReader struct {
 	// runtime
 	sdl       LineDataLink
 	dropID    jet.DropID
-	extractor datareader.SequenceExtractor
+	extractor dataextractor.SequenceExtractor
 }
 
 func (p *SubSMDirtyReader) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -76,7 +76,7 @@ func (p *SubSMDirtyReader) stepInit(ctx smachine.InitializationContext) smachine
 	// p.request.LimitRef
 	// p.request.Flags
 
-	p.extractor = &datareader.WholeExtractor{ReadAll: true}
+	p.extractor = &dataextractor.WholeExtractor{ReadAll: true}
 
 	return ctx.Jump(p.stepFindLine)
 }
