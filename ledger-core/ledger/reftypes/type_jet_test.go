@@ -73,7 +73,7 @@ func TestJetLegLocalRef(t *testing.T) {
 
 	assert.Equal(t, reference.LocalHash{0xFF, 0xFF, 0xFF, 0x3F, 0x77, 0x66, 0, prefixLen + 1}, jetLegLocalRef1.IdentityHash())
 	assert.Equal(t, reference.LocalHash{0xFF, 0xFF, 0xFF, 0x3F, 0x79, 0x66, 0, prefixLen + 1}, jetLegLocalRef3.IdentityHash())
-	assert.EqualValues(t, 0, jetLegLocalRef1.SubScope())
+	assert.EqualValues(t, 0, jetLegLocalRef1.SubScope()) // SubScope is not applicable and must be zero
 
 	pn, exactID, err := DecodeJetData(jetLegLocalRef1.IdentityHash(), true)
 	assert.NoError(t, err)

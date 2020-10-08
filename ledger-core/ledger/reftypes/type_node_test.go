@@ -18,7 +18,7 @@ import (
 func TestNodeRefLocal(t *testing.T) {
 	localNodeRef := NodeLocalRef(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF})
 	assert.Equal(t, pulse.Node, localNodeRef.Pulse())
-	assert.EqualValues(t, 0, localNodeRef.SubScope())
+	assert.EqualValues(t, 0, localNodeRef.SubScope()) // SubScope is not applicable and must be zero
 
 	tDefNode = typeDefNode{}
 	err := tDefNode.VerifyLocalRef(localNodeRef)
@@ -46,7 +46,7 @@ func TestNodeRef(t *testing.T) {
 	nodeRef := NodeRef(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF})
 
 	assert.Equal(t, pulse.Node, nodeRef.GetBase().GetPulseNumber())
-	assert.EqualValues(t, 0, nodeRef.GetBase().SubScope())
+	assert.EqualValues(t, 0, nodeRef.GetBase().SubScope()) // SubScope is not applicable and must be zero
 	assert.Equal(t, nodeRef.GetBase(), nodeRef.GetLocal())
 
 	tDefNode = typeDefNode{}
