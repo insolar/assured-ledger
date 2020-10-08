@@ -125,9 +125,6 @@ func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) s
 	if len(s.entries) == 0 {
 		panic(throw.Impossible())
 	}
-	if ok := len(s.entries) % 2; ok != 0 {
-		panic(throw.Impossible())
-	}
 
 	entry := s.peekEntry(s.startIndex)
 	if entry == nil {
@@ -144,7 +141,7 @@ func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) s
 		s.reasonRef = s.incomingRequest.CallOutgoing
 		s.incomingRecordRef = tEntry.Incoming
 		if s.objState.IsEmpty() {
-			return ctx.Jump(s.stepIncomingRequest)
+			return ctx.Jump(s.stepPrepareExecutionContext)
 		}
 		return ctx.Jump(s.stepGetMemory)
 	default:
@@ -164,16 +161,16 @@ func (s *SMVObjectTranscriptReport) stepGetMemory(ctx smachine.ExecutionContext)
 			panic(throw.IllegalState())
 		}
 		s.objDesc = subSM.Result
-		return ctx.Jump(s.stepIncomingRequest)
+		return ctx.Jump(s.stepPrepareExecutionContext)
 	})
 }
 
-func (s *SMVObjectTranscriptReport) stepIncomingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMVObjectTranscriptReport) stepPrepareExecutionContext(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.prepareExecution(ctx.GetContext())
-	return ctx.Jump(s.stepStartRecord)
+	return ctx.Jump(s.stepInboundRecord)
 }
 
-func (s *SMVObjectTranscriptReport) stepStartRecord(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMVObjectTranscriptReport) stepInboundRecord(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.incomingRequest.CallType == rms.CallTypeConstructor {
 		return ctx.Jump(s.stepConstructorRecord)
 	}
@@ -236,7 +233,7 @@ func (s *SMVObjectTranscriptReport) stepExecuteDecideNextStep(ctx smachine.Execu
 	switch newState.Type {
 	case execution.Done:
 	case execution.OutgoingCall:
-		return ctx.Jump(s.stepOutgoingRecord)
+		return ctx.Jump(s.stepOutboundRecord)
 	case execution.Error, execution.Abort:
 		ctx.Log().Error("execution failed", newState.Error)
 		panic(throw.NotImplemented())
@@ -244,10 +241,10 @@ func (s *SMVObjectTranscriptReport) stepExecuteDecideNextStep(ctx smachine.Execu
 		panic(throw.IllegalValue())
 	}
 
-	return ctx.Jump(s.stepIncomingRecord)
+	return ctx.Jump(s.stepInboundResponseRecord)
 }
 
-func (s *SMVObjectTranscriptReport) stepOutgoingRecord(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMVObjectTranscriptReport) stepOutboundRecord(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	switch outgoing := s.executionNewState.Outgoing.(type) {
 	case execution.Deactivate:
 		panic(throw.NotImplemented())
@@ -269,11 +266,11 @@ func (s *SMVObjectTranscriptReport) stepOutgoingRecord(ctx smachine.ExecutionCon
 
 		s.outgoingRequest.CallOutgoing = rms.NewReference(s.lmnLastFilamentRef)
 
-		return ctx.Jump(s.stepExecuteOutgoing)
+		return ctx.Jump(s.stepValidateOutgoingRequest)
 	})
 }
 
-func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMVObjectTranscriptReport) stepValidateOutgoingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	entry := s.findNextEntry()
 	if entry == nil {
 		ctx.Log().Warn("validation failed: can't find TranscriptEntryOutgoingRequest")
@@ -291,7 +288,11 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 		return ctx.Jump(s.stepValidationFailed)
 	}
 
-	entry = s.findNextEntry()
+	return ctx.Jump(s.stepValidateOutgoingResult)
+}
+
+func (s *SMVObjectTranscriptReport) stepValidateOutgoingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	entry := s.findNextEntry()
 	if entry == nil {
 		ctx.Log().Warn("validation failed: can't find TranscriptEntryOutgoingResult")
 		return ctx.Jump(s.stepValidationFailed)
@@ -305,10 +306,6 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 	s.outgoingResult = &outgoingResult.CallResult
 	s.outgoingResultRef = outgoingResult.OutgoingResult.GetValue()
 
-	return ctx.Jump(s.stepOutgoingResultRecord)
-}
-
-func (s *SMVObjectTranscriptReport) stepOutgoingResultRecord(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	subroutineSM := s.constructSubSMRegister(RegisterOutgoingResult)
 	subroutineSM.OutgoingResult = s.outgoingResult
 
@@ -351,7 +348,7 @@ func (s *SMVObjectTranscriptReport) stepExecuteContinue(ctx smachine.ExecutionCo
 	}).DelayedStart().ThenJump(s.stepWaitExecutionResult)
 }
 
-func (s *SMVObjectTranscriptReport) stepIncomingRecord(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMVObjectTranscriptReport) stepInboundResponseRecord(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	subroutineSM := s.constructSubSMRegister(RegisterIncomingResult)
 	subroutineSM.IncomingResult = s.executionNewState
 
@@ -360,11 +357,11 @@ func (s *SMVObjectTranscriptReport) stepIncomingRecord(ctx smachine.ExecutionCon
 		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
 		s.lmnIncomingRequestRef = subroutineSM.IncomingRequestRef
 
-		return ctx.Jump(s.stepExecuteFinish)
+		return ctx.Jump(s.stepValidateIncoming)
 	})
 }
 
-func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMVObjectTranscriptReport) stepValidateIncoming(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	equalStartRecord := s.lmnIncomingRequestRef.Equal(s.incomingRecordRef.GetValue())
 	if !equalStartRecord {
 		ctx.Log().Warn("validation failed: wrong IncomingRequest record ref")
