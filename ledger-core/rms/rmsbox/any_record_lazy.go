@@ -205,7 +205,7 @@ func (p *LazyRecordValue) Visit(RecordVisitor) error {
 func (p *LazyRecordValue) GetRecordBody() *RecordBody {
 	if p.body == nil {
 		body := &RecordBodyForLazy{}
-		if err := body.UnmarshalWithUnknownCallback(p.value, stopAfterRecordBodyField); err != nil {
+		if _, err := body.UnmarshalWithUnknownCallback(p.value, stopAfterRecordBodyField); err != nil {
 			p.body = &RecordBodyForLazy{} // empty
 		} else {
 			p.body = body

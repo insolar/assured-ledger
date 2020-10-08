@@ -23,7 +23,7 @@ type unmarshaler interface {
 type UnknownCallbackFunc = func([]byte) (int, error)
 
 type unmarshalerWithUnknownCallback interface {
-	UnmarshalWithUnknownCallback([]byte, UnknownCallbackFunc) error
+	UnmarshalWithUnknownCallback([]byte, UnknownCallbackFunc) (int, error)
 }
 
 type Serializable interface {
