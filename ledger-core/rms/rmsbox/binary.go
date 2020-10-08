@@ -24,11 +24,11 @@ func (p *Binary) ProtoSize() int {
 }
 
 func (p *Binary) MarshalTo(b []byte) (int, error) {
-	return protokit.BinaryMarshalTo(b, p.rawBinary.marshalTo)
+	return protokit.BinaryMarshalTo(b, false, p.rawBinary.marshalTo)
 }
 
 func (p *Binary) MarshalToSizedBuffer(b []byte) (int, error) {
-	return protokit.BinaryMarshalToSizedBuffer(b, p.rawBinary.marshalToSizedBuffer)
+	return protokit.BinaryMarshalToSizedBuffer(b, false, p.rawBinary.marshalToSizedBuffer)
 }
 
 func (p *Binary) Unmarshal(b []byte) error {
