@@ -63,12 +63,12 @@ NUM_DISCOVERY_VIRTUAL_NODES=${NUM_DISCOVERY_VIRTUAL_NODES:-5}
 NUM_DISCOVERY_LIGHT_NODES=${NUM_DISCOVERY_LIGHT_NODES:-0}
 NUM_DISCOVERY_HEAVY_NODES=${NUM_DISCOVERY_HEAVY_NODES:-0}
 NUM_DISCOVERY_NODES=$((NUM_DISCOVERY_VIRTUAL_NODES + NUM_DISCOVERY_LIGHT_NODES + NUM_DISCOVERY_HEAVY_NODES))
-NUM_NODES=$(sed -n '/^nodes:/,$p' $BOOTSTRAP_TEMPLATE | grep "host:" | grep -v "#" | wc -l | tr -d '[:space:]')
+NUM_NODES=$(sed -n '/^nodes:/,$p' $BOOTSTRAP_TEMPLATE | grep "host:" | grep -cv "#" | tr -d '[:space:]')
 echo "discovery+other nodes: ${NUM_DISCOVERY_NODES}+${NUM_NODES}"
 
-for i in `seq 1 $NUM_DISCOVERY_NODES`
+for i in $(seq 1 $NUM_DISCOVERY_NODES)
 do
-    DISCOVERY_NODE_DIRS+=(${DISCOVERY_NODES_DATA}${i})
+    DISCOVERY_NODE_DIRS+=("${DISCOVERY_NODES_DATA}${i}")
 done
 
 # LOGROTATOR_ENABLE enables log rotation before every functest start
@@ -88,7 +88,7 @@ build_logger()
     pushd scripts/_logger
     GO111MODULE=on go build -o inslogrotator .
     popd
-    mv scripts/_logger/inslogrotator ${LOGROTATOR_BIN}
+    mv scripts/_logger/inslogrotator "${LOGROTATOR_BIN}"
     { set +x; } 2>/dev/null
 }
 
@@ -108,8 +108,9 @@ kill_all()
 {
   echo "kill all processes: insolard, pulsard"
   set +e
-  killall insolard
-  killall pulsard
+  pkill -9 insolard || echo "No insolard running"
+  pkill -9 pulsard || echo "No pulsard running"
+  pkill -9 keeperd || echo "No keeperd running"
   set -e
 }
 
@@ -134,7 +135,6 @@ stop_listening()
 
 stop_all()
 {
-  stop_listening true
   kill_all
 }
 
