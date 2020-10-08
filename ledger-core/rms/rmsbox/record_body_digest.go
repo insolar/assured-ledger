@@ -63,7 +63,7 @@ func (p *RecordBodyDigests) rawProtoSize() int {
 }
 
 func (p *RecordBodyDigests) MarshalTo(b []byte) (int, error) {
-	return protokit.BinaryMarshalTo(b, p._marshal)
+	return protokit.BinaryMarshalTo(b, false, p._marshal)
 }
 
 func (p *RecordBodyDigests) _marshal(b []byte) (int, error) {
@@ -83,7 +83,7 @@ func (p *RecordBodyDigests) _marshal(b []byte) (int, error) {
 }
 
 func (p *RecordBodyDigests) MarshalToSizedBuffer(b []byte) (int, error) {
-	return protokit.BinaryMarshalToSizedBuffer(b, func(b []byte) (int, error) {
+	return protokit.BinaryMarshalToSizedBuffer(b, false, func(b []byte) (int, error) {
 		n := p.rawProtoSize()
 		return p._marshal(b[len(b)-n:])
 	})

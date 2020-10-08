@@ -18,7 +18,7 @@ func BinaryProtoSize(n int) int {
 	return n
 }
 
-func BinaryMarshalTo(b []byte, marshalTo func([]byte) (int, error)) (int, error) {
+func BinaryMarshalTo(b []byte, allowEmpty bool, marshalTo func([]byte) (int, error)) (int, error) {
 	if len(b) == 0 {
 		return marshalTo(nil)
 	}
@@ -26,18 +26,18 @@ func BinaryMarshalTo(b []byte, marshalTo func([]byte) (int, error)) (int, error)
 	switch n, err := marshalTo(b[1:]); {
 	case err != nil:
 		return 0, err
-	case n == 0:
+	case !allowEmpty && n == 0:
 		return 0, nil
 	default:
 		return n + 1, nil
 	}
 }
 
-func BinaryMarshalToSizedBuffer(b []byte, marshalToSizedBuffer func([]byte) (int, error)) (int, error) {
+func BinaryMarshalToSizedBuffer(b []byte, allowEmpty bool, marshalToSizedBuffer func([]byte) (int, error)) (int, error) {
 	switch n, err := marshalToSizedBuffer(b[1:]); {
 	case err != nil:
 		return 0, err
-	case n == 0:
+	case !allowEmpty && n == 0:
 		return 0, nil
 	default:
 		n++
@@ -59,3 +59,5 @@ func BinaryUnmarshal(b []byte, unmarshal func([]byte) error) error {
 	}
 	return unmarshal(b[1:])
 }
+
+const ExplicitEmptyBinaryProtoSize = 1
