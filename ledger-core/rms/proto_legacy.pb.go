@@ -277,42 +277,16 @@ func sozProtoLegacy(x uint64) (n int) {
 	return sovProtoLegacy(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
 func (m *PulseProto) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoLegacy)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoLegacy)
+	return err
 }
-func (m *PulseProto) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *PulseProto) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoLegacy
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: PulseProto: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: PulseProto: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PulseNumber", wireType)
-			}
-			m.PulseNumber = 0
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoLegacy
@@ -322,183 +296,216 @@ func (m *PulseProto) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byt
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.PulseNumber |= PulseNumber(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PrevPulseNumber", wireType)
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: PulseProto: wiretype end group for non-group")
 			}
-			m.PrevPulseNumber = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoLegacy
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: PulseProto: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 1:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field PulseNumber", wireType)
 				}
-				if iNdEx >= l {
+				m.PulseNumber = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoLegacy
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.PulseNumber |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 2:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field PrevPulseNumber", wireType)
+				}
+				m.PrevPulseNumber = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoLegacy
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.PrevPulseNumber |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 3:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field NextPulseNumber", wireType)
+				}
+				m.NextPulseNumber = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoLegacy
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.NextPulseNumber |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 4:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field PulseTimestamp", wireType)
+				}
+				m.PulseTimestamp = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoLegacy
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.PulseTimestamp |= int64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 5:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field EpochPulseNumber", wireType)
+				}
+				m.EpochPulseNumber = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoLegacy
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.EpochPulseNumber |= int32(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 6:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field OriginID", wireType)
+				}
+				var byteLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoLegacy
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					byteLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if byteLen < 0 {
+					return ErrInvalidLengthProtoLegacy
+				}
+				postIndex := iNdEx + byteLen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoLegacy
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.PrevPulseNumber |= PulseNumber(b&0x7F) << shift
-				if b < 0x80 {
-					break
+				m.OriginID = append(m.OriginID[:0], dAtA[iNdEx:postIndex]...)
+				if m.OriginID == nil {
+					m.OriginID = []byte{}
 				}
-			}
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NextPulseNumber", wireType)
-			}
-			m.NextPulseNumber = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoLegacy
+				iNdEx = postIndex
+			case 7:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Entropy", wireType)
 				}
-				if iNdEx >= l {
+				var byteLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoLegacy
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					byteLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if byteLen < 0 {
+					return ErrInvalidLengthProtoLegacy
+				}
+				postIndex := iNdEx + byteLen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoLegacy
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.NextPulseNumber |= PulseNumber(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PulseTimestamp", wireType)
-			}
-			m.PulseTimestamp = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoLegacy
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.PulseTimestamp |= int64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EpochPulseNumber", wireType)
-			}
-			m.EpochPulseNumber = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoLegacy
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.EpochPulseNumber |= int32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OriginID", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoLegacy
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoLegacy
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoLegacy
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.OriginID = append(m.OriginID[:0], dAtA[iNdEx:postIndex]...)
-			if m.OriginID == nil {
-				m.OriginID = []byte{}
-			}
-			iNdEx = postIndex
-		case 7:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Entropy", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoLegacy
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoLegacy
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoLegacy
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Entropy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoLegacy(dAtA[iNdEx:]); err != nil {
+				if err := m.Entropy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoLegacy(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoLegacy
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoLegacy
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func skipProtoLegacy(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
