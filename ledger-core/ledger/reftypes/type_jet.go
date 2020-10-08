@@ -248,7 +248,7 @@ func DecodeJetData(b reference.LocalHash, checkTailingZeros bool) (pulse.Number,
 	if b[6] != 0 {
 		return 0, 0, throw.W(ErrIllegalRefValue,"invalid reserved[6] in jet ref")
 	}
-	pfxLen := b[:jetDataLength][7] // just a sanity check
+	pfxLen := b[:jetDataLength][7] // with length sanity check
 
 	if checkTailingZeros {
 		for _, bi := range b[jetDataLength:] {
@@ -266,12 +266,12 @@ func DecodeJetData(b reference.LocalHash, checkTailingZeros bool) (pulse.Number,
 	switch {
 	case pfxLen == 0:
 		return pn, jet.NoLengthExactID(jet.ID(jetID)), nil
-	case pfxLen > jet.IDBitLen:
+	case pfxLen > jet.IDBitLen + 1:
 		return 0, 0, throw.W(ErrIllegalRefValue,"invalid prefix length in jet ref")
 	case pn == 0:
 		return 0, 0, throw.W(ErrIllegalRefValue,"missing pulse in jet leg ref")
 	default:
-		return pn, jet.ID(jetID).AsExact(pfxLen), nil
+		return pn, jet.ID(jetID).AsExact(pfxLen - 1), nil
 	}
 }
 
@@ -285,7 +285,7 @@ func EncodeJetData(b *reference.LocalHash, pn pulse.Number, id jet.ExactID) {
 	encoder.PutUint16(b[4:6], uint16(id.ID()))
 	b[6] = 0
 	if id.HasLength() {
-		b[7] = id.BitLen()
+		b[7] = id.BitLen() + 1
 	} else {
 		b[7] = 0
 	}
