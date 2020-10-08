@@ -121,7 +121,7 @@ func main() {
 	var sigUSR2 = make(chan os.Signal, 1)
 	var sigINT = make(chan os.Signal, 1)
 	signal.Notify(sigUSR2, syscall.SIGUSR2)
-	signal.Notify(sigINT, syscall.SIGINT) // inside the goroutine
+	signal.Notify(sigINT, os.Interrupt) // inside the goroutine
 	go func() {
 		for {
 			select {
