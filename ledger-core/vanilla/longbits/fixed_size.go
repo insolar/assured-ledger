@@ -192,7 +192,25 @@ func CopyFixed(v FixedReader) FoldableReader {
 	}
 }
 
-func Copy(to []byte, from FixedReader) error {
+func CopyWithLimit(from FixedReader, limit int) []byte {
+	if from == nil {
+		return nil
+	}
+
+	n := from.FixedByteSize()
+	switch {
+	case n == 0 || limit <= 0:
+		return make([]byte, 0, 0)
+	case n > limit:
+		n = limit
+	}
+
+	b := make([]byte, n)
+	from.CopyTo(b)
+	return b
+}
+
+func CopyExact(to []byte, from FixedReader) error {
 	if n := from.FixedByteSize(); n != len(to) {
 		if n < len(to) {
 			return io.ErrShortBuffer

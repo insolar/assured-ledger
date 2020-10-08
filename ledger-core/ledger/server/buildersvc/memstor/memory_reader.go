@@ -86,7 +86,7 @@ func (v MemoryStorageReader) getSection(id ledger.SectionID, hasDirectory bool) 
 	return cabinetReadSection{}, throw.E("section is unknown")
 }
 
-func (v MemoryStorageReader) FindDirectoryEntry(id ledger.SectionID, ref reference.Holder) (ledger.StorageLocator, error) {
+func (v MemoryStorageReader) FindDirectoryEntryLocator(id ledger.SectionID, ref reference.Holder) (ledger.StorageLocator, error) {
 	section, err := v.getSection(id, true)
 	if err != nil {
 		return 0, throw.WithDetails(err, struct{ SectionID ledger.SectionID }{id})
@@ -96,7 +96,7 @@ func (v MemoryStorageReader) FindDirectoryEntry(id ledger.SectionID, ref referen
 	return loc, nil
 }
 
-func (v MemoryStorageReader) GetDirectoryEntry(index ledger.DirectoryIndex) (ledger.StorageLocator, error) {
+func (v MemoryStorageReader) GetDirectoryEntryLocator(index ledger.DirectoryIndex) (ledger.StorageLocator, error) {
 	section, err := v.getSection(index.SectionID(), true)
 	if err != nil {
 		return 0, throw.WithDetails(err, struct{ Index ledger.DirectoryIndex }{index})
@@ -106,7 +106,7 @@ func (v MemoryStorageReader) GetDirectoryEntry(index ledger.DirectoryIndex) (led
 	return loc, nil
 }
 
-func (v MemoryStorageReader) GetEntryStorage(locator ledger.StorageLocator) (readbundle.ReadSlice, error) {
+func (v MemoryStorageReader) GetEntryStorage(locator ledger.StorageLocator) (readbundle.Slice, error) {
 	section, err := v.getSection(locator.SectionID(), true)
 	if err == nil {
 		var b []byte
@@ -124,7 +124,7 @@ func (v MemoryStorageReader) GetEntryStorage(locator ledger.StorageLocator) (rea
 	return nil, throw.WithDetails(err, struct { Locator ledger.StorageLocator }{locator})
 }
 
-func (v MemoryStorageReader) GetPayloadStorage(locator ledger.StorageLocator, size int) (readbundle.ReadSlice, error) {
+func (v MemoryStorageReader) GetPayloadStorage(locator ledger.StorageLocator, size int) (readbundle.Slice, error) {
 	if size <= 0 {
 		panic(throw.IllegalValue())
 	}
@@ -141,7 +141,7 @@ func (v MemoryStorageReader) GetPayloadStorage(locator ledger.StorageLocator, si
 	}
 }
 
-func (v MemoryStorageReader) readData(b []byte, ofs, size int) (readbundle.ReadSlice, error) {
+func (v MemoryStorageReader) readData(b []byte, ofs, size int) (readbundle.Slice, error) {
 	end := ofs + size
 	if end > len(b) {
 		return nil, throw.E("invalid data slice", struct { Offset, Length int}{ ofs, size})

@@ -11,21 +11,49 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
-type ReadSlice interface {
-	longbits.FixedReader
+// BasicReader provides basic read access.
+// WARNING! Caller MUST NOT change the byte slice.
+type BasicReader interface {
+	// GetDirectoryEntry returns key and entry's locator for the given index. Invalid index will return (nil, 0)
+	GetDirectoryEntryLocator(ledger.DirectoryIndex) (ledger.StorageLocator, error)
+	// GetEntryStorage returns start of byte slice for the given locator. Invalid locator will return nil.
+	GetEntryStorage(ledger.StorageLocator) (Slice, error)
+	// GetPayloadStorage returns start of byte slice for the given locator and size. Invalid locator will return nil.
+	// WARNING! Implementation MAY NOT check if size is longer than the actual content for the given locator.
+	GetPayloadStorage(ledger.StorageLocator, int) (Slice, error)
 }
 
 type Reader interface {
-	FindDirectoryEntry(ledger.SectionID, reference.Holder) (ledger.StorageLocator, error)
-
-	// GetDirectoryEntry returns key and entry's locator for the given index. Invalid index will return (nil, 0)
-	GetDirectoryEntry(ledger.DirectoryIndex) (ledger.StorageLocator, error)
-	// GetEntryStorage returns start of byte slice for the given locator.
-	GetEntryStorage(ledger.StorageLocator) (ReadSlice, error)
-	// GetPayloadStorage returns start of byte slice for the given locator.
-	GetPayloadStorage(ledger.StorageLocator, int) (ReadSlice, error)
-
-	// // GetDirectoryEntries returns all known entries.
-	// GetDirectoryEntries(ledger.SectionID) [][]DirectoryEntry
+	BasicReader
+	FindDirectoryEntryLocator(ledger.SectionID, reference.Holder) (ledger.StorageLocator, error)
 }
 
+type Slice interface {
+	longbits.FixedReader
+}
+
+func WrapBytes(b []byte) Slice {
+	return longbits.WrapBytes(b)
+}
+
+type Unmarshaler interface {
+	Unmarshal([]byte) error
+}
+
+func UnmarshalTo(from Slice, to Unmarshaler) error {
+	return UnmarshalToFunc(from, to.Unmarshal)
+}
+
+func UnmarshalToFunc(from Slice, toFn func ([]byte) error) error {
+	_, err := from.WriteTo(writeToFunc(toFn))
+	return err
+}
+
+type writeToFunc func ([]byte) error
+
+func (v writeToFunc) Write(b []byte) (int, error) {
+	if err := v(b); err != nil {
+		return 0, err
+	}
+	return len(b), nil
+}

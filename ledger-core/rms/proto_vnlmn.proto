@@ -107,10 +107,11 @@ message LReadRequest {
     Reference TargetStartRef = 1803;
     Reference TargetStopRef = 1804;
 
-    uint32    LimitSize = 1810;
-    uint32    LimitCount = 1811;
-    uint32    LimitRecordWithBodyCount = 1812;
-    uint32    LimitRecordWithPayloadCount = 1813;
+    uint32 LimitSize = 1810;
+    uint32 LimitCount = 1811;
+    uint32 LimitRecordWithBodyCount = 1812;
+    uint32 LimitRecordWithPayloadCount = 1813;
+    uint32 LimitRecordWithExtensionsCount = 1814;
 }
 
 message LReadResponse {

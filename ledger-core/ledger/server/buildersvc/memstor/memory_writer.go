@@ -12,6 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/readersvc/readbundle"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
@@ -152,30 +153,39 @@ func (p *MemoryStorageWriter) GetDirectoryEntries(section ledger.SectionID) [][]
 	return nil
 }
 
-func (p *MemoryStorageWriter) GetEntryStorage(locator ledger.StorageLocator) []byte {
+func (p *MemoryStorageWriter) GetDirectoryEntryLocator(index ledger.DirectoryIndex) (ledger.StorageLocator, error) {
+	return p.GetDirectoryEntry(index).Loc, nil
+}
+
+func (p *MemoryStorageWriter) GetEntryStorage(locator ledger.StorageLocator) (readbundle.Slice, error) {
 	switch section := p.getDirtyReadSection(locator.SectionID()); {
 	case section == nil:
 	case !section.hasDirectory():
 	default:
 		b := section.readDirtyStorage(locator)
-		u, n := protokit.DecodeVarintFromBytes(b)
-		if n == 0 || u == 0 {
-			return nil
+		u, n, err := protokit.DecodeVarintFromBytesWithError(b)
+		if err != nil {
+			return nil, throw.W(err, "invalid directory entry size", struct { Locator ledger.StorageLocator }{ locator})
+		}
+		if u == 0 {
+			return nil, throw.W(err, "zero length directory entry", struct { Locator ledger.StorageLocator }{ locator})
 		}
 		u += uint64(n)
 		if u > uint64(len(b)) {
-			return nil
+			return nil, throw.W(err, "invalid directory entry size", struct { Locator ledger.StorageLocator }{ locator})
 		}
-		return b[n:u:u]
+		return readbundle.WrapBytes(b[n:u:u]), nil
 	}
-	return nil
+	return nil, nil
 }
 
-func (p *MemoryStorageWriter) GetPayloadStorage(locator ledger.StorageLocator) []byte {
-	if section := p.getDirtyReadSection(locator.SectionID()); section != nil {
-		return section.readDirtyStorage(locator)
+func (p *MemoryStorageWriter) GetPayloadStorage(locator ledger.StorageLocator, sz int) (readbundle.Slice, error) {
+	if section := p.getDirtyReadSection(locator.SectionID()); sz >= 0 && section != nil {
+		if b := section.readDirtyStorage(locator); len(b) >= sz {
+			return readbundle.WrapBytes(b[:sz:sz]), nil
+		}
 	}
-	return nil
+	return nil, nil
 }
 
 

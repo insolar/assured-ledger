@@ -6,13 +6,17 @@
 package dataextractor
 
 import (
+	"math"
+
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/readersvc/readbundle"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsbox"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -62,21 +66,25 @@ func (p *WholeExtractor) ExtractAllRecordsWithReader(reader bundle.DirtyReader) 
 	for ;p.fullyExtracted < len(p.records); p.fullyExtracted++ {
 		r := &p.records[p.fullyExtracted]
 
-		entry := reader.GetDirectoryEntry(p.storage[p.fullyExtracted])
+		di := p.storage[p.fullyExtracted]
+		entry := reader.GetDirectoryEntry(di)
 		switch {
 		case entry.IsZero():
-			panic(throw.IllegalState())
+			panic(throw.IllegalState()) // TODO errors
 		case !reference.Equal(r.RecordRef.Get(), entry.Key):
 			panic(throw.IllegalState())
 		}
 
-		b := reader.GetEntryStorage(entry.Loc)
-		if b == nil {
+		b, err := reader.GetEntryStorage(entry.Loc)
+		switch {
+		case err != nil:
+			panic(err)
+		case b == nil:
 			panic(throw.IllegalState())
 		}
 
-		ce := catalog.Entry{}
-		if err := ce.Unmarshal(b); err != nil {
+		ce := &catalog.Entry{}
+		if err := readbundle.UnmarshalTo(b, ce); err != nil {
 			panic(err)
 		}
 
@@ -84,27 +92,39 @@ func (p *WholeExtractor) ExtractAllRecordsWithReader(reader bundle.DirtyReader) 
 			panic(throw.IllegalState())
 		}
 
-		bodySize := uint32(ce.BodyPayloadSizes)
-		payloadSize := uint32(ce.BodyPayloadSizes>>32)
+		bodySize := int(ce.BodyPayloadSizes&math.MaxUint32)
+		payloadSize := int(ce.BodyPayloadSizes>>32)
+
 
 		if bodySize > 0 && !ce.BodyLoc.IsZero() {
-			b := reader.GetPayloadStorage(ce.BodyLoc)
-			r.RecordBinary.SetBytes(append([]byte(nil), b[:bodySize]...))
+			b, err := reader.GetPayloadStorage(ce.BodyLoc, bodySize)
+			if err != nil {
+				panic(err)
+			}
+			r.RecordBinary.SetBytes(longbits.CopyWithLimit(b, bodySize)) // TODO remove copy when result will be used for serialization
 		}
 
 		if payloadSize > 0 && !ce.PayloadLoc.IsZero() {
-			b := reader.GetPayloadStorage(ce.PayloadLoc)
-			r.Payloads = append(r.Payloads, append([]byte(nil), b[:payloadSize]...))
+			b, err := reader.GetPayloadStorage(ce.PayloadLoc, payloadSize)
+			if err != nil {
+				panic(err)
+			}
+			r.Payloads = append(r.Payloads, longbits.CopyWithLimit(b, payloadSize))
 		}
 
 		for _, ext := range ce.ExtensionLoc.Ext {
-			b := reader.GetPayloadStorage(ext.PayloadLoc)
-			r.Payloads = append(r.Payloads, append([]byte(nil), b[:ext.PayloadSize]...))
+			b, err := reader.GetPayloadStorage(ext.PayloadLoc, int(ext.PayloadSize))
+			if err != nil {
+				panic(err)
+			}
+			r.Payloads = append(r.Payloads, longbits.CopyWithLimit(b, int(ext.PayloadSize)))
 		}
 	}
 
 	return nil
 }
+
+
 
 func (p *WholeExtractor) ExtractMoreRecords(int) bool {
 	panic(throw.Unsupported())

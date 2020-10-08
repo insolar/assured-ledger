@@ -127,7 +127,7 @@ func (p *SMLineReader) stepBatchRead(ctx smachine.ExecutionContext) smachine.Sta
 // 	}
 //
 // 	// // ledger.ControlSection
-// 	// loc, err := p.reader.FindDirectoryEntry(ledger.DefaultEntrySection, p.request.TargetRef.Get())
+// 	// loc, err := p.reader.FindDirectoryEntryLocator(ledger.DefaultEntrySection, p.request.TargetRef.Get())
 // 	// switch {
 // 	// case err != nil:
 // 	// 	return ctx.Error(err)
