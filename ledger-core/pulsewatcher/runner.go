@@ -121,3 +121,11 @@ func Run(_ context.Context, cfg configuration.PulseWatcherConfig) {
 		}
 	}
 }
+
+func OneShot(nodes []string) {
+	cfg := configuration.NewPulseWatcherConfiguration()
+	cfg.Nodes = nodes
+	cfg.OneShot = true
+	cfg.ShowEmoji = true
+	Run(context.Background(), cfg)
+}

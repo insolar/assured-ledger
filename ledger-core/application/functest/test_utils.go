@@ -9,10 +9,14 @@ package functest
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -65,10 +69,21 @@ type rpcStatusResponse struct {
 	Result statusResponse `json:"result"`
 }
 
+const (
+	apiTimeout = 10 * time.Second
+)
+
 func getRPSResponseBody(t testing.TB, URL string, postParams map[string]interface{}) []byte {
 	jsonValue, _ := json.Marshal(postParams)
 
-	postResp, err := http.Post(URL, "application/json", bytes.NewBuffer(jsonValue))
+	request, err := http.NewRequest(http.MethodPost, URL, bytes.NewBuffer(jsonValue))
+	require.NoError(t, err)
+	request.Header["Content-type"] = []string{"application/json"}
+	ctx, cancel := context.WithTimeout(context.Background(), apiTimeout)
+	defer cancel()
+	request = request.WithContext(ctx)
+
+	postResp, err := http.DefaultClient.Do(request)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, postResp.StatusCode)
 	body, err := ioutil.ReadAll(postResp.Body)
@@ -86,4 +101,34 @@ func unmarshalRPCResponse(t testing.TB, body []byte, response RPCResponseInterfa
 func unmarshalCallResponse(t testing.TB, body []byte, response *requester.ContractResponse) {
 	err := json.Unmarshal(body, &response)
 	require.NoError(t, err)
+}
+
+func getTestNodesSetup() (numVirtual int, numLight int, numHeavy int) {
+	// default num nodes
+	{
+		numVirtual, numLight, numHeavy = 5, 0, 0
+	}
+
+	var (
+		err error
+	)
+	if numVirtualStr := os.Getenv("NUM_DISCOVERY_VIRTUAL_NODES"); numVirtualStr != "" {
+		numVirtual, err = strconv.Atoi(numVirtualStr)
+		if err != nil {
+			panic(err)
+		}
+	}
+	if numLightStr := os.Getenv("NUM_DISCOVERY_LIGHT_NODES"); numLightStr != "" {
+		numLight, err = strconv.Atoi(numLightStr)
+		if err != nil {
+			panic(err)
+		}
+	}
+	if numHeavyStr := os.Getenv("NUM_DISCOVERY_HEAVY_NODES"); numHeavyStr != "" {
+		numHeavy, err = strconv.Atoi(numHeavyStr)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return numVirtual, numLight, numHeavy
 }

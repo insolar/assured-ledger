@@ -105,8 +105,7 @@ func main() {
 	}()
 
 	var gracefulStop = make(chan os.Signal, 1)
-	signal.Notify(gracefulStop, syscall.SIGTERM)
-	signal.Notify(gracefulStop, syscall.SIGINT)
+	signal.Notify(gracefulStop, os.Interrupt, syscall.SIGTERM)
 
 	<-gracefulStop
 }
