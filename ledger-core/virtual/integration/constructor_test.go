@@ -150,11 +150,11 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 		require.True(t, ok)
 
-		assert.Empty(t, request.Incoming)
+		assert.NotEmpty(t, request.Incoming)
 		assert.Empty(t, request.ObjectMemory)
 		utils.AssertVCallRequestEqual(t, &pl, &request.Request)
 
-		assert.Empty(t, result.IncomingResult)
+		assert.NotEmpty(t, result.IncomingResult)
 		assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), result.ObjectState.Get().GetLocal().Pulse())
 		assert.True(t, request.Request.CallOutgoing.Equal(&result.Reason))
 		assert.Equal(t, objectRef.GetBase(), result.ObjectState.Get().GetBase())
@@ -278,11 +278,11 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 		result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 		require.True(t, ok)
 
-		assert.Empty(t, request.Incoming)
+		assert.NotEmpty(t, request.Incoming)
 		assert.Empty(t, request.ObjectMemory)
 		utils.AssertVCallRequestEqual(t, &pl, &request.Request)
 
-		assert.Empty(t, result.IncomingResult)
+		assert.NotEmpty(t, result.IncomingResult)
 		assert.Equal(t, currPulse, result.ObjectState.Get().GetLocal().Pulse())
 		assert.Equal(t, objectRef.GetBase(), result.ObjectState.Get().GetBase())
 
@@ -418,11 +418,11 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 			result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 			require.True(t, ok)
 
-			assert.Empty(t, request.Incoming)
+			assert.NotEmpty(t, request.Incoming)
 			assert.Empty(t, request.ObjectMemory)
 			utils.AssertVCallRequestEqual(t, &pl, &request.Request)
 
-			assert.Empty(t, result.IncomingResult)
+			assert.NotEmpty(t, result.IncomingResult)
 			assert.Equal(t, p2, result.ObjectState.Get().GetLocal().Pulse())
 			assert.Equal(t, objectRef.GetBase(), result.ObjectState.Get().GetBase())
 
