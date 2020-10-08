@@ -72,10 +72,6 @@ func (v Local) GetPulseNumber() pulse.Number {
 	return v.pulseAndScope.Pulse()
 }
 
-func (v Local) GetHash() LocalHash {
-	return v.hash
-}
-
 func (v Local) GetHeader() LocalHeader {
 	return v.pulseAndScope
 }
