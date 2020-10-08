@@ -22,11 +22,11 @@ func Run(cb func() int) int {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	teardown, err := setup()
+	defer teardown()
 	if err != nil {
 		fmt.Println("error while setup, skip tests: ", err)
 		return 1
 	}
-	defer teardown()
 
 	go func() {
 		sig := <-c

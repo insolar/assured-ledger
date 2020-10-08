@@ -27,6 +27,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/pulsewatcher"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
@@ -144,20 +145,10 @@ func customRun(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int, cb
 		os.Exit(2)
 	}()
 
-	pulseWatcher, config := pulseWatcherPath()
-
 	code := cb(apiAddresses)
 
 	if code != 0 {
-		pulseWatcherCmd := exec.Command(pulseWatcher, "--config", config)
-
-		pulseWatcherCmd.Env = append(pulseWatcherCmd.Env, fmt.Sprintf("PULSEWATCHER_ONESHOT=TRUE"))
-		out, err := pulseWatcherCmd.CombinedOutput()
-		if err != nil {
-			fmt.Println("PulseWatcher execution error: ", err)
-			return 1
-		}
-		fmt.Println(string(out))
+		pulsewatcher.OneShot(apiAddresses)
 	}
 	return code
 }

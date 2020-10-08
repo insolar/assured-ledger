@@ -9,12 +9,12 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/pulsewatcher"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/server"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -155,7 +155,7 @@ func (cr CloudRunner) getPulseModeFromEnv() PulsarMode {
 }
 
 func (cr CloudRunner) SetupCloud() (func(), error) {
-	return cr.SetupCloudCustom(RegularPulsar)
+	return cr.SetupCloudCustom(cr.getPulseModeFromEnv())
 }
 
 func (cr CloudRunner) SetupCloudCustom(pulsarMode PulsarMode) (func(), error) {
@@ -180,20 +180,18 @@ func (cr CloudRunner) SetupCloudCustom(pulsarMode PulsarMode) (func(), error) {
 	SetVerbose(false)
 	err := waitForNetworkState(appConfig{Nodes: nodes}, network.CompleteNetworkState)
 	if err != nil {
-		return nil, throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
+		return s.Stop, throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
 	}
 	return s.Stop, nil
 }
 
 func (cr *CloudRunner) Run(cb func([]string) int) int {
 	teardown, err := cr.SetupCloud()
+	defer teardown()
 	if err != nil {
 		fmt.Println("error while setup, skip tests: ", err)
 		return 1
 	}
-	defer teardown()
-
-	pulseWatcher, config := pulseWatcherPath()
 
 	apiAddresses := make([]string, 0, len(cr.ConfProvider.GetAppConfigs()))
 	for _, el := range cr.ConfProvider.GetAppConfigs() {
@@ -203,12 +201,7 @@ func (cr *CloudRunner) Run(cb func([]string) int) int {
 	code := cb(apiAddresses)
 
 	if code != 0 {
-		out, err := exec.Command(pulseWatcher, "-c", config, "-s").CombinedOutput()
-		if err != nil {
-			fmt.Println("PulseWatcher execution error: ", err)
-			return 1
-		}
-		fmt.Println(string(out))
+		pulsewatcher.OneShot(apiAddresses)
 	}
 	return code
 }
