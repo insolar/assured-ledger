@@ -14,22 +14,12 @@ import (
 )
 
 func TestJetLocalRef(t *testing.T) {
-	// Play with IDs
-	// 0x03556677 - exactID which consist of
-	// 0x03 - length of jetID (MSB of exactID)
-	// 0x55 - not used
-	// 0x6677 - jetID
-	id := jet.LegID(pulse.MaxTimePulse | (0x03556677 << 32))
-	assert.Equal(t, true, jet.LegID(id).ExactID().HasLength())
-
-	// Play with refs
 	jetLocalRef1 := JetLocalRef(0)
 	jetLocalRef2 := JetLocalRef(77)
 	jetLocalRef3 := JetLocalRef(77)
 	assert.False(t, jetLocalRef1.Equal(jetLocalRef2))
 	assert.True(t, jetLocalRef2.Equal(jetLocalRef3))
 	assert.True(t, jetLocalRef3.Equal(jetLocalRef2))
-	assert.Equal(t, "257/insolar:0AAABAQ.record", jetLocalRef1.String())
 	assert.Equal(t, pulse.Jet, jetLocalRef1.GetPulseNumber())
 	assert.Equal(t, jetLocalRef1.Pulse(), jetLocalRef1.GetPulseNumber())
 	assert.Equal(t, reference.LocalHash{0, 0, 0, 0, 77}, jetLocalRef3.GetHash())
@@ -59,19 +49,43 @@ func TestJetLocalRef(t *testing.T) {
 	jetId, err = unpackJetLocalRef(jetLocalRef3, false)
 	assert.Equal(t, jet.ID(77), jetId)
 	assert.Equal(t, nil, err)
+}
 
-	id1 := jet.LegID(pulse.MaxTimePulse | (0x03006677 << 32))
-	id2 := jet.LegID(pulse.MaxTimePulse | (0x03006677 << 32))
-	id3 := jet.LegID(pulse.MaxTimePulse | (0x03006679 << 32))
+func TestJetLegLocalRef(t *testing.T) {
+	// Play with IDs
+	// 0x11006677 - exactID which consist of
+	// 0x11 - bit length of jetID (MSB of exactID) minus one
+	// 0x00 - reserved, must be 0
+	// 0x6677 - jetID
+	id := jet.LegID(pulse.MaxTimePulse | (0x11006677 << 32))
+	assert.Equal(t, true, jet.LegID(id).ExactID().HasLength())
+
+	id1 := jet.LegID(pulse.MaxTimePulse | (0x11006677 << 32))
+	id2 := jet.LegID(pulse.MaxTimePulse | (0x11006677 << 32))
+	id3 := jet.LegID(pulse.MaxTimePulse | (0x11006679 << 32))
 
 	jetLegLocalRef1 := JetLegLocalRef(id1)
 	jetLegLocalRef2 := JetLegLocalRef(id2)
 	jetLegLocalRef3 := JetLegLocalRef(id3)
 	assert.True(t, jetLegLocalRef1.Equal(jetLegLocalRef2))
 	assert.False(t, jetLegLocalRef1.Equal(jetLegLocalRef3))
-	assert.Equal(t, "257/insolar:0AAABAf___z93ZgAC.record", jetLegLocalRef1.String())
 	assert.Equal(t, pulse.Jet, jetLegLocalRef1.GetPulseNumber())
 	assert.Equal(t, jetLegLocalRef1.Pulse(), jetLegLocalRef1.GetPulseNumber())
-	assert.Equal(t, reference.LocalHash{0xFF, 0xFF, 0xFF, 0x3F, 0x79, 0x66, 0, 2}, jetLegLocalRef3.GetHash())
+	assert.Equal(t, reference.LocalHash{0xFF, 0xFF, 0xFF, 0x3F, 0x79, 0x66, 0, 0x10}, jetLegLocalRef3.GetHash())
+	assert.Equal(t, reference.LocalHash{0xFF, 0xFF, 0xFF, 0x3F, 0x79, 0x66, 0, 0x10}, jetLegLocalRef3.IdentityHash())
+	assert.Equal(t, reference.LocalHash{0xFF, 0xFF, 0xFF, 0x3F, 0x77, 0x66, 0, 0x10}, jetLegLocalRef1.GetHash())
+	assert.Equal(t, reference.LocalHash{0xFF, 0xFF, 0xFF, 0x3F, 0x77, 0x66, 0, 0x10}, jetLegLocalRef1.IdentityHash())
+	assert.Equal(t, reference.SubScopeLifeline, jetLegLocalRef1.SubScope())
+
+	pn, exactID, err := DecodeJetData(jetLegLocalRef1.IdentityHash(), true)
+
+	assert.Equal(t, pulse.Number(pulse.MaxTimePulse), pn)
+	assert.Equal(t, jet.ExactID(0x11006677), exactID)
+	assert.Nil(t, err)
+
+	unpackedJetID, err := UnpackJetLegLocalRef(jetLegLocalRef1)
+	assert.Equal(t, unpackedJetID, id1)
+	assert.Nil(t, err)
+
 }
 
