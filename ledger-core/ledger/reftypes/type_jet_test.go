@@ -18,11 +18,11 @@ import (
 func TestJetLocalRef(t *testing.T) {
 	jetLocalRef1 := JetLocalRef(0)
 	assert.Equal(t, pulse.Jet, jetLocalRef1.Pulse())
-	assert.Equal(t, reference.LocalHash{0}, jetLocalRef1.GetHash())
+	assert.Equal(t, reference.LocalHash{0}, jetLocalRef1.IdentityHash())
 
 	jetLocalRef2 := JetLocalRef(77)
 	assert.Equal(t, pulse.Jet, jetLocalRef2.Pulse())
-	assert.Equal(t, reference.LocalHash{0, 0, 0, 0, 77}, jetLocalRef2.GetHash())
+	assert.Equal(t, reference.LocalHash{0, 0, 0, 0, 77}, jetLocalRef2.IdentityHash())
 
 	tDefJet := typeDefJet{}
 	err := tDefJet.VerifyLocalRef(jetLocalRef1)
