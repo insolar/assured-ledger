@@ -68,11 +68,24 @@ func TestJetLegLocalRef(t *testing.T) {
 	id2 := jet.ID(0x6679).AsLeg(prefixLen, pulse.MaxTimePulse)
 
 	jetLegLocalRef1 := JetLegLocalRef(id1)
-	jetLegLocalRef3 := JetLegLocalRef(id2)
-	assert.NotEqual(t, jetLegLocalRef1, jetLegLocalRef3)
+	jetLegLocalRef2 := JetLegLocalRef(id2)
+	assert.NotEqual(t, jetLegLocalRef1, jetLegLocalRef2)
+
+	tDefJetLeg := typeDefJetLeg{}
+	err := tDefJetLeg.VerifyLocalRef(jetLegLocalRef1)
+	assert.NoError(t, err)
+
+	err = tDefJetLeg.VerifyLocalRef(jetLegLocalRef2)
+	assert.NoError(t, err)
+
+	tp := tDefJet.detectJetSubType(jetLegLocalRef1, false)
+	assert.Equal(t, JetLeg, tp)
+	tp = tDefJet.detectJetSubType(jetLegLocalRef2, true)
+	assert.Equal(t, Invalid, tp)
+
 
 	assert.Equal(t, reference.LocalHash{0xFF, 0xFF, 0xFF, 0x3F, 0x77, 0x66, 0, prefixLen + 1}, jetLegLocalRef1.IdentityHash())
-	assert.Equal(t, reference.LocalHash{0xFF, 0xFF, 0xFF, 0x3F, 0x79, 0x66, 0, prefixLen + 1}, jetLegLocalRef3.IdentityHash())
+	assert.Equal(t, reference.LocalHash{0xFF, 0xFF, 0xFF, 0x3F, 0x79, 0x66, 0, prefixLen + 1}, jetLegLocalRef2.IdentityHash())
 	assert.EqualValues(t, 0, jetLegLocalRef1.SubScope()) // SubScope is not applicable and must be zero
 
 	pn, exactID, err := DecodeJetData(jetLegLocalRef1.IdentityHash(), true)
@@ -80,7 +93,7 @@ func TestJetLegLocalRef(t *testing.T) {
 	assert.Equal(t, pulse.Number(pulse.MaxTimePulse), pn)
 	assert.Equal(t, id1.ExactID(), exactID)
 
-	pn, exactID, err = DecodeJetData(jetLegLocalRef3.IdentityHash(), true)
+	pn, exactID, err = DecodeJetData(jetLegLocalRef2.IdentityHash(), true)
 	assert.NoError(t, err)
 	assert.Equal(t, pulse.Number(pulse.MaxTimePulse), pn)
 	assert.Equal(t, id2.ExactID(), exactID)
@@ -89,8 +102,49 @@ func TestJetLegLocalRef(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, unpackedJetID, id1)
 
-	unpackedJetID, err = UnpackJetLegLocalRef(jetLegLocalRef3)
+	unpackedJetID, err = UnpackJetLegLocalRef(jetLegLocalRef2)
 	assert.NoError(t, err)
 	assert.Equal(t, unpackedJetID, id2)
 }
 
+
+func TestJetDropLocalRef(t *testing.T) {
+	const prefixLen = 16
+	id1 := jet.ID(0x6677).AsDrop(pulse.MaxTimePulse)
+	id2 := jet.ID(0x6679).AsDrop(pulse.MaxTimePulse)
+
+	jetDropLocalRef1 := JetDropLocalRef(id1)
+	jetDropLocalRef2 := JetDropLocalRef(id2)
+	assert.NotEqual(t, jetDropLocalRef1, jetDropLocalRef2)
+
+
+	tDefJetDrop := typeDefJetDrop{}
+	err := tDefJetDrop.VerifyLocalRef(jetDropLocalRef1)
+	assert.NoError(t, err)
+
+	err = tDefJetDrop.VerifyLocalRef(jetDropLocalRef2)
+	assert.NoError(t, err)
+
+	assert.Equal(t, reference.LocalHash{0xFF, 0xFF, 0xFF, 0x3F, 0x77, 0x66}, jetDropLocalRef1.IdentityHash())
+	assert.Equal(t, reference.LocalHash{0xFF, 0xFF, 0xFF, 0x3F, 0x79, 0x66}, jetDropLocalRef2.IdentityHash())
+	assert.EqualValues(t, 0, jetDropLocalRef1.SubScope()) // SubScope is not applicable and must be zero
+
+	pn, id, err := DecodeJetData(jetDropLocalRef1.IdentityHash(), true)
+	assert.NoError(t, err)
+	assert.Equal(t, pulse.Number(pulse.MaxTimePulse), pn)
+	assert.Equal(t, jet.ExactID(0x6677), id)
+
+	pn, id, err = DecodeJetData(jetDropLocalRef2.IdentityHash(), true)
+	assert.NoError(t, err)
+	assert.Equal(t, pulse.Number(pulse.MaxTimePulse), pn)
+	assert.Equal(t, jet.ExactID(0x6679), id)
+
+	unpackedJetID, err := UnpackJetDropLocalRef(jetDropLocalRef1)
+	assert.NoError(t, err)
+	assert.Equal(t, unpackedJetID, id1)
+
+	unpackedJetID, err = UnpackJetDropLocalRef(jetDropLocalRef2)
+	assert.NoError(t, err)
+	assert.Equal(t, unpackedJetID, id2)
+
+}
