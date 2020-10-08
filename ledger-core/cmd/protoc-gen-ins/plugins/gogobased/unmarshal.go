@@ -1258,11 +1258,12 @@ func (p *unmarshal) Generate(file *generator.FileDescriptor) {
 
 		p.P(`func (m *`, ccTypeName, `) Unmarshal(dAtA []byte) error {`)
 		p.In()
-		p.P(`return m.UnmarshalWithUnknownCallback(dAtA, skip`, p.localName, `)`)
+		p.P(`_, err := m.UnmarshalWithUnknownCallback(dAtA, skip`, p.localName, `)`)
+		p.P(`return err`)
 		p.Out()
 		p.P(`}`)
 
-		p.P(`func (m *`, ccTypeName, `) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {`)
+		p.P(`func (m *`, ccTypeName, `) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {`)
 		p.In()
 		if rfCount > 0 {
 			p.P(`var hasFields [`, 1+(rfCount-1)/64, `]uint64`)
@@ -1272,6 +1273,8 @@ func (p *unmarshal) Generate(file *generator.FileDescriptor) {
 		p.P(`for iNdEx < l {`)
 		p.In()
 		p.P(`preIndex := iNdEx`)
+		p.P(`err := func() error {`)
+		p.In()
 		p.P(`var wire uint64`)
 		p.decodeVarint("wire", "uint64")
 		p.P(`fieldNum := int32(wire >> 3)`)
@@ -1501,6 +1504,10 @@ func (p *unmarshal) Generate(file *generator.FileDescriptor) {
 		}
 		p.Out()
 		p.P(`}`)
+		p.P(`return nil`)
+		p.Out()
+		p.P(`}()`)
+		p.P(`if err != nil { return preIndex, err }`)
 		p.Out()
 		p.P(`}`)
 
@@ -1527,13 +1534,13 @@ func (p *unmarshal) Generate(file *generator.FileDescriptor) {
 		p.P()
 		p.P(`if iNdEx > l {`)
 		p.In()
-		p.P(`return ` + p.ioPkg.Use() + `.ErrUnexpectedEOF`)
+		p.P(`return iNdEx, ` + p.ioPkg.Use() + `.ErrUnexpectedEOF`)
 		p.Out()
 		p.P(`}`)
 		if fieldMapNo > 0 {
 			p.P(`m.FieldMap.PutMessage(0, iNdEx, dAtA)`)
 		}
-		p.P(`return nil`)
+		p.P(`return iNdEx, nil`)
 		p.Out()
 		p.P(`}`)
 	}
