@@ -129,7 +129,7 @@ func NewUninitializedServerWithErrorFilter(ctx context.Context, t Tester, errorF
 }
 
 func generateGlobalCaller() reference.Global {
-	return reference.NewSelf(reference.NewLocal(pulse.MinTimePulse, 0, gen.UniqueLocalRef().GetHash()))
+	return reference.NewSelf(reference.NewLocal(pulse.MinTimePulse, 0, gen.UniqueLocalRef().IdentityHash()))
 }
 
 type ServerOpts struct {

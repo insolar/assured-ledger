@@ -97,7 +97,7 @@ func TestDecoder_Decode_new(t *testing.T) {
 			assert.Equal(t, pulse.Number(0x1000), g1.GetLocal().GetPulseNumber())
 			assert.Equal(t, g1.GetLocal().GetPulseNumber(), g2.GetLocal().GetPulseNumber())
 			assert.Equal(t, g1.GetLocal().SubScope(), g2.GetLocal().SubScope())
-			assert.Equal(t, g1.GetLocal().GetHash(), g2.GetLocal().GetHash())
+			assert.Equal(t, g1.GetLocal().IdentityHash(), g2.GetLocal().IdentityHash())
 		}
 	}
 
