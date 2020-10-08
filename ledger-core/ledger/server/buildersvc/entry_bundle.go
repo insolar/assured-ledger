@@ -231,21 +231,26 @@ type sectionPayload struct {
 
 func draftCatalogEntry(rec lineage.Record) catalog.Entry {
 	return catalog.Entry{
-		RecordType:         rec.Excerpt.RecordType,
-		PayloadDigests:     rec.Excerpt.PayloadDigests,
-		PrevRef:			rec.Excerpt.PrevRef,
-		RootRef:			rec.Excerpt.RootRef,
-		ReasonRef:			rec.Excerpt.ReasonRef,
-		RedirectRef:		rec.Excerpt.RedirectRef,
-		RejoinRef:			rec.Excerpt.RejoinRef,
-		RecapRef: 			rms.NewReference(rec.RecapRef),
+		EntryData: rms.CatalogEntryData{
+			RecordType:     rec.Excerpt.RecordType,
+			BodyDigest:     rmsbox.NewRaw(rec.RegistrarSignature.GetDigest()).AsBinary(),
+			PayloadDigests: rec.Excerpt.PayloadDigests,
+			PrevRef:        rec.Excerpt.PrevRef,
+			RootRef:        rec.Excerpt.RootRef,
+			ReasonRef:      rec.Excerpt.ReasonRef,
+			RedirectRef:    rec.Excerpt.RedirectRef,
+			RejoinRef:      rec.Excerpt.RejoinRef,
 
-		ProducerSignature:  rec.ProducerSignature,
-		ProducedBy:         rms.NewReference(rec.ProducedBy),
+			RecordRef:      rms.NewReference(rec.RecRef),
 
-		RegistrarSignature: rmsbox.NewRaw(rec.RegistrarSignature.GetSignature()).AsBinary(),
-		RegisteredBy:       rms.NewReference(rec.RegisteredBy),
-	}
+			ProducerSignature: rec.ProducerSignature,
+			ProducedBy:        rms.NewReference(rec.ProducedBy),
+
+			RegistrarSignature: rmsbox.NewRaw(rec.RegistrarSignature.GetSignature()).AsBinary(),
+			RegisteredBy:       rms.NewReference(rec.RegisteredBy),
+
+			RecapRef:       rms.NewReference(rec.RecapRef),
+		}}
 }
 
 func prepareCatalogEntry(entry *catalog.Entry, dropOrdinal ledger.DropOrdinal, loc []ledger.StorageLocator,

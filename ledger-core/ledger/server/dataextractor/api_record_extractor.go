@@ -6,45 +6,30 @@
 package dataextractor
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/readersvc/readbundle"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
 type ExtractedRecord = rms.LReadResponse_Entry
+
 type ExtractedTail struct {
 	NextRecordSize, NextRecordPayloadsSize int
 }
 
+type SelectedRecord struct {
+	Index     ledger.DirectoryIndex
+	RecordRef reference.Holder
+	MinSize   int
+}
+
 type SequenceExtractor interface {
-	AddLineRecord(lineage.ReadRecord) bool
-	NeedsDirtyReader() bool
+	AddExpectedRecord(SelectedRecord) bool
+	NeedsReader() bool
 
-	ExtractAllRecordsWithReader(bundle.DirtyReader) error
-	ExtractMoreRecords(batchCount int) bool
+	ExtractRecordsWithReader(readbundle.BasicReader) error
 
-	GetExtractRecords() []ExtractedRecord
+	GetExtractedRecords() []ExtractedRecord
 	GetExtractedTail() ExtractedTail
-}
-
-type SequenceLimiter interface {
-	CanTakeNext(reference.Holder) bool
-}
-
-type ExtractionType uint8
-
-const (
-	ExtractNone ExtractionType = iota
-	ExtractProof
-	ExtractExcerpt
-
-	// Redirection support?
-
-	ExtractRecord
-	ExtractFull
-)
-
-type ExtractorStrategy interface {
-	NextExtractionType() ExtractionType
 }

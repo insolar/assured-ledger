@@ -6,20 +6,12 @@
 package dataextractor
 
 import (
+	"math"
+
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
-
-type Limiter interface {
-	CanRead() bool
-	CanReadRecord() bool
-	CanReadPayloads() bool
-	CanReadExtension(id ledger.ExtensionID) bool
-
-	First(reference.Holder)
-	Next(consumedSize int, nextRef reference.Holder)
-}
 
 type Limits struct {
 	Size uint64
@@ -30,88 +22,68 @@ type Limits struct {
 	Extensions uint32
 
 	StopRef reference.Holder
-	IncludeStop bool
+	ExcludeStop bool
+	ExcludeStart bool
 }
 
-func NewLimiter(limits Limits) Limiter {
-	return &limiter{
-		remainedSize: limits.Size,
-		limitEnt:     limits.Entries,
-		limitRec:     limits.Records,
-		limitPld:     limits.Payloads,
-		limitExt:     limits.Extensions,
-		stopRef:      reference.CopyLocal(limits.StopRef),
-		includeStop:  limits.IncludeStop,
-	}
-}
-
-
-var _ Limiter = &limiter{}
 type limiter struct {
-	remainedSize uint64
+	limits Limits
 
-	count uint32
-
-	limitEnt uint32
-	limitRec uint32
-	limitPld uint32
-	limitExt uint32
-
-	stopRef reference.Local
-	includeStop bool
+	limitCount uint32
+	count      uint32
+	accumSize  uint64
 }
 
 func (p *limiter) CanRead() bool {
-	return p.count > 0 && p.count <= p.limitEnt
+	return p.count <= p.limitCount
 }
 
 func (p *limiter) CanReadRecord() bool {
-	return p.CanRead() && p.count <= p.limitRec
+	return p.CanRead() && p.count <= p.limits.Records
 }
 
 func (p *limiter) CanReadPayloads() bool {
-	return p.CanRead() && p.count <= p.limitPld
+	return p.CanRead() && p.count <= p.limits.Payloads
 }
 
 func (p *limiter) CanReadExtension(ledger.ExtensionID) bool {
-	return p.CanRead() && p.count <= p.limitExt
-}
-
-func (p *limiter) checkStop(ref reference.Holder) {
-	switch {
-	case p.stopRef.IsEmpty():
-	case p.stopRef != ref.GetLocal():
-	case !p.CanRead():
-	case p.includeStop:
-		p.limitEnt = p.count
-	default:
-		p.limitEnt = p.count - 1
-	}
-}
-
-func (p *limiter) First(ref reference.Holder) {
-	if p.count != 0 {
-		panic(throw.IllegalState())
-	}
-	p.count = 1
-	// NB! Size limit is NOT applied for the first record
-	p.checkStop(ref)
+	return p.CanRead() && p.count <= p.limits.Extensions
 }
 
 func (p *limiter) Next(consumedSize int, nextRef reference.Holder) {
-	if p.count == 0 {
-		panic(throw.IllegalState())
+	switch {
+	case consumedSize < 0:
+		panic(throw.IllegalValue())
+	case p.count == 0:
+		// NB! Size limit is NOT applied to the first record
+		p.limitCount = p.limits.Entries
+		p.accumSize = 0
+	case !p.CanRead():
+		return
+	case consumedSize == 0:
+	case p.accumSize == math.MaxUint64:
+	default:
+		sz := p.accumSize + uint64(consumedSize)
+		if sz < p.accumSize {
+			// overflow
+			p.accumSize = math.MaxUint64
+		} else {
+			p.accumSize = sz
+		}
+
+		if p.accumSize > p.limits.Size {
+			p.limitCount = p.count
+		}
 	}
-	p.count++
 
 	switch {
-	case consumedSize <= 0:
-		panic(throw.IllegalValue())
-	case uint64(consumedSize) >= p.remainedSize:
-		p.remainedSize = 0
-		p.limitEnt = 0
+	case nextRef == nil || reference.IsEmpty(p.limits.StopRef):
+	case p.limits.StopRef.GetLocal() != nextRef.GetLocal():
+	case p.limits.ExcludeStop:
+		p.limitCount = p.count
 	default:
-		p.remainedSize -= uint64(consumedSize)
+		p.limitCount = p.count + 1
 	}
-	p.checkStop(nextRef)
+
+	p.count++
 }

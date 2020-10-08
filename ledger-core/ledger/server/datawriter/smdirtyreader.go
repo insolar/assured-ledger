@@ -9,7 +9,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/dataextractor"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
@@ -135,7 +137,11 @@ func (p *SubSMDirtyReader) stepLineIsReady(ctx smachine.ExecutionContext) smachi
 
 		normTargetRef := reference.NormCopy(p.request.TargetStartRef.Get())
 		// TODO do a few sub-cycles when too many record
-		_, future = sd.FindSequence(normTargetRef, p.extractor.AddLineRecord)
+		_, future = sd.FindSequence(normTargetRef, func(record lineage.ReadRecord) bool {
+			return p.extractor.AddExpectedRecord(dataextractor.SelectedRecord{
+				Index: record.StorageIndex,
+				RecordRef: record.RecRef})
+		})
 
 		return false
 	}) {
@@ -175,7 +181,12 @@ func (p *SubSMDirtyReader) stepDataIsReady(ctx smachine.ExecutionContext) smachi
 		sd.TrimStages()
 
 		normTargetRef := reference.NormCopy(p.request.TargetStartRef.Get())
-		if _, future := sd.FindSequence(normTargetRef, p.extractor.AddLineRecord); future != nil {
+		_, future := sd.FindSequence(normTargetRef, func(record lineage.ReadRecord) bool {
+			return p.extractor.AddExpectedRecord(dataextractor.SelectedRecord{
+				Index: record.StorageIndex,
+				RecordRef: record.RecRef})
+		})
+		if future != nil {
 			panic(throw.Impossible())
 		}
 
@@ -193,20 +204,19 @@ func (p *SubSMDirtyReader) stepDataIsReady(ctx smachine.ExecutionContext) smachi
 }
 
 func (p *SubSMDirtyReader) stepPrepareData(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if p.extractor.NeedsDirtyReader() {
+	if p.extractor.NeedsReader() {
 		return ctx.Jump(p.stepPrepareDataWithReader)
 	}
 
-	if p.extractor.ExtractMoreRecords(100) {
-		return ctx.Repeat(100)
-	}
-
-	return ctx.Jump(p.stepResponse)
+	panic(throw.NotImplemented()) // TODO
 }
 
 func (p *SubSMDirtyReader) stepPrepareDataWithReader(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return p.reader.PrepareAsync(ctx, func(svc buildersvc.ReadService) smachine.AsyncResultFunc {
-		err := svc.DropReadDirty(p.dropID, p.extractor.ExtractAllRecordsWithReader)
+		err := svc.DropReadDirty(p.dropID, func(reader bundle.DirtyReader) error {
+			return p.extractor.ExtractRecordsWithReader(reader)
+		})
+
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				panic(err)
@@ -219,11 +229,11 @@ func (p *SubSMDirtyReader) stepPrepareDataWithReader(ctx smachine.ExecutionConte
 func (p *SubSMDirtyReader) stepResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	response := &rms.LReadResponse{}
 
-	response.Entries = p.extractor.GetExtractRecords()
+	response.Entries = p.extractor.GetExtractedRecords()
 
-	nextInfo := p.extractor.GetExtractedTail()
-	response.NextRecordSize = uint32(nextInfo.NextRecordSize)
-	response.NextRecordPayloadsSize = uint32(nextInfo.NextRecordPayloadsSize)
+	// nextInfo := p.extractor.GetExtractedTail()
+	// response.NextRecordSize = uint32(nextInfo.NextRecordSize)
+	// response.NextRecordPayloadsSize = uint32(nextInfo.NextRecordPayloadsSize)
 
 	ctx.SetTerminationResult(response)
 	return ctx.Stop()

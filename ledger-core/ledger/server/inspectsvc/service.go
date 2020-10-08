@@ -103,11 +103,11 @@ func (p *serviceImpl) inspectRecord(req *rms.LRegisterRequest, rec *lineage.Reco
 
 	// TODO make a separate function in RMS
 	if req.OverrideRecordType != 0 {
-		rc := rms.LRegisterRequest{
-			OverrideRecordType: req.OverrideRecordType,
-			OverrideRootRef: req.OverrideRootRef,
-			OverridePrevRef: req.OverridePrevRef,
-			OverrideReasonRef: req.OverrideReasonRef,
+		rc := catalog.Excerpt{
+			RecordType: req.OverrideRecordType,
+			RootRef: req.OverrideRootRef.NormEmpty(),
+			PrevRef: req.OverridePrevRef.NormEmpty(),
+			ReasonRef: req.OverrideReasonRef.NormEmpty(),
 		}
 		b, err := rc.Marshal()
 		if err != nil {

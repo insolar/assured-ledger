@@ -41,7 +41,7 @@ func NewRecapRecord(excerpt catalog.Excerpt, recRef reference.Holder, recap *rms
 }
 
 type Record struct {
-	Excerpt            catalog.Excerpt
+	Excerpt            catalog.Excerpt // TODO these fields can be removed on cleanup as well
 	RecRef             reference.Holder
 	RecapRef           reference.Holder
 	ProducedBy         reference.Holder

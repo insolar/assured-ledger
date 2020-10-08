@@ -11,11 +11,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/readersvc/readbundle"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
-	"github.com/insolar/assured-ledger/ledger-core/rms/rmsbox"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -26,56 +23,54 @@ type WholeExtractor struct {
 	ReadAll bool
 
 	records []ExtractedRecord
-	storage []ledger.DirectoryIndex
-	fullyExtracted int
+	expected []SelectedRecord
+	// fullyExtracted int
 }
 
-func (p *WholeExtractor) AddLineRecord(record lineage.ReadRecord) bool {
-	if record.StorageIndex.IsZero() {
+func (p *WholeExtractor) AddExpectedRecord(record SelectedRecord) bool {
+	if record.Index.IsZero() {
 		panic(throw.IllegalValue())
 	}
-
-	p.records = append(p.records, ExtractedRecord{
-		RecordType:         record.Excerpt.RecordType,
-		// Payloads:           nil,
-		// RecordBinary:       nil,
-		PayloadDigests:     record.Excerpt.PayloadDigests,
-		RecordRef:          rms.NewReference(record.RecRef),
-		PrevRef:            record.Excerpt.PrevRef,
-		RootRef:            record.Excerpt.RootRef,
-		ReasonRef:          record.Excerpt.ReasonRef,
-		RedirectRef:        record.Excerpt.RedirectRef,
-		RejoinRef:          record.Excerpt.RejoinRef,
-		ProducerSignature:  record.ProducerSignature,
-		ProducedBy:         rms.NewReference(record.ProducedBy),
-		RegistrarSignature: rmsbox.NewRaw(record.RegistrarSignature.GetSignature()).AsBinary(),
-		RegisteredBy:       rms.NewReference(record.RegisteredBy),
-		RecordSize:         0,
-		RecordPayloadsSize: 0,
-	})
-	p.storage = append(p.storage, record.StorageIndex)
+	p.expected = append(p.expected, record)
 
 	return !p.ReadAll
 }
 
-func (p *WholeExtractor) NeedsDirtyReader() bool {
-	return p.fullyExtracted < len(p.records)
+func (p *WholeExtractor) NeedsReader() bool {
+	return len(p.records) < len(p.expected)
+	// return p.fullyExtracted < len(p.records)
 }
 
-func (p *WholeExtractor) ExtractAllRecordsWithReader(reader bundle.DirtyReader) error {
-	for ;p.fullyExtracted < len(p.records); p.fullyExtracted++ {
-		r := &p.records[p.fullyExtracted]
+func (p *WholeExtractor) ExtractRecordsWithReader(reader readbundle.BasicReader) error {
+	if dr, ok := reader.(bundle.DirtyReader); ok {
+		return p.extractRecordsWithReader(reader, func(er *SelectedRecord) (ledger.StorageLocator, error) {
+			entry := dr.GetDirectoryEntry(er.Index)
+			switch {
+			case entry.IsZero():
+				panic(throw.IllegalState()) // TODO errors
+			case er.RecordRef != nil && !reference.Equal(er.RecordRef, entry.Key):
+				panic(throw.IllegalState())
+			}
+			return entry.Loc, nil
+		})
+	}
 
-		di := p.storage[p.fullyExtracted]
-		entry := reader.GetDirectoryEntry(di)
-		switch {
-		case entry.IsZero():
-			panic(throw.IllegalState()) // TODO errors
-		case !reference.Equal(r.RecordRef.Get(), entry.Key):
-			panic(throw.IllegalState())
+	return p.extractRecordsWithReader(reader, func(er *SelectedRecord) (ledger.StorageLocator, error) {
+		return reader.GetDirectoryEntryLocator(er.Index)
+	})
+}
+
+
+func (p *WholeExtractor) extractRecordsWithReader(reader readbundle.BasicReader, dirFn readDirectoryFunc) error {
+	for fullyExtracted := len(p.records); fullyExtracted < len(p.expected); fullyExtracted++ {
+		er := &p.expected[fullyExtracted]
+
+		loc, err := dirFn(er)
+		if err != nil {
+			return err
 		}
 
-		b, err := reader.GetEntryStorage(entry.Loc)
+		b, err := reader.GetEntryStorage(loc)
 		switch {
 		case err != nil:
 			panic(err)
@@ -88,13 +83,21 @@ func (p *WholeExtractor) ExtractAllRecordsWithReader(reader bundle.DirtyReader) 
 			panic(err)
 		}
 
+		if er.RecordRef != nil && !reference.Equal(er.RecordRef, ce.EntryData.RecordRef.Get()) {
+			panic(throw.IllegalState())
+		}
+
+		p.records = append(p.records, ExtractedRecord{
+			EntryData:    ce.EntryData,
+		})
+		r := &p.records[fullyExtracted]
+
 		if ce.BodyPayloadSizes == 0 {
 			panic(throw.IllegalState())
 		}
 
 		bodySize := int(ce.BodyPayloadSizes&math.MaxUint32)
 		payloadSize := int(ce.BodyPayloadSizes>>32)
-
 
 		if bodySize > 0 && !ce.BodyLoc.IsZero() {
 			b, err := reader.GetPayloadStorage(ce.BodyLoc, bodySize)
@@ -124,14 +127,8 @@ func (p *WholeExtractor) ExtractAllRecordsWithReader(reader bundle.DirtyReader) 
 	return nil
 }
 
-
-
-func (p *WholeExtractor) ExtractMoreRecords(int) bool {
-	panic(throw.Unsupported())
-}
-
-func (p *WholeExtractor) GetExtractRecords() []ExtractedRecord {
-	if p.NeedsDirtyReader() {
+func (p *WholeExtractor) GetExtractedRecords() []ExtractedRecord {
+	if p.NeedsReader() {
 		panic(throw.IllegalState())
 	}
 	return p.records

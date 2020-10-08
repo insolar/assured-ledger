@@ -10,10 +10,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-type Iterable interface {
-	FindEntry(reference.Holder) (ledger.DirectoryIndex, ledger.StorageLocator, error)
-	FindNextEntry(ledger.DirectoryIndex) (ledger.DirectoryIndex, ledger.StorageLocator, error)
-}
 
 type Iterator interface {
 	RootRef() reference.Holder
