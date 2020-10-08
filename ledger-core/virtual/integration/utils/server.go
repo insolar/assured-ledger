@@ -344,6 +344,10 @@ func (s *Server) ReplaceAuthenticationService(svc authentication.Service) {
 	s.virtual.AuthenticationService = svc
 }
 
+func (s *Server) ReplaceRecordReferenceBuilderService(svc lmn.RecordReferenceBuilderService) {
+	s.virtual.ReferenceBuilder = svc
+}
+
 func (s *Server) AddInput(ctx context.Context, msg interface{}) error {
 	return s.virtual.Conveyor.AddInput(ctx, s.GetPulseNumber(), msg)
 }
