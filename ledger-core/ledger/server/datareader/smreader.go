@@ -34,7 +34,7 @@ type SMLineReader struct {
 
 	// runtime - batched read
 	ready   bool
-	cabinet readersvc.Cabinet
+	// cabinet readersvc.Cabinet
 }
 
 func (p *SMLineReader) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -118,25 +118,25 @@ func (p *SMLineReader) stepBatchRead(ctx smachine.ExecutionContext) smachine.Sta
 	panic(throw.NotImplemented()) // TODO
 }
 
-func (p *SMLineReader) stepReadData(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	switch {
-	case !p.ready:
-		return ctx.Sleep().ThenRepeat()
-	case p.cabinet == nil:
-		return ctx.Error(throw.E("cabinet is not available"))
-	}
-
-	// // ledger.ControlSection
-	// loc, err := p.reader.FindDirectoryEntry(ledger.DefaultEntrySection, p.request.TargetRef.Get())
-	// switch {
-	// case err != nil:
-	// 	return ctx.Error(err)
-	// case loc == 0:
-	// 	return ctx.Error(throw.E("filament not found"))
-	// }
-
-	panic(throw.NotImplemented()) // TODO
-}
+// func (p *SMLineReader) stepReadData(ctx smachine.ExecutionContext) smachine.StateUpdate {
+// 	switch {
+// 	case !p.ready:
+// 		return ctx.Sleep().ThenRepeat()
+// 	case p.cabinet == nil:
+// 		return ctx.Error(throw.E("cabinet is not available"))
+// 	}
+//
+// 	// // ledger.ControlSection
+// 	// loc, err := p.reader.FindDirectoryEntry(ledger.DefaultEntrySection, p.request.TargetRef.Get())
+// 	// switch {
+// 	// case err != nil:
+// 	// 	return ctx.Error(err)
+// 	// case loc == 0:
+// 	// 	return ctx.Error(throw.E("filament not found"))
+// 	// }
+//
+// 	panic(throw.NotImplemented()) // TODO
+// }
 
 func (p *SMLineReader) stepDone(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	panic(throw.NotImplemented()) // TODO

@@ -453,6 +453,7 @@ func (p *cabinetSection) allocatePayloadStorage(snap *sectionSnapshot, vSize int
 }
 
 func (p *cabinetSection) commit(snapshot sectionSnapshot, testOnly bool) (hasChanges bool, err error) {
+	_ = testOnly
 	err = p.checkCommit(snapshot)
 	return false, err
 }

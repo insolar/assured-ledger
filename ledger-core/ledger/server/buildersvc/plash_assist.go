@@ -66,12 +66,12 @@ func (p *plashAssistant) setNextPlash(next *plashAssistant) {
 	smachine.ApplyAdjustmentAsync(p.nextReady.NewValue(true))
 }
 
-func (p *plashAssistant) checkClosed() {
-	if p.status.Load() != plashClosed {
-		// TODO log error
-		panic(throw.FailHere("plash was not closed"))
-	}
-}
+// func (p *plashAssistant) checkClosed() {
+// 	if p.status.Load() != plashClosed {
+// 		// TODO log error
+// 		panic(throw.FailHere("plash was not closed"))
+// 	}
+// }
 
 // EXTREME LOCK WARNING!
 // This method is under locks of: (1) bundle writer, (2) plashAssistant, (3) dropAssistant.
@@ -354,6 +354,7 @@ func (p *plashAssistant) finalizeSummaryWrites() error {
 
 		err := p.writerCloseFn()
 		p.callbackFn(err)
+		// TODO remove plash
 	})
 
 	return nil

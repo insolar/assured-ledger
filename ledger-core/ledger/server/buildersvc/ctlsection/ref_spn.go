@@ -15,7 +15,7 @@ import (
 const SPNControlSection = pulse.Number(127)
 // const SPNControlSection = pulse.Number(127)
 
-func CtlSectionRef(id ledger.SectionID, summary bool) reference.Global {
+func Ref(id ledger.SectionID, summary bool) reference.Global {
 	return reference.New(
 		reference.NewLocal(SPNControlSection, 0, reference.LocalHash{}),
 		reference.NewLocal(SPNControlSection, 0, reference.LocalHash{}), // TODO key

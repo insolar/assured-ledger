@@ -254,7 +254,7 @@ func (p *SMPlash) stepWaitClosedPlash(ctx smachine.ExecutionContext) smachine.St
 
 func (p *SMPlash) migrateWaitClosedPlash(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(nil)
-	return ctx.Jump(p.stepPlashClosed)
+	return ctx.Jump(p.stepWaitClosedPlashWithDeadline)
 }
 
 func (p *SMPlash) stepWaitClosedPlashWithDeadline(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -271,6 +271,6 @@ func (p *SMPlash) stepPlashClosed(ctx smachine.ExecutionContext) smachine.StateU
 	return ctx.Stop()
 }
 
-func (p *SMPlash) stepPlashCloseTimeout(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (p *SMPlash) stepPlashCloseTimeout(smachine.ExecutionContext) smachine.StateUpdate {
 	panic(throw.NotImplemented()) // TODO force plash closing
 }

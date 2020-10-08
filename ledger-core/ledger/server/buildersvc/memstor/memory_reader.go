@@ -111,9 +111,9 @@ func (v MemoryStorageReader) GetEntryStorage(locator ledger.StorageLocator) (rea
 	if err == nil {
 		var b []byte
 		if b, err = section.getStorage(locator); err == nil {
-			switch size, ofs, err := protokit.DecodeVarintFromBytesWithError(b); {
-			case err != nil:
-				err = throw.W(err, "directory entry size is unavailable")
+			switch size, ofs, err2 := protokit.DecodeVarintFromBytesWithError(b); {
+			case err2 != nil:
+				err = throw.W(err2, "directory entry size is unavailable")
 			case size > math.MaxInt64:
 				err = throw.E("directory entry size is invalid")
 			default:

@@ -19,6 +19,7 @@ func newCtlEntryWriter(ref reference.Global, entry bundle.MarshalerTo) bundle.Wr
 	return &ctlEntryWriter{ ref: ref, entry: entry}
 }
 
+//nolint //TODO revisit
 func newCtlEntryWriterExt(ref reference.Global, entryFn func (bundle.PayloadSection) (bundle.MarshalerTo, error)) bundle.Writeable {
 	if entryFn == nil {
 		panic(throw.IllegalValue())

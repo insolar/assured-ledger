@@ -86,6 +86,7 @@ func (p *filament) setLatest(rn recordNo) {
 	}
 }
 
+//nolint //TODO revisit
 func (p *filament) getLatest() recordNo {
 	if p.state & ended != 0 {
 		return deadFilament

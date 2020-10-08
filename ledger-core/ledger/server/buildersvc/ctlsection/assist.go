@@ -74,7 +74,7 @@ func (p *WriteAssistant) WritePlashStart(pd pulse.Data, population census.Online
 			// Population:     rms.Binary{},
 		}
 
-		ew := newCtlEntryWriter(CtlSectionRef(ledger.ControlSection, false), startEntry)
+		ew := newCtlEntryWriter(Ref(ledger.ControlSection, false), startEntry)
 
 		err = p.w.WriteBundle(ew, func(indices []ledger.DirectoryIndex, err error) bool {
 			if err != nil {
@@ -205,7 +205,7 @@ func (p *WriteAssistant) WritePlashSummary() (err error) {
 		}
 		p.mutex.Unlock()
 
-		ew := newCtlEntryWriter(CtlSectionRef(ledger.ControlSection, true), plashSummary)
+		ew := newCtlEntryWriter(Ref(ledger.ControlSection, true), plashSummary)
 
 		err = p.w.WriteBundle(ew, func(indices []ledger.DirectoryIndex, err error) bool {
 			if err != nil {
