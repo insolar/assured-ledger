@@ -1717,16 +1717,42 @@ func sozProtoRecCtl(x uint64) (n int) {
 	return sovProtoRecCtl(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
 func (m *RCtlPlashStart) Unmarshal(dAtA []byte) error {
-	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
-	return err
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
 }
-func (m *RCtlPlashStart) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
+func (m *RCtlPlashStart) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		err := func() error {
-			var wire uint64
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecCtl
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RCtlPlashStart: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RCtlPlashStart: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 40:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			m.Version = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoRecCtl
@@ -1736,250 +1762,243 @@ func (m *RCtlPlashStart) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				wire |= uint64(b&0x7F) << shift
+				m.Version |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			fieldNum := int32(wire >> 3)
-			wireType := int(wire & 0x7)
-			if wireType == 4 {
-				return fmt.Errorf("proto: RCtlPlashStart: wiretype end group for non-group")
+		case 41:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NodeRef", wireType)
 			}
-			if fieldNum <= 0 {
-				return fmt.Errorf("proto: RCtlPlashStart: illegal tag %d (wire type %d)", fieldNum, wire)
-			}
-			switch fieldNum {
-			case 40:
-				if wireType != 0 {
-					return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
 				}
-				m.Version = 0
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					m.Version |= uint32(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-			case 41:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field NodeRef", wireType)
-				}
-				var msglen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					msglen |= int(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if msglen < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				postIndex := iNdEx + msglen
-				if postIndex < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if postIndex > l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				if err := m.NodeRef.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-				iNdEx = postIndex
-			case 42:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field PulseData", wireType)
-				}
-				var msglen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					msglen |= int(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if msglen < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				postIndex := iNdEx + msglen
-				if postIndex < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if postIndex > l {
-					return io.ErrUnexpectedEOF
-				}
-				if err := m.PulseData.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-				iNdEx = postIndex
-			case 43:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field PulseEpochData", wireType)
-				}
-				var msglen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					msglen |= int(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if msglen < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				postIndex := iNdEx + msglen
-				if postIndex < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if postIndex > l {
-					return io.ErrUnexpectedEOF
-				}
-				if err := m.PulseEpochData.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-				iNdEx = postIndex
-			case 44:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field PopulationRef", wireType)
-				}
-				var msglen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					msglen |= int(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if msglen < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				postIndex := iNdEx + msglen
-				if postIndex < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if postIndex > l {
-					return io.ErrUnexpectedEOF
-				}
-				if err := m.PopulationRef.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-				iNdEx = postIndex
-			case 45:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field Population", wireType)
-				}
-				var msglen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					msglen |= int(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if msglen < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				postIndex := iNdEx + msglen
-				if postIndex < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if postIndex > l {
-					return io.ErrUnexpectedEOF
-				}
-				if err := m.Population.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-				iNdEx = postIndex
-			default:
-				iNdEx = preIndex
-				skippy, err := skipFn(dAtA[iNdEx:])
-				if err != nil {
-					return err
-				}
-				if skippy < 0 {
-					l = iNdEx
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
 					break
 				}
-				if skippy == 0 {
-					if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
-						return err
-					}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.NodeRef.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 42:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PulseData", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
 				}
-				if (iNdEx + skippy) < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if (iNdEx + skippy) > l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				iNdEx += skippy
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
 			}
-			return nil
-		}()
-		if err != nil {
-			return preIndex, err
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.PulseData.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 43:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PulseEpochData", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.PulseEpochData.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 44:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PopulationRef", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.PopulationRef.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 45:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Population", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Population.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
 		}
 	}
 
 	if iNdEx > l {
-		return iNdEx, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return iNdEx, nil
+	return nil
 }
 func (m *RCtlPlashSummary) Unmarshal(dAtA []byte) error {
-	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
-	return err
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
 }
-func (m *RCtlPlashSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
+func (m *RCtlPlashSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		err := func() error {
-			var wire uint64
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecCtl
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RCtlPlashSummary: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RCtlPlashSummary: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 40:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MerkleRoot", wireType)
+			}
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoRecCtl
@@ -1989,25 +2008,61 @@ func (m *RCtlPlashSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				wire |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			fieldNum := int32(wire >> 3)
-			wireType := int(wire & 0x7)
-			if wireType == 4 {
-				return fmt.Errorf("proto: RCtlPlashSummary: wiretype end group for non-group")
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
 			}
-			if fieldNum <= 0 {
-				return fmt.Errorf("proto: RCtlPlashSummary: illegal tag %d (wire type %d)", fieldNum, wire)
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
 			}
-			switch fieldNum {
-			case 40:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field MerkleRoot", wireType)
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.MerkleRoot.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 41:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MerkleProducerSignature", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
 				}
-				var msglen int
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.MerkleProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 50:
+			if wireType == 0 {
+				var v CatalogOrdinal
 				for shift := uint(0); ; shift += 7 {
 					if shift >= 64 {
 						return ErrIntOverflowProtoRecCtl
@@ -2017,30 +2072,14 @@ func (m *RCtlPlashSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					msglen |= int(b&0x7F) << shift
+					v |= CatalogOrdinal(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
 				}
-				if msglen < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				postIndex := iNdEx + msglen
-				if postIndex < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if postIndex > l {
-					return io.ErrUnexpectedEOF
-				}
-				if err := m.MerkleRoot.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-				iNdEx = postIndex
-			case 41:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field MerkleProducerSignature", wireType)
-				}
-				var msglen int
+				m.SectionSummaryOrd = append(m.SectionSummaryOrd, v)
+			} else if wireType == 2 {
+				var packedLen int
 				for shift := uint(0); ; shift += 7 {
 					if shift >= 64 {
 						return ErrIntOverflowProtoRecCtl
@@ -2050,27 +2089,33 @@ func (m *RCtlPlashSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					msglen |= int(b&0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
 				}
-				if msglen < 0 {
+				if packedLen < 0 {
 					return ErrInvalidLengthProtoRecCtl
 				}
-				postIndex := iNdEx + msglen
+				postIndex := iNdEx + packedLen
 				if postIndex < 0 {
 					return ErrInvalidLengthProtoRecCtl
 				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				if err := m.MerkleProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
+				var elementCount int
+				var count int
+				for _, integer := range dAtA[iNdEx:postIndex] {
+					if integer < 128 {
+						count++
+					}
 				}
-				iNdEx = postIndex
-			case 50:
-				if wireType == 0 {
+				elementCount = count
+				if elementCount != 0 && len(m.SectionSummaryOrd) == 0 {
+					m.SectionSummaryOrd = make([]CatalogOrdinal, 0, elementCount)
+				}
+				for iNdEx < postIndex {
 					var v CatalogOrdinal
 					for shift := uint(0); ; shift += 7 {
 						if shift >= 64 {
@@ -2087,66 +2132,66 @@ func (m *RCtlPlashSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func
 						}
 					}
 					m.SectionSummaryOrd = append(m.SectionSummaryOrd, v)
-				} else if wireType == 2 {
-					var packedLen int
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowProtoRecCtl
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						packedLen |= int(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field SectionSummaryOrd", wireType)
+			}
+		case 51:
+			if wireType == 0 {
+				var v CatalogOrdinal
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoRecCtl
 					}
-					if packedLen < 0 {
-						return ErrInvalidLengthProtoRecCtl
-					}
-					postIndex := iNdEx + packedLen
-					if postIndex < 0 {
-						return ErrInvalidLengthProtoRecCtl
-					}
-					if postIndex > l {
+					if iNdEx >= l {
 						return io.ErrUnexpectedEOF
 					}
-					var elementCount int
-					var count int
-					for _, integer := range dAtA[iNdEx:postIndex] {
-						if integer < 128 {
-							count++
-						}
+					b := dAtA[iNdEx]
+					iNdEx++
+					v |= CatalogOrdinal(b&0x7F) << shift
+					if b < 0x80 {
+						break
 					}
-					elementCount = count
-					if elementCount != 0 && len(m.SectionSummaryOrd) == 0 {
-						m.SectionSummaryOrd = make([]CatalogOrdinal, 0, elementCount)
-					}
-					for iNdEx < postIndex {
-						var v CatalogOrdinal
-						for shift := uint(0); ; shift += 7 {
-							if shift >= 64 {
-								return ErrIntOverflowProtoRecCtl
-							}
-							if iNdEx >= l {
-								return io.ErrUnexpectedEOF
-							}
-							b := dAtA[iNdEx]
-							iNdEx++
-							v |= CatalogOrdinal(b&0x7F) << shift
-							if b < 0x80 {
-								break
-							}
-						}
-						m.SectionSummaryOrd = append(m.SectionSummaryOrd, v)
-					}
-				} else {
-					return fmt.Errorf("proto: wrong wireType = %d for field SectionSummaryOrd", wireType)
 				}
-			case 51:
-				if wireType == 0 {
+				m.DropSummaryOrd = append(m.DropSummaryOrd, v)
+			} else if wireType == 2 {
+				var packedLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoRecCtl
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					packedLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if packedLen < 0 {
+					return ErrInvalidLengthProtoRecCtl
+				}
+				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoRecCtl
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				var elementCount int
+				var count int
+				for _, integer := range dAtA[iNdEx:postIndex] {
+					if integer < 128 {
+						count++
+					}
+				}
+				elementCount = count
+				if elementCount != 0 && len(m.DropSummaryOrd) == 0 {
+					m.DropSummaryOrd = make([]CatalogOrdinal, 0, elementCount)
+				}
+				for iNdEx < postIndex {
 					var v CatalogOrdinal
 					for shift := uint(0); ; shift += 7 {
 						if shift >= 64 {
@@ -2163,110 +2208,77 @@ func (m *RCtlPlashSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func
 						}
 					}
 					m.DropSummaryOrd = append(m.DropSummaryOrd, v)
-				} else if wireType == 2 {
-					var packedLen int
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowProtoRecCtl
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						packedLen |= int(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					if packedLen < 0 {
-						return ErrInvalidLengthProtoRecCtl
-					}
-					postIndex := iNdEx + packedLen
-					if postIndex < 0 {
-						return ErrInvalidLengthProtoRecCtl
-					}
-					if postIndex > l {
-						return io.ErrUnexpectedEOF
-					}
-					var elementCount int
-					var count int
-					for _, integer := range dAtA[iNdEx:postIndex] {
-						if integer < 128 {
-							count++
-						}
-					}
-					elementCount = count
-					if elementCount != 0 && len(m.DropSummaryOrd) == 0 {
-						m.DropSummaryOrd = make([]CatalogOrdinal, 0, elementCount)
-					}
-					for iNdEx < postIndex {
-						var v CatalogOrdinal
-						for shift := uint(0); ; shift += 7 {
-							if shift >= 64 {
-								return ErrIntOverflowProtoRecCtl
-							}
-							if iNdEx >= l {
-								return io.ErrUnexpectedEOF
-							}
-							b := dAtA[iNdEx]
-							iNdEx++
-							v |= CatalogOrdinal(b&0x7F) << shift
-							if b < 0x80 {
-								break
-							}
-						}
-						m.DropSummaryOrd = append(m.DropSummaryOrd, v)
-					}
-				} else {
-					return fmt.Errorf("proto: wrong wireType = %d for field DropSummaryOrd", wireType)
 				}
-			default:
-				iNdEx = preIndex
-				skippy, err := skipFn(dAtA[iNdEx:])
-				if err != nil {
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field DropSummaryOrd", wireType)
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
 					return err
 				}
-				if skippy < 0 {
-					l = iNdEx
-					break
-				}
-				if skippy == 0 {
-					if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
-						return err
-					}
-				}
-				if (iNdEx + skippy) < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if (iNdEx + skippy) > l {
-					return io.ErrUnexpectedEOF
-				}
-				iNdEx += skippy
 			}
-			return nil
-		}()
-		if err != nil {
-			return preIndex, err
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
 		}
 	}
 
 	if iNdEx > l {
-		return iNdEx, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return iNdEx, nil
+	return nil
 }
 func (m *RCtlDropSummary) Unmarshal(dAtA []byte) error {
-	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
-	return err
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
 }
-func (m *RCtlDropSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
+func (m *RCtlDropSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		err := func() error {
-			var wire uint64
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecCtl
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RCtlDropSummary: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RCtlDropSummary: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 40:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DropReport", wireType)
+			}
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoRecCtl
@@ -2276,180 +2288,183 @@ func (m *RCtlDropSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func(
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				wire |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			fieldNum := int32(wire >> 3)
-			wireType := int(wire & 0x7)
-			if wireType == 4 {
-				return fmt.Errorf("proto: RCtlDropSummary: wiretype end group for non-group")
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
 			}
-			if fieldNum <= 0 {
-				return fmt.Errorf("proto: RCtlDropSummary: illegal tag %d (wire type %d)", fieldNum, wire)
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
 			}
-			switch fieldNum {
-			case 40:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field DropReport", wireType)
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.DropReport.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 41:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReportProducerSignature", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
 				}
-				var msglen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					msglen |= int(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if msglen < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				postIndex := iNdEx + msglen
-				if postIndex < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if postIndex > l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				if err := m.DropReport.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-				iNdEx = postIndex
-			case 41:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field ReportProducerSignature", wireType)
-				}
-				var msglen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					msglen |= int(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if msglen < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				postIndex := iNdEx + msglen
-				if postIndex < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if postIndex > l {
-					return io.ErrUnexpectedEOF
-				}
-				if err := m.ReportProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-				iNdEx = postIndex
-			case 44:
-				if wireType != 1 {
-					return fmt.Errorf("proto: wrong wireType = %d for field MerkleLogLoc", wireType)
-				}
-				m.MerkleLogLoc = 0
-				if (iNdEx + 8) > l {
-					return io.ErrUnexpectedEOF
-				}
-				m.MerkleLogLoc = StorageLocator(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
-				iNdEx += 8
-			case 45:
-				if wireType != 0 {
-					return fmt.Errorf("proto: wrong wireType = %d for field MerkleLogSize", wireType)
-				}
-				m.MerkleLogSize = 0
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					m.MerkleLogSize |= uint32(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-			case 46:
-				if wireType != 0 {
-					return fmt.Errorf("proto: wrong wireType = %d for field MerkleLogCount", wireType)
-				}
-				m.MerkleLogCount = 0
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					m.MerkleLogCount |= uint32(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-			default:
-				iNdEx = preIndex
-				skippy, err := skipFn(dAtA[iNdEx:])
-				if err != nil {
-					return err
-				}
-				if skippy < 0 {
-					l = iNdEx
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
 					break
 				}
-				if skippy == 0 {
-					if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
-						return err
-					}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ReportProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 44:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MerkleLogLoc", wireType)
+			}
+			m.MerkleLogLoc = 0
+			if (iNdEx + 8) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.MerkleLogLoc = StorageLocator(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
+			iNdEx += 8
+		case 45:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MerkleLogSize", wireType)
+			}
+			m.MerkleLogSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
 				}
-				if (iNdEx + skippy) < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if (iNdEx + skippy) > l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				iNdEx += skippy
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MerkleLogSize |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
 			}
-			return nil
-		}()
-		if err != nil {
-			return preIndex, err
+		case 46:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MerkleLogCount", wireType)
+			}
+			m.MerkleLogCount = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MerkleLogCount |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
 		}
 	}
 
 	if iNdEx > l {
-		return iNdEx, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return iNdEx, nil
+	return nil
 }
 func (m *RCtlSectionSummary) Unmarshal(dAtA []byte) error {
-	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
-	return err
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
 }
-func (m *RCtlSectionSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
+func (m *RCtlSectionSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		err := func() error {
-			var wire uint64
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecCtl
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RCtlSectionSummary: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RCtlSectionSummary: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 40:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecToFilLoc", wireType)
+			}
+			m.RecToFilLoc = 0
+			if (iNdEx + 8) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RecToFilLoc = StorageLocator(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
+			iNdEx += 8
+		case 41:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecToFilSize", wireType)
+			}
+			m.RecToFilSize = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoRecCtl
@@ -2459,193 +2474,179 @@ func (m *RCtlSectionSummary) UnmarshalWithUnknownCallback(dAtA []byte, skipFn fu
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				wire |= uint64(b&0x7F) << shift
+				m.RecToFilSize |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			fieldNum := int32(wire >> 3)
-			wireType := int(wire & 0x7)
-			if wireType == 4 {
-				return fmt.Errorf("proto: RCtlSectionSummary: wiretype end group for non-group")
+		case 42:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FilToJetLoc", wireType)
 			}
-			if fieldNum <= 0 {
-				return fmt.Errorf("proto: RCtlSectionSummary: illegal tag %d (wire type %d)", fieldNum, wire)
+			m.FilToJetLoc = 0
+			if (iNdEx + 8) > l {
+				return io.ErrUnexpectedEOF
 			}
-			switch fieldNum {
-			case 40:
-				if wireType != 1 {
-					return fmt.Errorf("proto: wrong wireType = %d for field RecToFilLoc", wireType)
+			m.FilToJetLoc = StorageLocator(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
+			iNdEx += 8
+		case 43:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FilToJetSize", wireType)
+			}
+			m.FilToJetSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
 				}
-				m.RecToFilLoc = 0
-				if (iNdEx + 8) > l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				m.RecToFilLoc = StorageLocator(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
-				iNdEx += 8
-			case 41:
-				if wireType != 0 {
-					return fmt.Errorf("proto: wrong wireType = %d for field RecToFilSize", wireType)
-				}
-				m.RecToFilSize = 0
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					m.RecToFilSize |= uint32(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-			case 42:
-				if wireType != 1 {
-					return fmt.Errorf("proto: wrong wireType = %d for field FilToJetLoc", wireType)
-				}
-				m.FilToJetLoc = 0
-				if (iNdEx + 8) > l {
-					return io.ErrUnexpectedEOF
-				}
-				m.FilToJetLoc = StorageLocator(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
-				iNdEx += 8
-			case 43:
-				if wireType != 0 {
-					return fmt.Errorf("proto: wrong wireType = %d for field FilToJetSize", wireType)
-				}
-				m.FilToJetSize = 0
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					m.FilToJetSize |= uint32(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-			default:
-				iNdEx = preIndex
-				skippy, err := skipFn(dAtA[iNdEx:])
-				if err != nil {
-					return err
-				}
-				if skippy < 0 {
-					l = iNdEx
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FilToJetSize |= uint32(b&0x7F) << shift
+				if b < 0x80 {
 					break
 				}
-				if skippy == 0 {
-					if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
-						return err
-					}
-				}
-				if (iNdEx + skippy) < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if (iNdEx + skippy) > l {
-					return io.ErrUnexpectedEOF
-				}
-				iNdEx += skippy
 			}
-			return nil
-		}()
-		if err != nil {
-			return preIndex, err
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
 		}
 	}
 
 	if iNdEx > l {
-		return iNdEx, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return iNdEx, nil
+	return nil
 }
 func (m *RCtlFilamentUpdate) Unmarshal(dAtA []byte) error {
-	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
-	return err
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
 }
-func (m *RCtlFilamentUpdate) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
+func (m *RCtlFilamentUpdate) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		err := func() error {
-			var wire uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoRecCtl
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				wire |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecCtl
 			}
-			fieldNum := int32(wire >> 3)
-			wireType := int(wire & 0x7)
-			if wireType == 4 {
-				return fmt.Errorf("proto: RCtlFilamentUpdate: wiretype end group for non-group")
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
 			}
-			if fieldNum <= 0 {
-				return fmt.Errorf("proto: RCtlFilamentUpdate: illegal tag %d (wire type %d)", fieldNum, wire)
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
 			}
-			switch fieldNum {
-			default:
-				iNdEx = preIndex
-				skippy, err := skipFn(dAtA[iNdEx:])
-				if err != nil {
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RCtlFilamentUpdate: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RCtlFilamentUpdate: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
 					return err
 				}
-				if skippy < 0 {
-					l = iNdEx
-					break
-				}
-				if skippy == 0 {
-					if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
-						return err
-					}
-				}
-				if (iNdEx + skippy) < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if (iNdEx + skippy) > l {
-					return io.ErrUnexpectedEOF
-				}
-				iNdEx += skippy
 			}
-			return nil
-		}()
-		if err != nil {
-			return preIndex, err
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
 		}
 	}
 
 	if iNdEx > l {
-		return iNdEx, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return iNdEx, nil
+	return nil
 }
 func (m *RCtlFilamentEntry) Unmarshal(dAtA []byte) error {
-	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
-	return err
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
 }
-func (m *RCtlFilamentEntry) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
+func (m *RCtlFilamentEntry) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		err := func() error {
-			var wire uint64
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecCtl
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RCtlFilamentEntry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RCtlFilamentEntry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 19:
+			if wireType != 5 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastKnownPN", wireType)
+			}
+			m.LastKnownPN = 0
+			if (iNdEx + 4) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LastKnownPN = PulseNumber(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
+			iNdEx += 4
+		case 41:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LineRecap", wireType)
+			}
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoRecCtl
@@ -2655,208 +2656,211 @@ func (m *RCtlFilamentEntry) UnmarshalWithUnknownCallback(dAtA []byte, skipFn fun
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				wire |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			fieldNum := int32(wire >> 3)
-			wireType := int(wire & 0x7)
-			if wireType == 4 {
-				return fmt.Errorf("proto: RCtlFilamentEntry: wiretype end group for non-group")
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
 			}
-			if fieldNum <= 0 {
-				return fmt.Errorf("proto: RCtlFilamentEntry: illegal tag %d (wire type %d)", fieldNum, wire)
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
 			}
-			switch fieldNum {
-			case 19:
-				if wireType != 5 {
-					return fmt.Errorf("proto: wrong wireType = %d for field LastKnownPN", wireType)
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.LineRecap.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 42:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecapProducerSignature", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
 				}
-				m.LastKnownPN = 0
-				if (iNdEx + 4) > l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				m.LastKnownPN = PulseNumber(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
-				iNdEx += 4
-			case 41:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field LineRecap", wireType)
-				}
-				var msglen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					msglen |= int(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if msglen < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				postIndex := iNdEx + msglen
-				if postIndex < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if postIndex > l {
-					return io.ErrUnexpectedEOF
-				}
-				if err := m.LineRecap.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-				iNdEx = postIndex
-			case 42:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field RecapProducerSignature", wireType)
-				}
-				var msglen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					msglen |= int(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if msglen < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				postIndex := iNdEx + msglen
-				if postIndex < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if postIndex > l {
-					return io.ErrUnexpectedEOF
-				}
-				if err := m.RecapProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-				iNdEx = postIndex
-			case 43:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field LineReport", wireType)
-				}
-				var msglen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					msglen |= int(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if msglen < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				postIndex := iNdEx + msglen
-				if postIndex < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if postIndex > l {
-					return io.ErrUnexpectedEOF
-				}
-				if err := m.LineReport.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-				iNdEx = postIndex
-			case 44:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field ReportProducerSignature", wireType)
-				}
-				var msglen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					msglen |= int(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if msglen < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				postIndex := iNdEx + msglen
-				if postIndex < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if postIndex > l {
-					return io.ErrUnexpectedEOF
-				}
-				if err := m.ReportProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-				iNdEx = postIndex
-			default:
-				iNdEx = preIndex
-				skippy, err := skipFn(dAtA[iNdEx:])
-				if err != nil {
-					return err
-				}
-				if skippy < 0 {
-					l = iNdEx
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
 					break
 				}
-				if skippy == 0 {
-					if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
-						return err
-					}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecapProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 43:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LineReport", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
 				}
-				if (iNdEx + skippy) < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if (iNdEx + skippy) > l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				iNdEx += skippy
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
 			}
-			return nil
-		}()
-		if err != nil {
-			return preIndex, err
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.LineReport.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 44:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReportProducerSignature", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ReportProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
 		}
 	}
 
 	if iNdEx > l {
-		return iNdEx, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return iNdEx, nil
+	return nil
 }
 func (m *RCtlDropReport) Unmarshal(dAtA []byte) error {
-	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
-	return err
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
 }
-func (m *RCtlDropReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
+func (m *RCtlDropReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		err := func() error {
-			var wire uint64
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecCtl
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RCtlDropReport: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RCtlDropReport: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 40:
+			if wireType != 5 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PulseNumber", wireType)
+			}
+			m.PulseNumber = 0
+			if (iNdEx + 4) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PulseNumber = PulseNumber(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
+			iNdEx += 4
+		case 41:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JetLegID", wireType)
+			}
+			m.JetLegID = 0
+			if (iNdEx + 8) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.JetLegID = JetLegID(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
+			iNdEx += 8
+		case 42:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MerkleRoot", wireType)
+			}
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoRecCtl
@@ -2866,262 +2870,202 @@ func (m *RCtlDropReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				wire |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			fieldNum := int32(wire >> 3)
-			wireType := int(wire & 0x7)
-			if wireType == 4 {
-				return fmt.Errorf("proto: RCtlDropReport: wiretype end group for non-group")
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
 			}
-			if fieldNum <= 0 {
-				return fmt.Errorf("proto: RCtlDropReport: illegal tag %d (wire type %d)", fieldNum, wire)
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
 			}
-			switch fieldNum {
-			case 40:
-				if wireType != 5 {
-					return fmt.Errorf("proto: wrong wireType = %d for field PulseNumber", wireType)
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.MerkleRoot.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 50:
+			if wireType != 5 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PrevPulseNumber", wireType)
+			}
+			m.PrevPulseNumber = 0
+			if (iNdEx + 4) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PrevPulseNumber = PulseNumber(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
+			iNdEx += 4
+		case 51:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PrevJetLegID", wireType)
+			}
+			m.PrevJetLegID = 0
+			if (iNdEx + 8) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PrevJetLegID = JetLegID(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
+			iNdEx += 8
+		case 52:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PrevMerkleRoot", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
 				}
-				m.PulseNumber = 0
-				if (iNdEx + 4) > l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				m.PulseNumber = PulseNumber(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
-				iNdEx += 4
-			case 41:
-				if wireType != 1 {
-					return fmt.Errorf("proto: wrong wireType = %d for field JetLegID", wireType)
-				}
-				m.JetLegID = 0
-				if (iNdEx + 8) > l {
-					return io.ErrUnexpectedEOF
-				}
-				m.JetLegID = JetLegID(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
-				iNdEx += 8
-			case 42:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field MerkleRoot", wireType)
-				}
-				var msglen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					msglen |= int(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if msglen < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				postIndex := iNdEx + msglen
-				if postIndex < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if postIndex > l {
-					return io.ErrUnexpectedEOF
-				}
-				if err := m.MerkleRoot.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-				iNdEx = postIndex
-			case 50:
-				if wireType != 5 {
-					return fmt.Errorf("proto: wrong wireType = %d for field PrevPulseNumber", wireType)
-				}
-				m.PrevPulseNumber = 0
-				if (iNdEx + 4) > l {
-					return io.ErrUnexpectedEOF
-				}
-				m.PrevPulseNumber = PulseNumber(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
-				iNdEx += 4
-			case 51:
-				if wireType != 1 {
-					return fmt.Errorf("proto: wrong wireType = %d for field PrevJetLegID", wireType)
-				}
-				m.PrevJetLegID = 0
-				if (iNdEx + 8) > l {
-					return io.ErrUnexpectedEOF
-				}
-				m.PrevJetLegID = JetLegID(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
-				iNdEx += 8
-			case 52:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field PrevMerkleRoot", wireType)
-				}
-				var msglen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					msglen |= int(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if msglen < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				postIndex := iNdEx + msglen
-				if postIndex < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if postIndex > l {
-					return io.ErrUnexpectedEOF
-				}
-				if err := m.PrevMerkleRoot.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-				iNdEx = postIndex
-			case 60:
-				if wireType != 2 {
-					return fmt.Errorf("proto: wrong wireType = %d for field ProducedBy", wireType)
-				}
-				var msglen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProtoRecCtl
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					msglen |= int(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if msglen < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				postIndex := iNdEx + msglen
-				if postIndex < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if postIndex > l {
-					return io.ErrUnexpectedEOF
-				}
-				if err := m.ProducedBy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				}
-				iNdEx = postIndex
-			default:
-				iNdEx = preIndex
-				skippy, err := skipFn(dAtA[iNdEx:])
-				if err != nil {
-					return err
-				}
-				if skippy < 0 {
-					l = iNdEx
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
 					break
 				}
-				if skippy == 0 {
-					if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
-						return err
-					}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.PrevMerkleRoot.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 60:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProducedBy", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecCtl
 				}
-				if (iNdEx + skippy) < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if (iNdEx + skippy) > l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				iNdEx += skippy
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
 			}
-			return nil
-		}()
-		if err != nil {
-			return preIndex, err
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ProducedBy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
 		}
 	}
 
 	if iNdEx > l {
-		return iNdEx, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return iNdEx, nil
+	return nil
 }
 func (m *RStateReport) Unmarshal(dAtA []byte) error {
-	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
-	return err
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecCtl)
 }
-func (m *RStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
+func (m *RStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		err := func() error {
-			var wire uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoRecCtl
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				wire |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecCtl
 			}
-			fieldNum := int32(wire >> 3)
-			wireType := int(wire & 0x7)
-			if wireType == 4 {
-				return fmt.Errorf("proto: RStateReport: wiretype end group for non-group")
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
 			}
-			if fieldNum <= 0 {
-				return fmt.Errorf("proto: RStateReport: illegal tag %d (wire type %d)", fieldNum, wire)
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
 			}
-			switch fieldNum {
-			default:
-				iNdEx = preIndex
-				skippy, err := skipFn(dAtA[iNdEx:])
-				if err != nil {
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RStateReport: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RStateReport: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
 					return err
 				}
-				if skippy < 0 {
-					l = iNdEx
-					break
-				}
-				if skippy == 0 {
-					if skippy, err = skipProtoRecCtl(dAtA[iNdEx:]); err != nil {
-						return err
-					}
-				}
-				if (iNdEx + skippy) < 0 {
-					return ErrInvalidLengthProtoRecCtl
-				}
-				if (iNdEx + skippy) > l {
-					return io.ErrUnexpectedEOF
-				}
-				iNdEx += skippy
 			}
-			return nil
-		}()
-		if err != nil {
-			return preIndex, err
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecCtl
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
 		}
 	}
 
 	if iNdEx > l {
-		return iNdEx, io.ErrUnexpectedEOF
+		return io.ErrUnexpectedEOF
 	}
-	return iNdEx, nil
+	return nil
 }
 func skipProtoRecCtl(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
