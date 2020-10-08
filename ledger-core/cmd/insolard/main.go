@@ -78,6 +78,7 @@ func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 	}
 	cfg := readConfig(configPath)
 	fmt.Printf("Starts with configuration:\n%s\n", configuration.ToString(&cfg))
+
 	s = server.NewNode(cfg)
 	s.Serve()
 }
@@ -88,6 +89,7 @@ func runHeadlessNetwork(configPath string) {
 	}
 	cfg := readConfig(configPath)
 	fmt.Printf("Starts with configuration:\n%s\n", configuration.ToString(&cfg))
+
 	server.NewHeadlessNetworkNodeServer(cfg).Serve()
 }
 
