@@ -47,7 +47,7 @@ func TestParallelismSend(t *testing.T) {
 				out = &testPausedSendOutputTransport{transport, atomickit.NewBool(true), await, resume}
 				return out
 			}),
-			needPaused: func(addr nwapi.Address) bool {
+			needsPause: func(addr nwapi.Address) bool {
 				switch {
 				case srv2.ingoing == addr:
 					return true
@@ -257,7 +257,7 @@ func (t *testPausedSendOutputTransport) SendBytes(b []byte) error {
 type testPauseSendOutputFactory struct {
 	pure       l1.OutTransportFactory
 	paused     l1.OutTransportFactory
-	needPaused func(addr nwapi.Address) bool
+	needsPause func(addr nwapi.Address) bool
 }
 
 func (t testPauseSendOutputFactory) Close() error {
@@ -265,7 +265,7 @@ func (t testPauseSendOutputFactory) Close() error {
 }
 
 func (t testPauseSendOutputFactory) ConnectTo(address nwapi.Address) (l1.OneWayTransport, error) {
-	if t.needPaused(address) {
+	if t.needsPause(address) {
 		return t.paused.ConnectTo(address)
 	}
 
