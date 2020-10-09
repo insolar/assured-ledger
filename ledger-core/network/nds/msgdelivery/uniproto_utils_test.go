@@ -69,7 +69,7 @@ func (h *UnitProtoServersHolder) createService(
 	config uniserver.ServerConfig,
 	receiverFn ReceiverFunc,
 ) (*UnitProtoServer, error) {
-	return h.createServiceWithProfile(&UnitProtoServerProfile{config: &config}, receiverFn)
+	return h.createServiceWithProfile(&UnitProtoServerProfile{config: config}, receiverFn)
 }
 
 func (h *UnitProtoServersHolder) createServiceWithProfile(
@@ -215,7 +215,7 @@ func (r regAddrOutTransportFactory) ConnectTo(address nwapi.Address) (l1.OneWayT
 }
 
 type UnitProtoServerProfile struct {
-	config       *uniserver.ServerConfig
+	config       uniserver.ServerConfig
 	provider     uniserver.AllTransportProvider
 	desFactory   nwapi.DeserializationFactory
 	idWithPortFn func(nwapi.Address) bool
@@ -223,15 +223,15 @@ type UnitProtoServerProfile struct {
 }
 
 func (p *UnitProtoServerProfile) getConfig() uniserver.ServerConfig {
-	if p.config != nil {
-		return *p.config
+	if p.config.IsZero() {
+		return uniserver.ServerConfig{
+			BindingAddress: "127.0.0.1:0",
+			UDPMaxSize:     1400,
+			UDPParallelism: 2,
+			PeerLimit:      -1,
+		}
 	}
-	return uniserver.ServerConfig{
-		BindingAddress: "127.0.0.1:0",
-		UDPMaxSize:     1400,
-		UDPParallelism: 2,
-		PeerLimit:      -1,
-	}
+	return p.config
 }
 
 func (p *UnitProtoServerProfile) getProvider() uniserver.AllTransportProvider {

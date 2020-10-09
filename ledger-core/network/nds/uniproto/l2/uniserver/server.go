@@ -39,6 +39,24 @@ type ServerConfig struct {
 	RetryDelayMax      time.Duration
 }
 
+func (cfg ServerConfig) IsZero() bool {
+	switch {
+	case cfg.BindingAddress != "" || cfg.PublicAddress != "":
+		return false
+	case cfg.NetPreference != 0:
+		return false
+	case cfg.TLSConfig != nil:
+		return false
+	case cfg.UDPMaxSize != 0 || cfg.UDPParallelism != 0:
+		return false
+	case cfg.PeerLimit != 0:
+		return false
+	case cfg.RetryLimit != 0 || cfg.RetryDelayInc != 0 || cfg.RetryDelayVariance != 0 || cfg.RetryDelayMax != 0:
+		return false
+	}
+	return true
+}
+
 type MiniLogger interface {
 	LogError(error)
 	LogTrace(interface{})
@@ -322,7 +340,7 @@ func (p *DefaultTransportProvider) CreateSessionfulProvider(binding nwapi.Addres
 }
 
 func RetryStartListenForTests(p *UnifiedServer, retryCount int) {
-	for i := 0;; i++ {
+	for i := 0; ; i++ {
 		switch err := p.TryStartListen(); {
 		case err == nil:
 			return

@@ -13,7 +13,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
@@ -34,12 +33,6 @@ func BenchmarkThroughput(b *testing.B) {
 	defer h.stop()
 
 	prf := &UnitProtoServerProfile{
-		config: &uniserver.ServerConfig{
-			BindingAddress: "127.0.0.1:0",
-			UDPMaxSize:     0,
-			UDPParallelism: 4,
-			PeerLimit:      -1,
-		},
 		desFactory: &TestDeserializationByteFactory{},
 	}
 
@@ -120,12 +113,6 @@ func BenchmarkLatency(b *testing.B) {
 	defer h.stop()
 
 	prf := &UnitProtoServerProfile{
-		config: &uniserver.ServerConfig{
-			BindingAddress: "127.0.0.1:0",
-			UDPMaxSize:     0,
-			UDPParallelism: 4,
-			PeerLimit:      -1,
-		},
 		desFactory: &TestDeserializationByteFactory{},
 	}
 
