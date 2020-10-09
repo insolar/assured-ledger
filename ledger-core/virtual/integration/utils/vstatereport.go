@@ -10,18 +10,19 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
 //nolint:interfacer
 func GenerateVStateReport(server *Server, object reference.Global, pulse pulse.Number) *rms.VStateReport {
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Reference: rms.NewReferenceLocal(reference.Local{}),
+			Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(pulse)),
 			Class:     rms.NewReference(testwalletProxy.GetClass()),
 			Memory:    rms.NewBytes([]byte("dirty")),
 		},
 		LatestValidatedState: &rms.ObjectState{
-			Reference: rms.NewReferenceLocal(reference.Local{}),
+			Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(pulse)),
 			Class:     rms.NewReference(testwalletProxy.GetClass()),
 			Memory:    rms.NewBytes([]byte("validated")),
 		},
