@@ -22,6 +22,8 @@ type stateSender struct {
 	jobs   chan retryJob
 	states chan stateJob
 
+	marks  nodeRqMarks
+
 	peers peerMap
 
 	mutex    sync.Mutex
@@ -275,4 +277,41 @@ func (p *peerMap) _runFlush(sender *stateSender, pendings []*DeliveryPeer) {
 			sender.AddState(peer, *packet)
 		}
 	}
+}
+
+type nodeRqMarks struct {
+	mutex sync.Mutex
+	marks map[uint32]*retryRqWorker
+}
+
+func (p *nodeRqMarks) unmark(id ShipmentID) {
+	p.unmarkNode(id.NodeID())
+}
+
+func (p *nodeRqMarks) mark(id ShipmentID, w *retryRqWorker) (bool, *retryRqWorker) {
+	return p.markNode(id.NodeID(), w)
+}
+
+func (p *nodeRqMarks) markNode(nid uint32, w *retryRqWorker) (bool, *retryRqWorker) {
+	if w == nil {
+		panic(throw.IllegalValue())
+	}
+
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	if p.marks == nil {
+		p.marks = map[uint32]*retryRqWorker{}
+	} else if owner, ok := p.marks[nid]; ok {
+		return false, owner
+	}
+
+	p.marks[nid] = w
+	return true, w
+}
+
+func (p *nodeRqMarks) unmarkNode(nid uint32) {
+	p.mutex.Lock()
+	delete(p.marks, nid)
+	p.mutex.Unlock()
 }

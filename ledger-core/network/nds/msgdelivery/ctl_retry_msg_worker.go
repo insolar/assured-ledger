@@ -23,15 +23,15 @@ func newRetryMsgWorker(sender *msgSender, parallel, postponed int) *retryMsgWork
 	return &retryMsgWorker{
 		sender:    sender,
 		sema:      synckit.NewSemaphore(parallel),
-		marks:     nodeMarks{marks: make(map[uint32]struct{}, parallel)},
 		postponed: make([]postponedMsg, postponed),
+		marks:     &sender.marks,
 	}
 }
 
 type retryMsgWorker struct {
 	sender *msgSender
 	sema   synckit.Semaphore
-	marks  nodeMarks
+	marks  *nodeMsgMarks
 
 	// circular buffer
 	postponed   []postponedMsg
@@ -106,29 +106,21 @@ func (p *retryMsgWorker) sendHead(msg *msgShipment, repeatFn func(retries.RetryI
 func noRetryFn(retries.RetryID) {}
 
 func (p *retryMsgWorker) processOoB(msg *msgShipment) {
-	var repeatFn func(retries.RetryID)
-
 	if msg.isFireAndForget() {
-		repeatFn = noRetryFn
+		p.processMsg(msg, noRetryFn)
 	} else {
-		repeatFn = p.sender.stages.AddHeadForRetry
-	}
-
-	switch {
-	case p.marks.mark(msg.id):
-		p.sema.Lock()
-		go p.sendHead(msg, repeatFn)
-	case msg.canSendHead():
-		p.pushPostponed(msg, repeatFn)
+		p.processMsg(msg, p.sender.stages.AddHeadForRetry)
 	}
 }
 
 func (p *retryMsgWorker) processMsg(msg *msgShipment, repeatFn func(retries.RetryID)) {
-	switch {
-	case msg == nil:
+	if msg == nil {
 		return
-	case !p.marks.mark(msg.id):
-		//
+	}
+
+	captured, postponer := p.marks.mark(msg.id, p)
+	switch {
+	case !captured:
 	case !p.sema.TryLock():
 		p.marks.unmark(msg.id)
 	default:
@@ -137,7 +129,7 @@ func (p *retryMsgWorker) processMsg(msg *msgShipment, repeatFn func(retries.Retr
 	}
 
 	if msg.canSendHead() {
-		p.pushPostponed(msg, repeatFn)
+		postponer.pushPostponed(msg, repeatFn)
 	}
 }
 

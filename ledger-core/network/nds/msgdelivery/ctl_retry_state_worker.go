@@ -22,15 +22,15 @@ func newRetryRqWorker(sender *stateSender, parallel, postponed int) *retryRqWork
 	return &retryRqWorker{
 		sender:    sender,
 		sema:      synckit.NewSemaphore(parallel),
-		marks:     nodeMarks{marks: make(map[uint32]struct{}, parallel)},
 		postponed: make([]postponedRq, postponed),
+		marks:     &sender.marks,
 	}
 }
 
 type retryRqWorker struct {
 	sender *stateSender
 	sema   synckit.Semaphore
-	marks  nodeMarks
+	marks  *nodeRqMarks
 
 	// circular buffer
 	postponed   []postponedRq
@@ -86,28 +86,22 @@ func (p *retryRqWorker) runRetry() {
 }
 
 func (p *retryRqWorker) processOoB(rq rqShipment) {
-	switch {
-	case p.marks.mark(rq.id):
-		p.sema.Lock()
-		go p._sendRq(rq, p.sender.stages.AddHeadForRetry, true)
-	case rq.isValid():
-		p.pushPostponed(rq, p.sender.stages.AddHeadForRetry)
-	}
+	p.processRq(rq, p.sender.stages.AddHeadForRetry, true)
 }
 
-func (p *retryRqWorker) processRq(rq rqShipment, repeatFn func(retries.RetryID)) {
+func (p *retryRqWorker) processRq(rq rqShipment, repeatFn func(retries.RetryID), sendNow bool) {
+	captured, postponer := p.marks.mark(rq.id, p)
 	switch {
-	case !p.marks.mark(rq.id):
-		//
+	case !captured:
 	case !p.sema.TryLock():
 		p.marks.unmark(rq.id)
 	default:
-		go p._sendRq(rq, repeatFn, false)
+		go p._sendRq(rq, repeatFn, sendNow)
 		return
 	}
 
 	if rq.isValid() {
-		p.pushPostponed(rq, repeatFn)
+		postponer.pushPostponed(rq, repeatFn)
 	}
 }
 
@@ -148,7 +142,7 @@ func (p *retryRqWorker) _processPostponedItem() {
 	p.read++
 	switch {
 	case prq.rq.peer != nil:
-		p.processRq(prq.rq, prq.repeatFn)
+		p.processRq(prq.rq, prq.repeatFn, false)
 	case prq.repeatFn != nil:
 		p._processState(prq.rq.id.NodeID(), prq.repeatFn)
 	}
@@ -167,10 +161,10 @@ func (p *retryRqWorker) _afterSend(nid uint32) {
 func (p *retryRqWorker) _sendRq(rq rqShipment, repeatFn func(id retries.RetryID), sendNow bool) {
 	defer p._afterSend(rq.id.NodeID())
 
-	if !sendNow {
-		rq.peer.addBodyRq(rq.id.ShortID())
-	} else {
+	if sendNow {
 		rq.peer.sendBodyRq(rq.id.ShortID())
+	} else {
+		rq.peer.addBodyRq(rq.id.ShortID())
 	}
 	repeatFn(retries.RetryID(rq.id))
 }
@@ -179,7 +173,7 @@ func (p *retryRqWorker) processJob(job retryJob) {
 	for _, id := range job.ids {
 		switch rq, m := p.sender.get(ShipmentID(id)); m {
 		case retries.KeepRetrying:
-			p.processRq(rq, job.repeatFn)
+			p.processRq(rq, job.repeatFn, false)
 		case retries.StopRetrying:
 			job.repeatFn(id)
 		}
@@ -201,9 +195,9 @@ func (p *retryRqWorker) processState(state stateJob) {
 }
 
 func (p *retryRqWorker) _processState(nid uint32, fn func(retries.RetryID)) {
+	captured, postponer := p.marks.markNode(nid, p)
 	switch {
-	case !p.marks.markNode(nid):
-		//
+	case !captured:
 	case !p.sema.TryLock():
 		p.marks.unmarkNode(nid)
 	default:
@@ -211,7 +205,7 @@ func (p *retryRqWorker) _processState(nid uint32, fn func(retries.RetryID)) {
 		return
 	}
 
-	p.pushPostponed(rqShipment{
+	postponer.pushPostponed(rqShipment{
 		id: AsShipmentID(nid, 1),
 	}, fn)
 }
