@@ -6,6 +6,8 @@
 package readbundle
 
 import (
+	"io"
+
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -40,11 +42,11 @@ type Unmarshaler interface {
 	Unmarshal([]byte) error
 }
 
-func UnmarshalTo(from Slice, to Unmarshaler) error {
+func UnmarshalTo(from io.WriterTo, to Unmarshaler) error {
 	return UnmarshalToFunc(from, to.Unmarshal)
 }
 
-func UnmarshalToFunc(from Slice, toFn func ([]byte) error) error {
+func UnmarshalToFunc(from io.WriterTo, toFn func ([]byte) error) error {
 	_, err := from.WriteTo(writeToFunc(toFn))
 	return err
 }
