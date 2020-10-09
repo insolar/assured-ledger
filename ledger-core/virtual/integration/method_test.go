@@ -1323,7 +1323,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
 				return descriptor.NewObject(
 					objectRef,
-					reference.Local{},
+					gen.UniqueLocalRefWithPulse(pn),
 					classRef,
 					[]byte("ok case"),
 					false,
@@ -1332,7 +1332,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			validatedStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
 				return descriptor.NewObject(
 					objectRef,
-					reference.Local{},
+					gen.UniqueLocalRefWithPulse(pn),
 					classRef,
 					[]byte("not ok case"),
 					false,
@@ -1348,7 +1348,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
 				return descriptor.NewObject(
 					objectRef,
-					reference.Local{},
+					gen.UniqueLocalRefWithPulse(pn),
 					classRef,
 					[]byte("ok case"),
 					false,
@@ -1403,7 +1403,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			if validatedState != nil {
 				validatedStateHeadRef = validatedState.HeadRef()
 				latestValidatedState = &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(validatedState.StateID()),
+					Reference: rms.NewReferenceLocal(validatedState.State().GetLocal()),
 					Class:     rms.NewReference(class),
 					Memory:    rms.NewBytes(validatedState.Memory()),
 				}
@@ -1419,7 +1419,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestValidatedState: latestValidatedState,
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(dirtyState.StateID()),
+							Reference: rms.NewReferenceLocal(dirtyState.State().GetLocal()),
 							Class:     rms.NewReference(class),
 							Memory:    rms.NewBytes(dirtyState.Memory()),
 						},
@@ -1702,7 +1702,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	{
 		objectDescriptor := descriptor.NewObject(
 			objectGlobal,
-			reference.Local{},
+			dStateID.GetLocal(),
 			class,
 			newState,
 			false,

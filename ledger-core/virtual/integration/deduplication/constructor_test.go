@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
@@ -258,6 +259,16 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 		test.VState.OrderedPendingEarliestPulse = previousPulse
 	}
 	test.VState.AsOf = previousPulse
+	if test.VState.ProvidedContent != nil {
+		if test.VState.ProvidedContent.LatestDirtyState != nil {
+			test.VState.ProvidedContent.LatestDirtyState.Reference =
+				rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(previousPulse))
+		}
+		if test.VState.ProvidedContent.LatestValidatedState != nil {
+			test.VState.ProvidedContent.LatestValidatedState.Reference =
+				rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(previousPulse))
+		}
+	}
 
 	// populate needed VFindCallResponse fields
 	if test.VFindCall != nil {
@@ -289,8 +300,9 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 			CallOutgoing: rms.NewReference(outgoing),
 			CallIncoming: rms.NewReference(reference.NewRecordOf(class, outgoing.GetLocal())),
 			LatestState: &rms.ObjectState{
-				Class:  rms.NewReference(class),
-				Memory: rms.NewBytes(ExecutionResultFromPreviousNode),
+				Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(server.GetPulseNumber())),
+				Class:     rms.NewReference(class),
+				Memory:    rms.NewBytes(ExecutionResultFromPreviousNode),
 			},
 		}
 	}
