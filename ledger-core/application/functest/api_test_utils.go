@@ -155,8 +155,9 @@ func getWalletBalance(url, ref string) (uint, error) {
 	}
 	if resp.Err != "" {
 		return 0, throw.W(throw.New(resp.Err), "problem during execute request", struct {
-			TraceID string
-		}{TraceID: resp.TraceID})
+			TraceID   string
+			WalletRef string
+		}{TraceID: resp.TraceID, WalletRef: ref})
 	}
 	return resp.Amount, nil
 }
@@ -174,8 +175,9 @@ func addAmountToWallet(url, ref string, amount uint) error {
 	}
 	if resp.Err != "" {
 		return throw.W(throw.New(resp.Err), "problem during execute request", struct {
-			TraceID string
-		}{TraceID: resp.TraceID})
+			TraceID   string
+			WalletRef string
+		}{TraceID: resp.TraceID, WalletRef: ref})
 	}
 	return nil
 }

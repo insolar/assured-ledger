@@ -27,6 +27,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/pulsewatcher"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
@@ -126,15 +127,15 @@ func GetPulseTime() int {
 }
 
 func customRun(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int, cb func([]string) int) int {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
 	apiAddresses, teardown, err := newNetSetup(pulsarOneShot, numVirtual, numLight, numHeavy)
-	defer teardown()
 	if err != nil {
 		fmt.Println("error while setup, skip tests: ", err)
 		return 1
 	}
-
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt)
+	defer teardown()
 
 	go func() {
 		sig := <-c
@@ -144,20 +145,10 @@ func customRun(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int, cb
 		os.Exit(2)
 	}()
 
-	pulseWatcher, config := pulseWatcherPath()
-
 	code := cb(apiAddresses)
 
 	if code != 0 {
-		pulseWatcherCmd := exec.Command(pulseWatcher, "--config", config)
-
-		pulseWatcherCmd.Env = append(pulseWatcherCmd.Env, fmt.Sprintf("PULSEWATCHER_ONESHOT=TRUE"))
-		out, err := pulseWatcherCmd.CombinedOutput()
-		if err != nil {
-			fmt.Println("PulseWatcher execution error: ", err)
-			return 1
-		}
-		fmt.Println(string(out))
+		pulsewatcher.OneShot(apiAddresses)
 	}
 	return code
 }
@@ -211,10 +202,6 @@ func GetDiscoveryNodesCount() (int, error) {
 }
 
 func GetNodesCount() (int, error) {
-	if isCloudMode() {
-		return numVirtual + numLightMaterials + numHeavyMaterials, nil
-	}
-
 	type nodesConf struct {
 		DiscoverNodes []interface{} `yaml:"discovery_nodes"`
 		Nodes         []interface{} `yaml:"nodes"`
@@ -419,12 +406,7 @@ func startNet() (*exec.Cmd, error) {
 		_ = os.Chdir(cwd)
 	}()
 
-	args := "-pwdg"
-	if isCloudMode() {
-		args += "m"
-	}
-
-	cmd := exec.Command("./scripts/insolard/launchnet.sh", args)
+	cmd := exec.Command("./scripts/insolard/launchnet.sh", "-pwdg")
 	err = waitForLaunch(cmd)
 	if err != nil {
 		return cmd, throw.W(err, "[ startNet ] couldn't waitForLaunch more")
@@ -535,7 +517,9 @@ func waitForLaunch(cmd *exec.Cmd) error {
 	}
 
 	cmdCompleted := make(chan error, 1)
-	go func() { cmdCompleted <- cmd.Wait() }()
+	go func() {
+		cmdCompleted <- cmd.Wait()
+	}()
 	select {
 	case err := <-cmdCompleted:
 		cmdCompleted <- nil

@@ -22,7 +22,7 @@ BOOTSTRAP_CONFIG=${LAUNCHNET_BASE_DIR}bootstrap.yaml
 ROOT_MEMBER_KEYS_FILE=${LAUNCHNET_BASE_DIR}configs/root_member_keys.json
 #GENERATED_CONFIGS_DIR=${LAUNCHNET_BASE_DIR}/configs/generated_configs/nodes
 
-NUM_NODES=$(sed -n '/^nodes:/,$p' ${BOOTSTRAP_CONFIG} | grep "host:" | grep -cv "#" )
+NUM_NODES=$(sed -n '/^nodes:/,$p' ${BOOTSTRAP_CONFIG} | grep "host:" | grep -cv "#" | tr -d '[:space:]')
 ROLES=($(sed -n '/^nodes:/,$p' ./scripts/insolard/bootstrap_template.yaml | grep "role" | cut -d: -f2))
 (>&2 echo "ROLES=$ROLES")
 (>&2 echo "NUM_NODES=$NUM_NODES")
