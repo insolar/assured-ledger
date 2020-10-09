@@ -94,6 +94,14 @@ func TestJetRef(t *testing.T) {
 	jetId, err := UnpackJetRef(jetRef2)
 	assert.NoError(t, err)
 	assert.Equal(t, jet.ID(77), jetId)
+
+	jetRefFrom, err := tDefJet.RefFrom(jetRef1.GetBase(), jetRef1.GetLocal())
+	assert.NoError(t, err)
+	err = tDefJet.VerifyGlobalRef(jetRefFrom.GetBase(), jetRefFrom.GetLocal())
+	assert.NoError(t, err)
+	assert.True(t, jetRefFrom == jetRef1)
+
+	assert.False(t, tDefJet.CanBeDerivedWith(jetRef1.GetLocal().Pulse(), jetRef1.GetLocal()))
 }
 
 func TestJetLegLocalRef(t *testing.T) {
