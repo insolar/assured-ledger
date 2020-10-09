@@ -61,11 +61,7 @@ func (c *descriptorsCache) ByObjectDescriptor(
 ) (
 	descriptor.Class, descriptor.Code, error,
 ) {
-	classRef, err := obj.Class()
-	if err != nil {
-		return nil, nil, errors.W(err, "couldn't get class reference")
-	}
-
+	classRef := obj.Class()
 	if classRef.IsEmpty() {
 		return nil, nil, errors.New("Empty class")
 	}

@@ -1026,6 +1026,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 					CallIncoming: rms.NewReference(incoming),
 					CallFlags:    rms.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
 					LatestState: &rms.ObjectState{
+						Reference:   rms.NewReferenceLocal(stateRef.GetLocal()),
 						Memory:      rms.NewBytes(nil),
 						Deactivated: true,
 					},
