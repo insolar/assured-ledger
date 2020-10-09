@@ -60,6 +60,10 @@ func Test_Delay(t *testing.T) {
 	}
 
 	{ // execution must wait
+		require.True(t, smObject.waitGetStateUntil.After(time.Now()),
+			"waitGetStateUntil should be more or equal current time")
+		smObject.waitGetStateUntil = smObject.waitGetStateUntil.Add(10 * time.Second)
+
 		resultJump := smachine.NewStateConditionalBuilderMock(mc).
 			ThenRepeatMock.Set(stepChecker.CheckRepeatW(t))
 		execCtx := smachine.NewExecutionContextMock(mc).
