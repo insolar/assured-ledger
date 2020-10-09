@@ -182,11 +182,11 @@ func (v *TestBytes) DeserializeFrom(_ nwapi.DeserializationContext, reader *ioki
 }
 
 /**************************************/
-var _ nwapi.DeserializationFactory = TestDeserializationFactory{}
+var _ nwapi.DeserializationFactory = TestDeserializationStringFactory{}
 
-type TestDeserializationFactory struct{}
+type TestDeserializationStringFactory struct{}
 
-func (TestDeserializationFactory) DeserializePayloadFrom(ctx nwapi.DeserializationContext, _ nwapi.PayloadCompleteness, reader *iokit.LimitedReader) (nwapi.Serializable, error) {
+func (TestDeserializationStringFactory) DeserializePayloadFrom(ctx nwapi.DeserializationContext, _ nwapi.PayloadCompleteness, reader *iokit.LimitedReader) (nwapi.Serializable, error) {
 	var s TestString
 	if err := s.DeserializeFrom(ctx, reader); err != nil {
 		return nil, err
