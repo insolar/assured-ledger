@@ -521,7 +521,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 					logger.Debug("ExecutionStart [SomeMethod]")
 					require.Equal(t, object, ctx.Request.Callee.GetValue())
 					require.Equal(t, []byte("new object memory"), ctx.ObjectDescriptor.Memory())
-					require.Equal(t, dirtyStateRef, ctx.ObjectDescriptor.StateID())
+					require.Equal(t, dirtyStateRef, ctx.ObjectDescriptor.State().GetLocal())
 					require.True(t, getDelegated)
 				}, &execution.Update{
 					Type:   execution.Done,

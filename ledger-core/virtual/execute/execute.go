@@ -635,7 +635,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 	}
 
 	s.execution.ObjectDescriptor = objectDescriptor
-	s.lmnLastLifelineRef = reference.NewRecordOf(objectDescriptor.HeadRef(), objectDescriptor.StateID())
+	s.lmnLastLifelineRef = objectDescriptor.State()
 
 	return ctx.Jump(s.stepExecuteStart)
 }
@@ -1026,9 +1026,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 func (s *SMExecute) updateMemoryCache(ctx smachine.ExecutionContext, object descriptor.Object) {
 	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
-		ref := reference.NewRecordOf(object.HeadRef(), object.StateID())
-
-		err := svc.Set(ctx, ref, object)
+		err := svc.Set(ctx, object.State(), object)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to set dirty memory", err)
@@ -1095,15 +1093,10 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 	var lastState *rms.ObjectState = nil
 
 	if s.newObjectDescriptor != nil {
-		class, err := s.newObjectDescriptor.Class()
-		if err != nil {
-			panic(throw.W(err, "failed to get class from descriptor", nil))
-		}
-
 		lastState = &rms.ObjectState{
 			Reference:   rms.NewReferenceLocal(s.lmnLastLifelineRef),
 			Memory:      rms.NewBytes(s.executionNewState.Result.Memory),
-			Class:       rms.NewReference(class),
+			Class:       rms.NewReference(s.newObjectDescriptor.Class()),
 			Deactivated: s.executionNewState.Result.SideEffectType == requestresult.SideEffectDeactivate,
 		}
 	}
