@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -71,8 +72,6 @@ func TestJetRef(t *testing.T) {
 	assert.Equal(t, reference.LocalHash{0}, jetRef1.GetLocal().IdentityHash())
 	assert.Equal(t, reference.Scope(0), jetRef1.GetScope()) // SubScope is not applicable and must be zero
 	assert.True(t, jetRef1.IsLifelineScope())
-	assert.False(t, jetRef1.IsGlobalScope())
-	assert.False(t, jetRef1.IsLocalDomainScope())
 
 	jetRef2 := JetRef(77)
 	assert.Equal(t, pulse.Jet, jetRef2.GetLocal().Pulse())
@@ -95,13 +94,28 @@ func TestJetRef(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, jet.ID(77), jetId)
 
-	jetRefFrom, err := tDefJet.RefFrom(jetRef1.GetBase(), jetRef1.GetLocal())
-	assert.NoError(t, err)
-	err = tDefJet.VerifyGlobalRef(jetRefFrom.GetBase(), jetRefFrom.GetLocal())
-	assert.NoError(t, err)
-	assert.True(t, jetRefFrom == jetRef1)
-
 	assert.False(t, tDefJet.CanBeDerivedWith(jetRef1.GetLocal().Pulse(), jetRef1.GetLocal()))
+
+	assert.True(t, tDefJet.CanBeDerivedWith(jetRef1.GetLocal().Pulse(),
+		reference.NewLocal(pulse.MinTimePulse, 0, reference.LocalHash{})))
+}
+
+func TestJetRefFrom(t *testing.T) {
+	jetRef1 := JetRef(0)
+
+	jetRefFrom, err := tDefJet.RefFrom(jetRef1.GetBase(), jetRef1.GetLocal())
+	require.NoError(t, err)
+	assert.Equal(t, jetRef1, jetRefFrom)
+
+	jetDropRef1 := JetDropRef(jet.ID(0).AsDrop(pulse.MinTimePulse))
+	jetRefFrom, err = tDefJet.RefFrom(jetDropRef1.GetBase(), jetDropRef1.GetLocal())
+	require.NoError(t, err)
+	assert.Equal(t, jetRef1, jetRefFrom)
+
+	jetLegRef1 := JetLegRef(jet.ID(0).AsLeg(16, pulse.MinTimePulse))
+	jetRefFrom, err = tDefJet.RefFrom(jetLegRef1.GetBase(), jetLegRef1.GetLocal())
+	require.NoError(t, err)
+	assert.Equal(t, jetRef1, jetRefFrom)
 }
 
 func TestJetLegLocalRef(t *testing.T) {
@@ -197,7 +211,6 @@ func TestJetDropLocalRef(t *testing.T) {
 	jetDropLocalRef2 := JetDropLocalRef(id2)
 	assert.NotEqual(t, jetDropLocalRef1, jetDropLocalRef2)
 
-
 	tDefJetDrop := typeDefJetDrop{}
 	err := tDefJetDrop.VerifyLocalRef(jetDropLocalRef1)
 	assert.NoError(t, err)
@@ -230,7 +243,6 @@ func TestJetDropLocalRef(t *testing.T) {
 
 
 func TestJetDropRef(t *testing.T) {
-
 	id1 := jet.ID(0x6677).AsDrop(pulse.MaxTimePulse)
 	id2 := jet.ID(0x6679).AsDrop(pulse.MaxTimePulse)
 

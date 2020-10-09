@@ -192,7 +192,7 @@ func jetDropOfLocalRef(base reference.Local, mustBeDrop bool) (pulse.Number, jet
 		if mustBeDrop {
 			return invalidJetDropRef, 0
 		}
-	case mustBeDrop == id.HasLength():
+	case mustBeDrop && id.HasLength():
 		// it is a jet leg ref
 		return invalidJetDropRef, 0
 	}
