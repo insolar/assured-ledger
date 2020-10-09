@@ -39,6 +39,10 @@ type ServerConfig struct {
 	RetryDelayMax      time.Duration
 }
 
+func (v ServerConfig) IsZero() bool {
+	return v.BindingAddress == ""
+}
+
 type MiniLogger interface {
 	LogError(error)
 	LogTrace(interface{})
