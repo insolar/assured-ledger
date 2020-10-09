@@ -136,16 +136,15 @@ func (p *stateSender) NextTimeCycle() {
 	p.peers.RunFlush(p)
 }
 
-func (p *stateSender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID)) {
+func (p *stateSender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID), bulkFn func([]retries.RetryID)) {
 
 	keepCount, removeStart := p.retry(ids)
-
 	for _, id := range ids[keepCount:removeStart] {
 		repeatFn(id)
 	}
 
 	if keepCount > 0 {
-		p.jobs <- retryJob{ids: ids[:keepCount], repeatFn: repeatFn}
+		p.jobs <- retryJob{ids[:keepCount], repeatFn, bulkFn}
 	}
 }
 

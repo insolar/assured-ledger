@@ -90,8 +90,8 @@ func (p *msgSender) sendBodyOnly(msg *msgShipment) {
 	msg.sendBody()
 }
 
-func (p *msgSender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID)) {
-	p.jobs <- retryJob{ids, repeatFn}
+func (p *msgSender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID), bulkFn func([]retries.RetryID)) {
+	p.jobs <- retryJob{ids, repeatFn, bulkFn}
 }
 
 func (p *msgSender) CheckState(id retries.RetryID) retries.RetryState {

@@ -41,9 +41,12 @@ type retryMsgWorker struct {
 	wakeup chan struct{}
 }
 
+const minRetryBulkSize = 32
+
 type retryJob struct {
 	ids      []retries.RetryID
 	repeatFn func(retries.RetryID)
+	bulkFn   func([]retries.RetryID)
 }
 
 type postponedMsg struct {
@@ -80,9 +83,19 @@ func (p *retryMsgWorker) runRetry() {
 		case oob != nil:
 			p.processOoB(oob)
 		default:
-			for _, id := range job.ids {
-				p.processMsg(p.sender.get(ShipmentID(id)), job.repeatFn)
-			}
+			p.processRetryJob(job)
+		}
+	}
+}
+
+func (p *retryMsgWorker) processRetryJob(job retryJob) {
+	for i, id := range job.ids {
+		switch {
+		case p.processMsg(p.sender.get(ShipmentID(id)), job.repeatFn):
+		case !p.sema.IsFull():
+		case i + minRetryBulkSize <= len(job.ids):
+			job.bulkFn(job.ids[i+1:])
+			return
 		}
 	}
 }
@@ -175,3 +188,4 @@ func (p *retryMsgWorker) enablePostponedProcessing() {
 func (p *retryMsgWorker) disablePostponedProcessing() {
 	p.postponedRead = nil
 }
+

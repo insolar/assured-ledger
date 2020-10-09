@@ -23,7 +23,7 @@ type StagedController struct {
 }
 
 type RetryStrategy interface {
-	Retry(ids []RetryID, repeatFn func(RetryID))
+	Retry(ids []RetryID, repeatFn func(RetryID), bulkOverflow func([]RetryID))
 	CheckState(RetryID) RetryState
 	Remove([]RetryID)
 }
@@ -57,7 +57,7 @@ func (p *StagedController) InitStages(minHeadBatchWeight uint, periods [RetrySta
 func (p *StagedController) Add(id RetryID, weight uint, strategy RetryStrategy) {
 	overflow := p.batchHeads.add(id, weight, p.minHeadBatchWeight)
 	if len(overflow) > 0 {
-		strategy.Retry(overflow, p.batchHeads.addSent)
+		strategy.Retry(overflow, p.batchHeads.addSent, p.stages[0].addPreList)
 	}
 }
 
@@ -68,7 +68,7 @@ func (p *StagedController) AddHeadForRetry(id RetryID) {
 func (p *StagedController) NextCycle(strategy RetryStrategy) {
 	preBatch, pushToNext := p.batchHeads.nextCycle()
 	if len(preBatch) > 0 {
-		strategy.Retry(preBatch, p.batchHeads.addSent)
+		strategy.Retry(preBatch, p.batchHeads.addSent, p.stages[0].addPreList)
 	}
 
 	for i, maxStage := 0, len(p.stages)-1; i <= maxStage; i++ {
@@ -76,19 +76,19 @@ func (p *StagedController) NextCycle(strategy RetryStrategy) {
 		resend, pushToNext = p.stages[i].nextCycle(pushToNext)
 
 		if i < maxStage {
-			p.resend(resend, strategy, p.stages[i].addSent)
+			p.resend(resend, strategy, p.stages[i].addSent, p.stages[i+1].addPreList)
 			continue
 		}
 
-		p.resend(resend, strategy, p.stages[i-1].addSent)
-		if i == maxStage && len(pushToNext) > 0 {
+		p.resend(resend, strategy, p.stages[maxStage-1].addSent, p.stages[maxStage].addPreList)
+		if len(pushToNext) > 0 {
 			// last stage pushes to its own input
-			p.stages[i].addPreList(pushToNext)
+			p.stages[maxStage].addPreList(pushToNext)
 		}
 	}
 }
 
-func (p *StagedController) resend(in [][]RetryID, strategy RetryStrategy, repeatFn func(RetryID)) {
+func (p *StagedController) resend(in [][]RetryID, strategy RetryStrategy, repeatFn func(RetryID), bulkFn func([]RetryID)) {
 	var prev []RetryID
 	for _, list := range in {
 		keepCount, removeStart := Segregate(list, strategy.CheckState)
@@ -102,13 +102,13 @@ func (p *StagedController) resend(in [][]RetryID, strategy RetryStrategy, repeat
 			//
 		case keepCount >= len(prev) || keepCount > free:
 			if len(prev) > 0 {
-				strategy.Retry(prev, repeatFn)
+				strategy.Retry(prev, repeatFn, bulkFn)
 			}
 			prev = list[:keepCount]
 
 		case keepCount == free:
 			prev = append(prev, list[:keepCount]...)
-			strategy.Retry(prev, repeatFn)
+			strategy.Retry(prev, repeatFn, bulkFn)
 			prev = nil
 
 		default:
@@ -117,7 +117,7 @@ func (p *StagedController) resend(in [][]RetryID, strategy RetryStrategy, repeat
 	}
 
 	if len(prev) > 0 {
-		strategy.Retry(prev, repeatFn)
+		strategy.Retry(prev, repeatFn, bulkFn)
 	}
 }
 
