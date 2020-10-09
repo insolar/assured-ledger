@@ -64,7 +64,7 @@ func WithPulsarMode(mode PulsarMode) func(runner *CloudRunner) {
 func PrepareCloudRunner(options ...cloudOption) *CloudRunner {
 	cr := CloudRunner{
 		defaultLogLevel: log.DebugLevel,
-		pulsarMode:      RegularPulsar,
+		pulsarMode:      getPulseModeFromEnv(),
 	}
 	for _, o := range options {
 		o(&cr)
@@ -142,7 +142,7 @@ func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider)
 }
 
 //nolint:goconst
-func (cr CloudRunner) getPulseModeFromEnv() PulsarMode {
+func getPulseModeFromEnv() PulsarMode {
 	pulsarOneshot := os.Getenv("PULSARD_ONESHOT")
 	switch pulsarOneshot {
 	case "TRUE":
@@ -155,7 +155,7 @@ func (cr CloudRunner) getPulseModeFromEnv() PulsarMode {
 }
 
 func (cr CloudRunner) SetupCloud() (func(), error) {
-	return cr.SetupCloudCustom(cr.getPulseModeFromEnv())
+	return cr.SetupCloudCustom(cr.pulsarMode)
 }
 
 func (cr CloudRunner) SetupCloudCustom(pulsarMode PulsarMode) (func(), error) {
