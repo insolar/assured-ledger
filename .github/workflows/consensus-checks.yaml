@@ -133,7 +133,7 @@ jobs:
       - name: Install utility binaries
         run: |
           echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
-          wget -q https://github.com/insolar/consensus-reports/releases/download/v1.0.4/{report,metricreplicator} -P bin/
+          wget -q https://github.com/insolar/consensus-reports/releases/download/v1.0.5/{report,metricreplicator} -P bin/
           chmod +x bin/{report,metricreplicator}
       - name: Download report-config
         uses: actions/download-artifact@v2
