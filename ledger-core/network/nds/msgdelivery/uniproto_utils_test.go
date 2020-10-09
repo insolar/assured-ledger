@@ -223,7 +223,7 @@ type UnitProtoServerProfile struct {
 }
 
 func (p *UnitProtoServerProfile) getConfig() uniserver.ServerConfig {
-	if p.config.IsZero() {
+	if p.config.BindingAddress == "" {
 		return uniserver.ServerConfig{
 			BindingAddress: "127.0.0.1:0",
 			UDPMaxSize:     1400,
