@@ -23,7 +23,7 @@ func newRetryMsgWorker(sender *msgSender, parallel, postponed int) *retryMsgWork
 	return &retryMsgWorker{
 		sender:    sender,
 		sema:      synckit.NewSemaphore(parallel),
-		postponed: make([]postponedMsg, postponed),
+		postponed: make(chan postponedMsg, postponed),
 		marks:     &sender.marks,
 	}
 }
@@ -33,9 +33,10 @@ type retryMsgWorker struct {
 	sema   synckit.Semaphore
 	marks  *nodeMsgMarks
 
-	// circular buffer
-	postponed   []postponedMsg
-	read, write int32
+	// buffer
+	postponed     chan postponedMsg
+	postponedRead <- chan postponedMsg
+	postponedLimit uint32
 
 	wakeup chan struct{}
 }
@@ -64,10 +65,11 @@ func (p *retryMsgWorker) runRetry() {
 			select {
 			case oob, ok = <-p.sender.oob:
 			case job, ok = <-p.sender.jobs:
+			case postponedItem := <- p.postponedRead:
+				p.processPostponed(postponedItem)
+				continue
 			case <-p.wakeup:
-				if !p.isEmptyPostponed() {
-					p.processPostponed()
-				}
+				p.enablePostponedProcessing()
 				continue
 			}
 		}
@@ -113,9 +115,9 @@ func (p *retryMsgWorker) processOoB(msg *msgShipment) {
 	}
 }
 
-func (p *retryMsgWorker) processMsg(msg *msgShipment, repeatFn func(retries.RetryID)) {
+func (p *retryMsgWorker) processMsg(msg *msgShipment, repeatFn func(retries.RetryID)) bool {
 	if msg == nil {
-		return
+		return true
 	}
 
 	captured, postponer := p.marks.mark(msg.id, p)
@@ -125,51 +127,51 @@ func (p *retryMsgWorker) processMsg(msg *msgShipment, repeatFn func(retries.Retr
 		p.marks.unmark(msg.id)
 	default:
 		go p.sendHead(msg, repeatFn)
-		return
+		return true
 	}
 
 	if msg.canSendHead() {
 		postponer.pushPostponed(msg, repeatFn)
+		return false
 	}
+	return true
 }
 
 func (p *retryMsgWorker) pushPostponed(msg *msgShipment, repeatFn func(retries.RetryID)) {
 	if msg == nil {
 		return
 	}
-	if prev := p.postponed[p.write]; prev.msg != nil {
-		if prev.msg.canSendHead() && prev.repeatFn != nil {
-			prev.repeatFn(retries.RetryID(prev.msg.id))
+
+	select {
+	case p.postponed <- postponedMsg{msg, repeatFn}:
+		return
+	default:
+		if msg.canSendHead() && repeatFn != nil {
+			repeatFn(retries.RetryID(msg.id))
 		} else {
-			prev.msg.markCancel()
+			msg.markCancel()
 		}
 	}
-	p.postponed[p.write] = postponedMsg{msg, repeatFn}
-	if p.write++; p.write >= int32(len(p.postponed)) {
-		p.write = 0
+}
+
+func (p *retryMsgWorker) processPostponed(pmsg postponedMsg) {
+	switch {
+	case p.processMsg(pmsg.msg, pmsg.repeatFn):
+	case p.postponedLimit > 1:
+		p.postponedLimit--
+	default:
+		p.postponedLimit = 0
+		p.disablePostponedProcessing()
 	}
 }
 
-func (p *retryMsgWorker) isEmptyPostponed() bool {
-	return p.read == p.write
-}
-
-func (p *retryMsgWorker) processPostponed() {
-	lastWrite := p.write
-	if p.read > p.write {
-		for p.read < int32(len(p.postponed)) {
-			p._processPostponedItem()
-		}
-		p.read = 0
-	}
-	for p.read < lastWrite {
-		p._processPostponedItem()
+func (p *retryMsgWorker) enablePostponedProcessing() {
+	if p.postponedRead == nil {
+		p.postponedLimit = uint32(len(p.postponed)) + 1
+		p.postponedRead = p.postponed
 	}
 }
 
-func (p *retryMsgWorker) _processPostponedItem() {
-	pmsg := p.postponed[p.read]
-	p.postponed[p.read] = postponedMsg{}
-	p.read++
-	p.processMsg(pmsg.msg, pmsg.repeatFn)
+func (p *retryMsgWorker) disablePostponedProcessing() {
+	p.postponedRead = nil
 }
