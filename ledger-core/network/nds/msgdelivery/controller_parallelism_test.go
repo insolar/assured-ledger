@@ -133,7 +133,7 @@ func TestParallelismSend(t *testing.T) {
 	checker(resultsOnServ1)
 
 	out.stop.Store(false)
-	resume <- struct{}{}
+	close(resume)
 
 	checker(resultsOnServ2)
 }
@@ -223,7 +223,7 @@ func TestParallelismReceive(t *testing.T) {
 	checker("1", 1, receivedFrom1)
 	checker("3", 0, receivedFrom3)
 
-	pause <- struct{}{}
+	close(pause)
 
 	val := <-receivedFrom1
 
