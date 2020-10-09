@@ -69,7 +69,7 @@ func (h *UnitProtoServersHolder) createService(
 	config uniserver.ServerConfig,
 	receiverFn ReceiverFunc,
 ) (*UnitProtoServer, error) {
-	return h.createServiceWithProfile(NewUnitProtoServerProfile(config), receiverFn)
+	return h.createServiceWithProfile(&UnitProtoServerProfile{config: &config}, receiverFn)
 }
 
 func (h *UnitProtoServersHolder) createServiceWithProfile(
@@ -138,7 +138,7 @@ func (h *UnitProtoServersHolder) createServiceWithProfile(
 	}
 
 	// provider for intercept outgoing connections
-	provider := uniserver.MapTransportProvider(&uniserver.DefaultTransportProvider{},
+	provider := uniserver.MapTransportProvider(profile.getProvider(),
 		func(lessProvider l1.SessionlessTransportProvider) l1.SessionlessTransportProvider {
 			return lessProvider
 		},
@@ -215,23 +215,30 @@ func (r regAddrOutTransportFactory) ConnectTo(address nwapi.Address) (l1.OneWayT
 }
 
 type UnitProtoServerProfile struct {
-	config       uniserver.ServerConfig
+	config       *uniserver.ServerConfig
 	provider     uniserver.AllTransportProvider
 	desFactory   nwapi.DeserializationFactory
 	idWithPortFn func(nwapi.Address) bool
 	resolverFn   ResolverFunc
 }
 
-func NewUnitProtoServerProfile(config uniserver.ServerConfig) *UnitProtoServerProfile {
-	return &UnitProtoServerProfile{config: config}
-}
-
 func (p *UnitProtoServerProfile) getConfig() uniserver.ServerConfig {
-	return p.config
+	if p.config != nil {
+		return *p.config
+	}
+	return uniserver.ServerConfig{
+		BindingAddress: "127.0.0.1:0",
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
+		PeerLimit:      -1,
+	}
 }
 
 func (p *UnitProtoServerProfile) getProvider() uniserver.AllTransportProvider {
-	return p.provider
+	if p.provider != nil {
+		return p.provider
+	}
+	return &uniserver.DefaultTransportProvider{}
 }
 
 func (p *UnitProtoServerProfile) getDesFactory() nwapi.DeserializationFactory {
@@ -239,7 +246,7 @@ func (p *UnitProtoServerProfile) getDesFactory() nwapi.DeserializationFactory {
 		return p.desFactory
 	}
 
-	return &TestDeserializationFactory{}
+	return &TestDeserializationStringFactory{}
 }
 
 func (p *UnitProtoServerProfile) getIdWithPortFn() func(nwapi.Address) bool {
