@@ -178,10 +178,9 @@ func (i *Info) BuildStateReport() rms.VStateReport {
 
 func (i *Info) BuildLatestDirtyState() *rms.ObjectState {
 	if objDescriptor := i.DescriptorDirty(); objDescriptor != nil {
-		class, _ := objDescriptor.Class()
 		return &rms.ObjectState{
-			Reference:   rms.NewReferenceLocal(objDescriptor.StateID()),
-			Class:       rms.NewReference(class),
+			Reference:   rms.NewReferenceLocal(objDescriptor.State().GetLocal()),
+			Class:       rms.NewReference(objDescriptor.Class()),
 			Memory:      rms.NewBytes(objDescriptor.Memory()),
 			Deactivated: objDescriptor.Deactivated(),
 		}

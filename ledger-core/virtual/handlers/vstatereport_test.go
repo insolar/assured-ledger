@@ -84,7 +84,7 @@ func TestVStateReport_StopSMIfAsOfOutdated(t *testing.T) {
 
 		catalog          = object.NewCatalogMockWrapper(mc)
 		initState        = []byte("init state")
-		initRef          = gen.UniqueLocalRefWithPulse(pdPMinusThree.PulseNumber)
+		initRef          = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		class            = gen.UniqueGlobalRefWithPulse(pdPMinusThree.PulseNumber)
 		smGlobalRef      = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject         = object.NewStateMachineObject(smGlobalRef)
