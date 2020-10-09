@@ -178,10 +178,7 @@ func (r *DefaultService) executeMethod(
 		objectDescriptor = executionContext.ObjectDescriptor
 	)
 
-	classReference, err := objectDescriptor.Class()
-	if err != nil {
-		return nil, throw.W(err, "couldn't get class reference", ErrorDetail{DetailEmptyClassRef})
-	}
+	classReference := objectDescriptor.Class()
 	if classReference.IsEmpty() {
 		panic(throw.IllegalState())
 	}
@@ -344,10 +341,7 @@ func (r *DefaultService) ExecutionClassify(executionContext execution.Context) (
 		objectDescriptor = executionContext.ObjectDescriptor
 	)
 
-	classReference, err := objectDescriptor.Class()
-	if err != nil {
-		return contract.MethodIsolation{}, throw.W(err, "couldn't get class reference", ErrorDetail{DetailEmptyClassRef})
-	}
+	classReference := objectDescriptor.Class()
 	if classReference.IsEmpty() {
 		panic(throw.IllegalState())
 	}

@@ -53,15 +53,12 @@ func (s *RequestResult) SetActivate(image reference.Global, memory []byte) {
 func (s *RequestResult) SetAmend(object descriptor.Object, memory []byte) {
 	s.SideEffectType = SideEffectAmend
 	s.Memory = memory
-
-	class, _ := object.Class()
-	s.ObjectImage = class
+	s.ObjectImage = object.Class()
 }
 
 func (s *RequestResult) SetDeactivate(object descriptor.Object) {
 	s.SideEffectType = SideEffectDeactivate
-	class, _ := object.Class()
-	s.ObjectImage = class
+	s.ObjectImage = object.Class()
 }
 
 func (s RequestResult) Type() Type {
