@@ -200,7 +200,7 @@ func CopyWithLimit(from FixedReader, limit int) []byte {
 	n := from.FixedByteSize()
 	switch {
 	case n == 0 || limit <= 0:
-		return make([]byte, 0, 0)
+		return make([]byte, 0)
 	case n > limit:
 		n = limit
 	}
