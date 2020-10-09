@@ -961,10 +961,8 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	var (
 		objectGlobal      = server.RandomGlobalWithPulse()
 		class             = server.RandomGlobalWithPulse()
-		dirtyStateRef     = server.RandomLocalWithPulse()
-		dirtyState        = reference.NewSelf(dirtyStateRef)
-		validatedStateRef = server.RandomLocalWithPulse()
-		validatedState    = reference.NewSelf(validatedStateRef)
+		dirtyStateRef     = server.RandomRecordOf(objectGlobal)
+		validatedStateRef = server.RandomRecordOf(objectGlobal)
 		prevPulse         = server.GetPulse().PulseNumber
 	)
 
@@ -987,16 +985,16 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 			Status:               rms.StateStatusReady,
 			AsOf:                 p,
 			Object:               rms.NewReference(objectGlobal),
-			LatestValidatedState: rms.NewReference(validatedState),
-			LatestDirtyState:     rms.NewReference(dirtyState),
+			LatestValidatedState: rms.NewReference(validatedStateRef),
+			LatestDirtyState:     rms.NewReference(dirtyStateRef),
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 				LatestValidatedState: &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(validatedStateRef),
+					Reference: rms.NewReference(validatedStateRef),
 					Class:     rms.NewReference(class),
 					Memory:    rms.NewBytes([]byte(validatedMem)),
 				},
 				LatestDirtyState: &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(dirtyStateRef),
+					Reference: rms.NewReference(dirtyStateRef),
 					Class:     rms.NewReference(class),
 					Memory:    rms.NewBytes([]byte(dirtyMem)),
 				},
@@ -1094,8 +1092,8 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 				class     = server.RandomGlobalWithPulse()
 				objectRef = server.RandomGlobalWithPulse()
 				p1        = server.GetPulse().PulseNumber
-				vStateID  = reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
-				dStateID  = reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
+				vStateID  = server.RandomRecordOf(objectRef)
+				dStateID  = server.RandomRecordOf(objectRef)
 			)
 
 			server.IncrementPulseAndWaitIdle(ctx)
@@ -1138,12 +1136,12 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 
 					content := &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(dStateID),
+							Reference: rms.NewReference(dStateID),
 							Class:     rms.NewReference(class),
 							Memory:    rms.NewBytes([]byte(origDirtyObjectMem)),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(vStateID),
+							Reference: rms.NewReference(vStateID),
 							Class:     rms.NewReference(class),
 							Memory:    rms.NewBytes([]byte(origValidatedObjectMem)),
 						},
@@ -1403,7 +1401,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			if validatedState != nil {
 				validatedStateHeadRef = validatedState.HeadRef()
 				latestValidatedState = &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(validatedState.State().GetLocal()),
+					Reference: rms.NewReference(validatedState.State()),
 					Class:     rms.NewReference(class),
 					Memory:    rms.NewBytes(validatedState.Memory()),
 				}
@@ -1419,7 +1417,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestValidatedState: latestValidatedState,
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(dirtyState.State().GetLocal()),
+							Reference: rms.NewReference(dirtyState.State()),
 							Class:     rms.NewReference(class),
 							Memory:    rms.NewBytes(dirtyState.Memory()),
 						},

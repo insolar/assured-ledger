@@ -24,7 +24,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
@@ -290,7 +289,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 	// create object state
 	{
 		objectState := rms.ObjectState{
-			Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
+			Reference: rms.NewReference(server.RandomRecordOfWithGivenPulse(object, prevPulse)),
 			Class:     rms.NewReference(testwalletProxy.GetClass()),
 			Memory:    rms.NewBytes(makeRawWalletState(initialBalance)),
 		}
@@ -485,7 +484,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 				object        = server.RandomGlobalWithPulse()
 				outgoingP1    = server.BuildRandomOutgoingWithPulse()
 				incomingP1    = reference.NewRecordOf(object, outgoingP1.GetLocal())
-				dirtyStateRef = server.RandomLocalWithPulse()
+				dirtyStateRef = server.RandomRecordOf(object)
 				p1            = server.GetPulse().PulseNumber
 				getDelegated  = false
 			)
@@ -521,7 +520,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 					logger.Debug("ExecutionStart [SomeMethod]")
 					require.Equal(t, object, ctx.Request.Callee.GetValue())
 					require.Equal(t, []byte("new object memory"), ctx.ObjectDescriptor.Memory())
-					require.Equal(t, dirtyStateRef, ctx.ObjectDescriptor.State().GetLocal())
+					require.Equal(t, dirtyStateRef, ctx.ObjectDescriptor.State())
 					require.True(t, getDelegated)
 				}, &execution.Update{
 					Type:   execution.Done,
@@ -570,7 +569,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 					CallOutgoing: rms.NewReference(outgoingP1),
 					CallIncoming: rms.NewReference(incomingP1),
 					LatestState: &rms.ObjectState{
-						Reference: rms.NewReferenceLocal(dirtyStateRef),
+						Reference: rms.NewReference(dirtyStateRef),
 						Class:     rms.NewReference(class),
 						Memory:    rms.NewBytes([]byte("new object memory")),
 					},
