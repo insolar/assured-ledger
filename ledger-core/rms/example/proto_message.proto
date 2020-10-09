@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package example;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "github.com/insolar/assured-ledger/ledger-core/insproto/ins.proto";
+import "rms.proto";
+
+import "proto_record.proto";
+
+option (insproto.notation_all) = true;                  // включение проверки требований по protobuf нотации
+option (insproto.zeroable_all) = true;                  // включение пропуска полей
+
+option (insproto.context_all) = "MessageVisitor";       // функция для обхода полей позволяющая модифицировать контекст
+option (insproto.context_method_all) = "Visit";         // название метода обхода сообщения
+option (insproto.message_ctx_apply_all) = "Message";    // метод, который применяется при обходе сообщения
+option (insproto.register_all) = "RegisterMessageType"; // метод, который применяется при регистрации всех
+														// сообщений
+option (insproto.projection_names) = "Head,Alt";        // имя возможных проекций сообщений
+
+option (gogoproto.goproto_enum_prefix_all) = false;
+option (gogoproto.goproto_getters_all) = true;
+option (gogoproto.equal_all) = true;
+
+
+message MessageExample {
+	option (insproto.id) = 999999992;
+
+	//*** Start of predefined section ***//
+	reserved 1 to 18, 20 to 1799;
+	RecordExample Record = 19 [ (gogoproto.embed) = true, (insproto.ctx_apply) = "MsgRecord" ];
+	//*** End of predefined section ***//
+
+	// Add here custom fields
+	uint64 MsgParam = 1800;
+	Binary MsgBytes = 1801;
+
+	message Head {
+		reserved 1 to 19;
+		uint64 MsgParam = 1800;
+	}
+
+	message Alt {
+		reserved 1 to 19;
+		uint32    AsOf = 42;
+	}
+
+
+	message Alt2 {
+		option (insproto.id) = 999999993;
+
+		reserved 1 to 19;
+		Binary MsgBytes = 1802;
+	}
+}
+
+message MessageExample2 {
+	option (insproto.id) = 999999994;
+
+	//*** Start of predefined section ***//
+	reserved 1 to 18, 20 to 1799;
+	//*** End of predefined section ***//
+
+	// Add here custom fields
+	Any Field1 = 1800;
+	AnyLazy Field2 = 1801;
+	AnyRecord Field3 = 1802;
+	AnyRecordLazy Field4 = 1804;
+	Binary BinData = 1805;
+	Reference Local = 1806;
+	Reference Global = 1807;
+}
+

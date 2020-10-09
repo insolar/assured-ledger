@@ -1278,6 +1278,9 @@ func (s *SMExecute) constructSubSMRegister(v RegisterVariant) lmn.SubSMRegister 
 	subroutineSM := lmn.SubSMRegister{
 		SafeResponseCounter: s.lmnSafeResponseCounterLink,
 		Interference:        s.methodIsolation.Interference,
+		Object:              s.execution.Object,
+		LastLifelineRef:     s.lmnLastLifelineRef,
+		LastFilamentRef:     s.lmnLastFilamentRef,
 	}
 
 	switch v {
@@ -1303,10 +1306,6 @@ func (s *SMExecute) constructSubSMRegister(v RegisterVariant) lmn.SubSMRegister 
 	default:
 		panic(throw.IllegalValue())
 	}
-
-	subroutineSM.Object = s.execution.Object
-	subroutineSM.LastLifelineRef = s.lmnLastLifelineRef
-	subroutineSM.LastFilamentRef = s.lmnLastFilamentRef
 
 	return subroutineSM
 }
