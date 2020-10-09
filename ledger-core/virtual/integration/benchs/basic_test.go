@@ -30,6 +30,7 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 		prevPulse = server.GetPulse()
 		class     = server.RandomGlobalWithPulse()
 		object    = server.RandomGlobalWithPulse()
+		state     = reference.NewRecordOf(object, server.RandomLocalWithPulse())
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -40,8 +41,9 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Class:  rms.NewReference(class),
-			Memory: rms.NewBytes(walletMemory),
+			Reference: rms.NewReference(state),
+			Class:     rms.NewReference(class),
+			Memory:    rms.NewBytes(walletMemory),
 		},
 	}
 
@@ -91,6 +93,7 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 		prevPulse = server.GetPulse()
 		class     = server.RandomGlobalWithPulse()
 		object    = server.RandomGlobalWithPulse()
+		state     = reference.NewRecordOf(object, server.RandomLocalWithPulse())
 	)
 	server.IncrementPulseAndWaitIdle(ctx)
 
@@ -100,8 +103,9 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Class:  rms.NewReference(class),
-			Memory: rms.NewBytes(walletMemory),
+			Reference: rms.NewReference(state),
+			Class:     rms.NewReference(class),
+			Memory:    rms.NewBytes(walletMemory),
 		},
 	}
 
