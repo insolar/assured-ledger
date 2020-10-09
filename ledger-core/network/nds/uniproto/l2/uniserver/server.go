@@ -39,6 +39,10 @@ type ServerConfig struct {
 	RetryDelayMax      time.Duration
 }
 
+func (v ServerConfig) IsZero() bool {
+	return v.BindingAddress == ""
+}
+
 type MiniLogger interface {
 	LogError(error)
 	LogTrace(interface{})
@@ -322,7 +326,7 @@ func (p *DefaultTransportProvider) CreateSessionfulProvider(binding nwapi.Addres
 }
 
 func RetryStartListenForTests(p *UnifiedServer, retryCount int) {
-	for i := 0;; i++ {
+	for i := 0; ; i++ {
 		switch err := p.TryStartListen(); {
 		case err == nil:
 			return
