@@ -198,19 +198,16 @@ func (s *memoryCacheTest) initServer(t *testing.T) context.Context {
 
 func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	var (
-		prevPulse = s.server.GetPulse().PulseNumber
 		outgoing  = s.server.BuildRandomOutgoingWithPulse()
 		incoming  = reference.NewRecordOf(s.object, outgoing.GetLocal())
 	)
 
+	report := s.server.StateReportBuilder().Ready().Object(s.object).OrderedPendings(1).Report()
+
 	s.server.IncrementPulse(ctx)
 
-	report := utils.GenerateVStateReport(s.server, s.object, prevPulse)
-	report.OrderedPendingCount = 1
-	report.OrderedPendingEarliestPulse = prevPulse
-
 	wait := s.server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-	s.server.SendPayload(ctx, report)
+	s.server.SendPayload(ctx, &report)
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
 
 	flags := rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
