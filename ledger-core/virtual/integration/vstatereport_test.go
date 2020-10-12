@@ -170,25 +170,11 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 
 			suite.setMessageCheckers(ctx, t, test.checks)
 
-			report := rms.VStateReport{
-				AsOf:   suite.getPulse(3),
-				Status: rms.StateStatusReady,
-				Object: rms.NewReference(suite.getObject()),
+			report := utils.NewStateReportBuilder().Pulse(suite.getPulse(3)).
+				Object(suite.getObject()).Ready().Class(suite.getClass()).
+				UnorderedPendings(2).OrderedPendings(1).PendingsPulse(suite.getPulse(1)).
+				Report()
 
-				UnorderedPendingCount:         2,
-				UnorderedPendingEarliestPulse: suite.getPulse(1),
-
-				OrderedPendingCount:         1,
-				OrderedPendingEarliestPulse: suite.getPulse(1),
-
-				ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-					LatestDirtyState: &rms.ObjectState{
-						Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(suite.getPulse(1))),
-						Class:     rms.NewReference(suite.getClass()),
-						Memory:    rms.NewBytes([]byte("object memory")),
-					},
-				},
-			}
 			suite.addPayloadAndWaitIdle(ctx, &report)
 
 			expectedPublished := 0

@@ -21,11 +21,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/statemachine"
 )
@@ -50,16 +50,24 @@ type SMVObjectTranscriptReport struct {
 	entries  []rms.Any
 	pendings []rms.Transcript
 
-	objState        reference.Global
-	objDesc         descriptor.Object
-	reasonRef       rms.Reference
-	entryIndex      int
-	startIndex      int
-	counter         int
-	incomingRequest *rms.VCallRequest
-	outgoingRequest *rms.VCallRequest
-	outgoingResult  *rms.VCallResult
-	withPendings    bool
+	objState          reference.Global
+	objDesc           descriptor.Object
+	reasonRef         rms.Reference
+	entryIndex        int
+	startIndex        int
+	counter           int
+	incomingRequest   *rms.VCallRequest
+	outgoingRequest   *rms.VCallRequest
+	outgoingResult    *rms.VCallResult
+	outgoingResultRef reference.Global
+	incomingRecordRef rms.Reference
+	withPendings      bool
+
+	// for lmn
+	lmnLastFilamentRef    reference.Global
+	lmnLastLifelineRef    reference.Global
+	lmnIncomingRequestRef reference.Global
+	incomingRegistered    bool
 
 	validatedState reference.Global
 
@@ -117,9 +125,6 @@ func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) s
 	if len(s.entries) == 0 {
 		panic(throw.Impossible())
 	}
-	if ok := len(s.entries) % 2; ok != 0 {
-		panic(throw.Impossible())
-	}
 
 	entry := s.peekEntry(s.startIndex)
 	if entry == nil {
@@ -134,8 +139,9 @@ func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) s
 		s.incomingRequest = &tEntry.Request
 		s.objState = tEntry.ObjectMemory.GetValue()
 		s.reasonRef = s.incomingRequest.CallOutgoing
+		s.incomingRecordRef = tEntry.Incoming
 		if s.objState.IsEmpty() {
-			return ctx.Jump(s.stepIncomingRequest)
+			return ctx.Jump(s.stepPrepareExecutionContext)
 		}
 		return ctx.Jump(s.stepGetMemory)
 	default:
@@ -155,13 +161,43 @@ func (s *SMVObjectTranscriptReport) stepGetMemory(ctx smachine.ExecutionContext)
 			panic(throw.IllegalState())
 		}
 		s.objDesc = subSM.Result
-		return ctx.Jump(s.stepIncomingRequest)
+		return ctx.Jump(s.stepPrepareExecutionContext)
 	})
 }
 
-func (s *SMVObjectTranscriptReport) stepIncomingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMVObjectTranscriptReport) stepPrepareExecutionContext(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.prepareExecution(ctx.GetContext())
+	return ctx.Jump(s.stepInboundRecord)
+}
+
+func (s *SMVObjectTranscriptReport) stepInboundRecord(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.incomingRequest.CallType == rms.CallTypeConstructor {
+		return ctx.Jump(s.stepConstructorRecord)
+	}
+	// for VCallMethod InboundRecord is calculated with OutboundRecord or InboundResponse
 	return ctx.Jump(s.stepExecuteStart)
+}
+
+func (s *SMVObjectTranscriptReport) stepConstructorRecord(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	subroutineSM := s.constructSubSMRegister(RegisterLifeLine)
+	subroutineSM.Incoming = s.incomingRequest
+
+	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		if ctx.GetError() != nil {
+			// TODO: we should understand here what's happened, but for now we'll drop request execution here
+			return ctx.Error(ctx.GetError())
+		}
+
+		if subroutineSM.NewObjectRef != s.execution.Object {
+			// TODO: do nothing for now, later we should replace that mechanism
+			panic(throw.NotImplemented())
+		}
+
+		s.lmnLastLifelineRef = reference.NewRecordOf(s.execution.Object, subroutineSM.NewLastLifelineRef.GetLocal())
+		s.lmnIncomingRequestRef = subroutineSM.IncomingRequestRef
+
+		return ctx.Jump(s.stepExecuteStart)
+	})
 }
 
 func (s *SMVObjectTranscriptReport) stepExecuteStart(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -197,7 +233,7 @@ func (s *SMVObjectTranscriptReport) stepExecuteDecideNextStep(ctx smachine.Execu
 	switch newState.Type {
 	case execution.Done:
 	case execution.OutgoingCall:
-		return ctx.Jump(s.stepExecuteOutgoing)
+		return ctx.Jump(s.stepOutboundRecord)
 	case execution.Error, execution.Abort:
 		ctx.Log().Error("execution failed", newState.Error)
 		panic(throw.NotImplemented())
@@ -205,27 +241,36 @@ func (s *SMVObjectTranscriptReport) stepExecuteDecideNextStep(ctx smachine.Execu
 		panic(throw.IllegalValue())
 	}
 
-	return ctx.Jump(s.stepExecuteFinish)
+	return ctx.Jump(s.stepInboundResponseRecord)
 }
 
-func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	pulseNumber := s.execution.Pulse.PulseNumber
-
+func (s *SMVObjectTranscriptReport) stepOutboundRecord(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	switch outgoing := s.executionNewState.Outgoing.(type) {
 	case execution.Deactivate:
 		panic(throw.NotImplemented())
 	case execution.CallConstructor:
 		s.outgoingRequest = outgoing.ConstructVCallRequest(s.execution)
-		newOutgoing := reference.NewRecordOf(s.outgoingRequest.Caller.GetValue(), gen.UniqueLocalRefWithPulse(pulseNumber))
-		s.outgoingRequest.CallOutgoing.Set(newOutgoing)
 	case execution.CallMethod:
 		s.outgoingRequest = outgoing.ConstructVCallRequest(s.execution)
-		newOutgoing := reference.NewRecordOf(s.outgoingRequest.Caller.GetValue(), gen.UniqueLocalRefWithPulse(pulseNumber))
-		s.outgoingRequest.CallOutgoing.Set(newOutgoing)
 	default:
 		panic(throw.IllegalValue())
 	}
 
+	subroutineSM := s.constructSubSMRegister(RegisterOutgoingRequest)
+	subroutineSM.Outgoing = s.outgoingRequest
+
+	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
+		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
+		s.lmnIncomingRequestRef = subroutineSM.IncomingRequestRef
+
+		s.outgoingRequest.CallOutgoing = rms.NewReference(s.lmnLastFilamentRef)
+
+		return ctx.Jump(s.stepValidateOutgoingRequest)
+	})
+}
+
+func (s *SMVObjectTranscriptReport) stepValidateOutgoingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	entry := s.findNextEntry()
 	if entry == nil {
 		ctx.Log().Warn("validation failed: can't find TranscriptEntryOutgoingRequest")
@@ -239,11 +284,15 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 	}
 	equal := s.outgoingRequest.CallOutgoing.Equal(&expectedRequest.Request)
 	if !equal {
-		// todo: fixme: validation failed, CallOutgoing is random for now
-		//panic(throw.NotImplemented())
+		ctx.Log().Warn("validation failed: wrong CallOutgoing")
+		return ctx.Jump(s.stepValidationFailed)
 	}
 
-	entry = s.findNextEntry()
+	return ctx.Jump(s.stepValidateOutgoingResult)
+}
+
+func (s *SMVObjectTranscriptReport) stepValidateOutgoingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	entry := s.findNextEntry()
 	if entry == nil {
 		ctx.Log().Warn("validation failed: can't find TranscriptEntryOutgoingResult")
 		return ctx.Jump(s.stepValidationFailed)
@@ -255,8 +304,24 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 		return ctx.Jump(s.stepValidationFailed)
 	}
 	s.outgoingResult = &outgoingResult.CallResult
+	s.outgoingResultRef = outgoingResult.OutgoingResult.GetValue()
 
-	return ctx.Jump(s.stepExecuteContinue)
+	subroutineSM := s.constructSubSMRegister(RegisterOutgoingResult)
+	subroutineSM.OutgoingResult = s.outgoingResult
+
+	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
+
+		return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
+			equal := s.lmnLastFilamentRef.Equal(s.outgoingResultRef)
+			if !equal {
+				ctx.Log().Warn("validation failed: wrong OutgoingResult record reference")
+				return ctx.Jump(s.stepValidationFailed)
+			}
+
+			return ctx.Jump(s.stepExecuteContinue)
+		})
+	})
 }
 
 func (s *SMVObjectTranscriptReport) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -283,26 +348,24 @@ func (s *SMVObjectTranscriptReport) stepExecuteContinue(ctx smachine.ExecutionCo
 	}).DelayedStart().ThenJump(s.stepWaitExecutionResult)
 }
 
-func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var (
-		newDesc      descriptor.Object
-		noSideEffect bool
-	)
+func (s *SMVObjectTranscriptReport) stepInboundResponseRecord(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	subroutineSM := s.constructSubSMRegister(RegisterIncomingResult)
+	subroutineSM.IncomingResult = s.executionNewState
 
-	switch s.executionNewState.Result.Type() {
-	case requestresult.SideEffectNone:
-		noSideEffect = true
-	case requestresult.SideEffectActivate:
-		class, memory := s.executionNewState.Result.Activate()
-		newDesc = s.makeNewDescriptor(class, memory, false)
-	case requestresult.SideEffectAmend:
-		class, memory := s.executionNewState.Result.Amend()
-		newDesc = s.makeNewDescriptor(class, memory, false)
-	case requestresult.SideEffectDeactivate:
-		class, memory := s.executionNewState.Result.Deactivate()
-		newDesc = s.makeNewDescriptor(class, memory, true)
-	default:
-		panic(throw.IllegalValue())
+	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
+		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
+		s.lmnIncomingRequestRef = subroutineSM.IncomingRequestRef
+
+		return ctx.Jump(s.stepValidateIncoming)
+	})
+}
+
+func (s *SMVObjectTranscriptReport) stepValidateIncoming(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	equalStartRecord := s.lmnIncomingRequestRef.Equal(s.incomingRecordRef.GetValue())
+	if !equalStartRecord {
+		ctx.Log().Warn("validation failed: wrong IncomingRequest record ref")
+		return ctx.Jump(s.stepValidationFailed)
 	}
 
 	entry := s.findNextEntry()
@@ -316,34 +379,18 @@ func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionCont
 		ctx.Log().Warn("validation failed: failed to convert GoGoSerializable object to Transcript_TranscriptEntryIncomingResult")
 		return ctx.Jump(s.stepValidationFailed)
 	}
-
-	// fixme: we still should compare if there is no side effect
-	if !noSideEffect {
-		// it's pending, check headRef base and stateHash without pulse
-		// fixme: hack for validation, need to rethink
-		// fixme: stateid vs stateref
-		headRef := callResult.ObjectState.GetValue().GetBase()
-		if !headRef.Equal(s.object.GetBase()) {
-			ctx.Log().Warn("pending validation failed: wrong headRef base")
-			return ctx.Jump(s.stepValidationFailed)
-		}
-		stateHash := callResult.ObjectState.GetValue().GetLocal().GetHash()
-		if stateHash.Compare(newDesc.StateID().GetHash()) != 0 {
-			ctx.Log().Warn("pending validation failed: wrong stateHash")
-			return ctx.Jump(s.stepValidationFailed)
-		}
-		s.validatedState = callResult.ObjectState.GetValue()
-	} else if callResult.ObjectState.GetValue().GetLocal().Equal(s.objDesc.StateID()) {
-		// FIXME: we don't really change value of validateState of the object, we shouldn't
-		// send message at the end when all requests are intollerable
-		// or don't change memory
-		if s.validatedState.IsEmpty() {
-			s.validatedState = callResult.ObjectState.GetValue()
-		}
-	} else {
-		ctx.Log().Warn("pending validation failed: wrong stateHash")
+	equal := s.lmnLastFilamentRef.Equal(callResult.IncomingResult.GetValue())
+	if !equal {
+		ctx.Log().Warn("validation failed: wrong IncomingResult record ref")
 		return ctx.Jump(s.stepValidationFailed)
 	}
+	equalState := s.lmnLastLifelineRef.Equal(callResult.ObjectState.GetValue())
+	if !equalState {
+		ctx.Log().Warn("validation failed: wrong ObjectState record ref")
+		return ctx.Jump(s.stepValidationFailed)
+	}
+
+	s.validatedState = callResult.ObjectState.GetValue()
 
 	return ctx.Jump(s.stepAdvanceToNextRequest)
 }
@@ -428,25 +475,56 @@ func (s *SMVObjectTranscriptReport) findNextEntry() rmsreg.GoGoSerializable {
 	return nil
 }
 
-func (s *SMVObjectTranscriptReport) makeNewDescriptor(
-	class reference.Global,
-	memory []byte,
-	deactivated bool,
-) descriptor.Object {
-	panic(throw.NotImplemented())
-	//return execute.MakeDescriptor(
-	//	s.objDesc,
-	//	s.object,
-	//	class, memory, deactivated,
-	//	// FIXME: incorrect pulse
-	//	s.pulseSlot.PulseData().GetPulseNumber(),
-	//)
-}
-
 func (s *SMVObjectTranscriptReport) prepareExecution(ctx context.Context) {
 	s.execution = execute.ExecContextFromRequest(s.incomingRequest)
 
 	s.execution.Context = ctx
 	s.execution.Pulse = s.pulseSlot.PulseData()
 	s.execution.ObjectDescriptor = s.objDesc
+	s.execution.Object = s.Payload.Object.GetValue()
+}
+
+const (
+	RegisterLifeLine execute.RegisterVariant = iota
+	RegisterOutgoingRequest
+	RegisterOutgoingResult
+	RegisterIncomingResult
+)
+
+func (s *SMVObjectTranscriptReport) constructSubSMRegister(v execute.RegisterVariant) lmn.SubSMRegister {
+	subroutineSM := lmn.SubSMRegister{
+		Interference: s.execution.Isolation.Interference,
+		DryRun:       true,
+		PulseNumber:  s.Payload.AsOf,
+	}
+
+	switch v {
+	case RegisterLifeLine:
+		if s.incomingRegistered {
+			panic(throw.IllegalState())
+		}
+		subroutineSM.Incoming = s.incomingRequest
+		return subroutineSM
+
+	case RegisterOutgoingRequest, RegisterIncomingResult:
+		if !s.incomingRegistered {
+			subroutineSM.Incoming = s.incomingRequest
+
+			s.incomingRegistered = true
+		}
+
+	case RegisterOutgoingResult:
+		if !s.incomingRegistered {
+			panic(throw.IllegalState())
+		}
+
+	default:
+		panic(throw.IllegalValue())
+	}
+
+	subroutineSM.Object = s.execution.Object
+	subroutineSM.LastLifelineRef = s.lmnLastLifelineRef
+	subroutineSM.LastFilamentRef = s.lmnLastFilamentRef
+
+	return subroutineSM
 }

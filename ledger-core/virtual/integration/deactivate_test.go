@@ -58,54 +58,31 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				class            = server.RandomGlobalWithPulse()
 				objectGlobal     = server.RandomGlobalWithPulse()
-				pulseNumberFirst = server.GetPulse().PulseNumber
-
-				validatedStateRef = server.RandomLocalWithPulse()
-				dirtyStateRef     = validatedStateRef
-
 				validatedState = []byte("initial state")
 				dirtyState     = validatedState
 			)
+			if !test.stateIsEqual {
+				dirtyState = []byte("dirty state")
+			}
+
+			builder := server.StateReportBuilder().Object(objectGlobal)
 
 			server.IncrementPulseAndWaitIdle(ctx)
 
 			// Send VStateReport
 			{
-				if !test.stateIsEqual {
-					dirtyState = []byte("dirty state")
-					dirtyStateRef = server.RandomLocalWithPulse()
-				}
-
-				content := &rms.VStateReport_ProvidedContentBody{
-					LatestDirtyState: &rms.ObjectState{
-						Reference:   rms.NewReferenceLocal(dirtyStateRef),
-						Class:       rms.NewReference(class),
-						Memory:      rms.NewBytes(dirtyState),
-						Deactivated: test.dirtyIsDeactivated,
-					},
-					LatestValidatedState: &rms.ObjectState{
-						Reference: rms.NewReferenceLocal(validatedStateRef),
-						Class:     rms.NewReference(class),
-						Memory:    rms.NewBytes(validatedState),
-					},
-				}
-
-				pl := &rms.VStateReport{
-					Status:          rms.StateStatusReady,
-					Object:          rms.NewReference(objectGlobal),
-					AsOf:            pulseNumberFirst,
-					ProvidedContent: content,
-				}
-
 				if test.entirelyDeactivated {
-					pl.ProvidedContent = nil
-					pl.Status = rms.StateStatusInactive
+					builder = builder.Inactive()
+				} else {
+					builder = builder.Ready().ValidatedMemory(validatedState).DirtyMemory(dirtyState)
+					if test.dirtyIsDeactivated {
+						builder = builder.DirtyInactive()
+					}
 				}
 
 				wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-				server.SendPayload(ctx, pl)
+				server.SendPayload(ctx, builder.ReportPtr())
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
 			}
 
@@ -351,33 +328,15 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 			var (
 				class        = server.RandomGlobalWithPulse()
 				objectGlobal = server.RandomGlobalWithPulse()
-				prevPulse    = server.GetPulse().PulseNumber
-				stateID      = reference.NewRecordOf(objectGlobal, server.RandomLocalWithPulse())
 			)
 
 			// Create object
 			{
+				report := server.StateReportBuilder().Object(objectGlobal).Ready().Class(class).Report()
 				server.IncrementPulse(ctx)
 
-				report := &rms.VStateReport{
-					Status: rms.StateStatusReady,
-					Object: rms.NewReference(objectGlobal),
-					AsOf:   prevPulse,
-					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReference(stateID),
-							Class:     rms.NewReference(class),
-							Memory:    rms.NewBytes([]byte("initial state")),
-						},
-						LatestValidatedState: &rms.ObjectState{
-							Reference: rms.NewReference(stateID),
-							Class:     rms.NewReference(class),
-							Memory:    rms.NewBytes([]byte("initial state")),
-						},
-					},
-				}
 				wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-				server.SendPayload(ctx, report)
+				server.SendPayload(ctx, &report)
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
 			}
 
@@ -468,8 +427,6 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 			Interference: isolation.CallTolerable,
 			State:        isolation.CallDirty,
 		}
-		dStateID = reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
-		vStateID = reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -552,23 +509,9 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 		})
 	}
 	{
-		report := rms.VStateReport{
-			Status: rms.StateStatusReady,
-			AsOf:   p1,
-			Object: rms.NewReference(objectRef),
-			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &rms.ObjectState{
-					Reference: rms.NewReference(dStateID),
-					Class:     rms.NewReference(class),
-					Memory:    rms.NewBytes([]byte(origDirtyMem)),
-				},
-				LatestValidatedState: &rms.ObjectState{
-					Reference: rms.NewReference(vStateID),
-					Class:     rms.NewReference(class),
-					Memory:    rms.NewBytes([]byte(origValidatedMem)),
-				},
-			},
-		}
+		report := utils.NewStateReportBuilder().Pulse(p1).Object(objectRef).Ready().
+			Class(class).DirtyMemory([]byte(origDirtyMem)).ValidatedMemory([]byte(origValidatedMem)).Report()
+
 		wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 		server.SendPayload(ctx, &report)
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
@@ -832,16 +775,11 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 
 			// Create object
 			{
+				report := server.StateReportBuilder().Object(objectGlobal).Inactive().Report()
 				server.IncrementPulse(ctx)
 
-				report := &rms.VStateReport{
-					Status:          rms.StateStatusInactive,
-					Object:          rms.NewReference(objectGlobal),
-					AsOf:            prevPulse,
-					ProvidedContent: nil,
-				}
 				wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-				server.SendPayload(ctx, report)
+				server.SendPayload(ctx, &report)
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
 			}
 
@@ -942,7 +880,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 					Interference: isolation.CallTolerable,
 					State:        isolation.CallDirty,
 				}
-				stateRef = server.RandomGlobalWithPulse()
+				stateRef = server.RandomRecordOf(objectRef)
 				outgoing = server.BuildRandomOutgoingWithPulse()
 				incoming = reference.NewRecordOf(objectRef, outgoing.GetLocal())
 			)
@@ -1012,12 +950,12 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 					LatestDirtyState:            rms.NewReference(stateRef),
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(stateRef.GetLocal()),
+							Reference: rms.NewReference(stateRef),
 							Class:     rms.NewReference(class),
 							Memory:    rms.NewBytes([]byte(origMem)),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(stateRef.GetLocal()),
+							Reference: rms.NewReference(stateRef),
 							Class:     rms.NewReference(class),
 							Memory:    rms.NewBytes([]byte(origMem)),
 						},
@@ -1048,6 +986,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 					CallIncoming: rms.NewReference(incoming),
 					CallFlags:    rms.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
 					LatestState: &rms.ObjectState{
+						Reference:   rms.NewReference(stateRef),
 						Memory:      rms.NewBytes(nil),
 						Deactivated: true,
 					},

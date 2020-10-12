@@ -189,13 +189,7 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 
 			var (
 				objectGlobal = server.RandomGlobalWithPulse()
-				pulseNumber  = server.GetPulse().PulseNumber
-				vStateReport = &rms.VStateReport{
-					AsOf:            pulseNumber,
-					Status:          rms.StateStatusInactive,
-					Object:          rms.NewReference(objectGlobal),
-					ProvidedContent: nil,
-				}
+				vStateReport = server.StateReportBuilder().Object(objectGlobal).Inactive().Report()
 			)
 			server.IncrementPulse(ctx)
 			p2 := server.GetPulse().PulseNumber
@@ -203,14 +197,14 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 				vStateReport.AsOf = p2
-				assert.Equal(t, vStateReport, report)
+				assert.Equal(t, &vStateReport, report)
 				return false
 			})
 
 			// Send VStateReport
 			{
 				reportSend := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-				server.SendPayload(ctx, vStateReport)
+				server.SendPayload(ctx, &vStateReport)
 				commontestutils.WaitSignalsTimed(t, 10*time.Second, reportSend)
 			}
 

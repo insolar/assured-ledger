@@ -14,7 +14,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -37,7 +36,6 @@ func main() {
 }
 
 func rootCommand(cmd *cobra.Command, args []string) {
-	jww.SetStdoutThreshold(jww.LevelInfo)
 	var err error
 
 	vp := viper.New()
@@ -85,8 +83,7 @@ func rootCommand(cmd *cobra.Command, args []string) {
 	})
 
 	var gracefulStop = make(chan os.Signal, 1)
-	signal.Notify(gracefulStop, syscall.SIGTERM)
-	signal.Notify(gracefulStop, syscall.SIGINT)
+	signal.Notify(gracefulStop, os.Interrupt, syscall.SIGTERM)
 
 	<-gracefulStop
 }

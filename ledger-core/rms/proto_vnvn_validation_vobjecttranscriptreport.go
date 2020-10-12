@@ -11,7 +11,7 @@ import (
 
 func (m *VObjectTranscriptReport) Validate(currentPulse PulseNumber) error {
 	object := m.Object.GetValue()
-	objectPulse, err := validSelfScopedGlobalWithPulseBeforeOrEq(object, currentPulse, "Object")
+	_, err := validSelfScopedGlobalWithPulseBeforeOrEq(object, currentPulse, "Object")
 	if err != nil {
 		return err
 	}
@@ -25,14 +25,14 @@ func (m *VObjectTranscriptReport) Validate(currentPulse PulseNumber) error {
 		return throw.New("Transcript mustn't be empty")
 	}
 
-	transcriptErr := validateEntries(transcript.GetEntries(), objectPulse)
+	transcriptErr := validateEntries(transcript.GetEntries())
 	if transcriptErr != nil {
 		return throw.W(transcriptErr, "ObjectTranscript validation failed")
 	}
 
 	pendings := m.GetPendingTranscripts()
 	if len(pendings) != 0 {
-		pendingTranscriptsErr := validatePendingTranscripts(pendings, objectPulse)
+		pendingTranscriptsErr := validatePendingTranscripts(pendings)
 		if pendingTranscriptsErr != nil {
 			return pendingTranscriptsErr
 		}
@@ -41,7 +41,8 @@ func (m *VObjectTranscriptReport) Validate(currentPulse PulseNumber) error {
 	return nil
 }
 
-func validateEntries(entries []Any, pn PulseNumber) error {
+func validateEntries(entries []Any) error {
+	// todo: check properly
 	for _, entry := range entries {
 		entryValue := entry.Get()
 		switch entryValue.(type) {
@@ -56,13 +57,13 @@ func validateEntries(entries []Any, pn PulseNumber) error {
 	return nil
 }
 
-func validatePendingTranscripts(transcripts []Transcript, pn PulseNumber) error {
+func validatePendingTranscripts(transcripts []Transcript) error {
 	for _, tr := range transcripts {
 		entries := tr.GetEntries()
 		if len(entries) == 0 {
 			return throw.New("PendingTranscript entries mustn't be empty")
 		}
-		transcriptErr := validateEntries(entries, pn)
+		transcriptErr := validateEntries(entries)
 		if transcriptErr != nil {
 			return throw.W(transcriptErr, "PendingTranscript validation failed")
 		}

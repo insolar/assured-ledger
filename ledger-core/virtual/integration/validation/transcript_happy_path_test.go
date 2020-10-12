@@ -17,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -45,7 +44,8 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	var (
-		constructorReq = utils.GenerateVCallRequestConstructor(server)
+		plWrapper      = utils.GenerateVCallRequestConstructor(server)
+		constructorReq = plWrapper.Get()
 		class          = constructorReq.Callee.GetValue()
 		outgoingP1     = constructorReq.CallOutgoing.GetValue()
 		object         = reference.NewSelf(outgoingP1.GetLocal())
@@ -59,16 +59,11 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 		getDelegated = false
 	)
 
-	stateId := server.RandomLocalWithPulse()
-	objDescriptor := descriptor.NewObject(object, stateId, class, []byte("init state"), false)
-
 	bytes := []byte("after pending state")
-	afterPendingStateHash := append(bytes, object.AsBytes()...)
-	afterPendingStateHash = append(afterPendingStateHash, objDescriptor.StateID().AsBytes()...)
-	afterPendingStateID := execute.NewStateID(server.GetPulse().PulseNumber, afterPendingStateHash)
+	afterPendingStateID := server.RandomLocalWithPulse()
 	dirtyStateRef := reference.NewRecordOf(object, afterPendingStateID)
 
-	pendingTranscript := buildIncomingTranscript(*constructorReq, nil, dirtyStateRef)
+	pendingTranscript := buildIncomingTranscript(constructorReq, nil, dirtyStateRef)
 
 	server.IncrementPulseAndWaitIdle(ctx)
 
@@ -112,7 +107,7 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 			logger.Debug("ExecutionStart [SomeMethod]")
 			require.Equal(t, object, ctx.Request.Callee.GetValue())
 			require.Equal(t, bytes, ctx.ObjectDescriptor.Memory())
-			require.Equal(t, afterPendingStateID, ctx.ObjectDescriptor.StateID())
+			require.Equal(t, afterPendingStateID, ctx.ObjectDescriptor.State().GetLocal())
 			require.True(t, getDelegated)
 		}, &execution.Update{
 			Type:   execution.Done,
@@ -167,7 +162,7 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 			LatestState: &rms.ObjectState{
 				Reference:   rms.NewReferenceLocal(dirtyStateRef),
 				Class:       rms.NewReference(class),
-				State:       rms.NewBytes(bytes),
+				Memory:      rms.NewBytes(bytes),
 				Deactivated: false,
 			},
 		}

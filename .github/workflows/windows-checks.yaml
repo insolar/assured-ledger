@@ -36,7 +36,7 @@ jobs:
         with:
           go-version: ${{env.GO_VERSION}}
       - name: Add bin to path
-        run: echo "::add-path::${{env.GOPATH}}\\bin"
+        run: echo "${{env.GOPATH}}\\bin" >> $GITHUB_PATH
       - name: Go mod cache setup
         uses: actions/cache@v2
         with:
@@ -70,14 +70,18 @@ jobs:
           path: ${{env.WORKDIR}}/integration_extended_test.log
       - name: Run functional tests multiple times with race detector as local cloud
         if: always()
-        run: make test_func_cloud_race > functional_test_cloud.log
+        run: make test_func_cloud_race
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
-      - name: Upload functional_test_cloud.log to artifacts
+      - name: Aggregate logs into a single archive
+        if: always()
+        run: tar -cvzf nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log || true
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Upload logs to artifacts
         if: always()
         uses: actions/upload-artifact@v1
         with:
-          name: functional_test_cloud_windows
-          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/functional_test_cloud.log
+          name: nodes-output-windows
+          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/nodes-output.tgz
       - name: Add coverage.html to artifacts
         uses: actions/upload-artifact@v1
         with:

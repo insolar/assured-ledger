@@ -1,0 +1,18 @@
+nodes:
+{{-  range .Nodes }}
+  - {{ . }}
+{{- end }}
+interval: 500ms
+timeout: 1s
+showemoji: true
+oneshot: false
+format: text
+log:
+  level: Debug
+  adapter: zerolog
+  formatter: json
+  outputtype: stderr
+  outputparallellimit: ""
+  outputparams: ""
+  buffersize: 0
+  llbuffersize: 0

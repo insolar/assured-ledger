@@ -150,11 +150,11 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 		require.True(t, ok)
 
-		assert.Empty(t, request.Incoming)
+		assert.NotEmpty(t, request.Incoming)
 		assert.Empty(t, request.ObjectMemory)
-		utils.AssertVCallRequestEqual(t, pl, &request.Request)
+		utils.AssertVCallRequestEqual(t, &pl, &request.Request)
 
-		assert.Empty(t, result.IncomingResult)
+		assert.NotEmpty(t, result.IncomingResult)
 		assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), result.ObjectState.Get().GetLocal().Pulse())
 		assert.True(t, request.Request.CallOutgoing.Equal(&result.Reason))
 		assert.Equal(t, objectRef.GetBase(), result.ObjectState.Get().GetBase())
@@ -278,11 +278,11 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 		result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 		require.True(t, ok)
 
-		assert.Empty(t, request.Incoming)
+		assert.NotEmpty(t, request.Incoming)
 		assert.Empty(t, request.ObjectMemory)
-		utils.AssertVCallRequestEqual(t, pl, &request.Request)
+		utils.AssertVCallRequestEqual(t, &pl, &request.Request)
 
-		assert.Empty(t, result.IncomingResult)
+		assert.NotEmpty(t, result.IncomingResult)
 		assert.Equal(t, currPulse, result.ObjectState.Get().GetLocal().Pulse())
 		assert.Equal(t, objectRef.GetBase(), result.ObjectState.Get().GetBase())
 
@@ -290,9 +290,10 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	})
 
 	{
+		pl := utils.NewStateReportBuilder().Pulse(prevPulse).Object(objectRef).Missing().Report()
+
 		done := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-		pl := makeVStateReportWithState(objectRef, rms.StateStatusMissing, nil, prevPulse)
-		server.SendPayload(ctx, pl)
+		server.SendPayload(ctx, &pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, done)
 	}
 
@@ -369,11 +370,7 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 			)
 			require.Equal(t, flags, req.RequestedContent)
 
-			report := rms.VStateReport{
-				Status: rms.StateStatusMissing,
-				AsOf:   p1,
-				Object: rms.NewReference(objectRef),
-			}
+			report := utils.NewStateReportBuilder().Pulse(p1).Object(objectRef).Missing().Report()
 
 			server.SendMessage(ctx, utils.NewRequestWrapper(p2, &report).SetSender(server.JetCoordinatorMock.Me()).Finalize())
 
@@ -418,11 +415,11 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 			result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 			require.True(t, ok)
 
-			assert.Empty(t, request.Incoming)
+			assert.NotEmpty(t, request.Incoming)
 			assert.Empty(t, request.ObjectMemory)
-			utils.AssertVCallRequestEqual(t, pl, &request.Request)
+			utils.AssertVCallRequestEqual(t, &pl, &request.Request)
 
-			assert.Empty(t, result.IncomingResult)
+			assert.NotEmpty(t, result.IncomingResult)
 			assert.Equal(t, p2, result.ObjectState.Get().GetLocal().Pulse())
 			assert.Equal(t, objectRef.GetBase(), result.ObjectState.Get().GetBase())
 
@@ -901,11 +898,6 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 			Result: objectAResult,
 		})
 	}
-
-	// generate VCallRequest
-	pl := utils.GenerateVCallRequestConstructor(server)
-	pl.Callee.Set(classA)
-	pl.CallOutgoing.Set(outgoing)
 
 	// add checks to typedChecker
 	{

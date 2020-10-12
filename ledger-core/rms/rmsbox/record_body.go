@@ -205,7 +205,7 @@ func (p *RecordBody) _rawPreparedSize() int {
 
 func (p *RecordBody) MarshalTo(b []byte) (int, error) {
 	p.ensure()
-	return protokit.BinaryMarshalTo(b, p._marshal)
+	return protokit.BinaryMarshalTo(b, false, p._marshal)
 }
 
 func (p *RecordBody) _marshal(b []byte) (int, error) {
@@ -226,7 +226,7 @@ func (p *RecordBody) _marshal(b []byte) (int, error) {
 
 func (p *RecordBody) MarshalToSizedBuffer(b []byte) (int, error) {
 	p.ensure()
-	return protokit.BinaryMarshalToSizedBuffer(b, func(b []byte) (int, error) {
+	return protokit.BinaryMarshalToSizedBuffer(b, false, func(b []byte) (int, error) {
 		n := p._rawPreparedSize()
 		return p._marshal(b[len(b)-n:])
 	})

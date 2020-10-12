@@ -62,12 +62,12 @@ func TestVirtual_ObjectValidationReport_EmptyCache(t *testing.T) {
 				LatestDirtyState: &rms.ObjectState{
 					Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
 					Class:     class,
-					State:     rms.NewBytes([]byte("dirty state")),
+					Memory:    rms.NewBytes([]byte("dirty state")),
 				},
 				LatestValidatedState: &rms.ObjectState{
 					Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
 					Class:     class,
-					State:     rms.NewBytes([]byte("dirty state")),
+					Memory:    rms.NewBytes([]byte("dirty state")),
 				},
 			},
 		}
@@ -138,7 +138,7 @@ func TestVirtual_ObjectValidationReport(t *testing.T) {
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 			objDescriptor := descriptor.NewObject(objectGlobal, server.RandomLocalWithPulse(), class, []byte("new state"), false)
-			validatedStateRef := reference.NewRecordOf(objDescriptor.HeadRef(), objDescriptor.StateID())
+			validatedStateRef := objDescriptor.State()
 
 			// prepare cache
 			{
@@ -188,18 +188,18 @@ func (s *testSuite) generateStateReport(latestDirtyStateIsEqualValidationReport 
 			LatestDirtyState: &rms.ObjectState{
 				Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
 				Class:     rms.NewReference(s.class),
-				State:     rms.NewBytes([]byte("dirty state")),
+				Memory:    rms.NewBytes([]byte("dirty state")),
 			},
 			LatestValidatedState: &rms.ObjectState{
 				Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
 				Class:     rms.NewReference(s.class),
-				State:     rms.NewBytes([]byte("dirty state")),
+				Memory:    rms.NewBytes([]byte("dirty state")),
 			},
 		},
 	}
 	if latestDirtyStateIsEqualValidationReport {
-		report.ProvidedContent.LatestDirtyState.Reference = rms.NewReferenceLocal(s.objDesc.StateID())
-		report.ProvidedContent.LatestDirtyState.State = rms.NewBytes([]byte("new state"))
+		report.ProvidedContent.LatestDirtyState.Reference = rms.NewReference(s.objDesc.State())
+		report.ProvidedContent.LatestDirtyState.Memory = rms.NewBytes([]byte("new state"))
 	}
 
 	s.report = report
@@ -210,7 +210,7 @@ func (s *testSuite) addCheckers(t *testing.T, ctx context.Context, vCallRequestO
 	{
 		s.typedChecker.VCachedMemoryResponse.Set(func(response *rms.VCachedMemoryResponse) bool {
 			assert.Equal(t, s.objectGlobal, response.Object.GetValue())
-			assert.Equal(t, s.objDesc.StateID(), response.StateID.GetValue().GetLocal())
+			assert.Equal(t, s.objDesc.State(), response.StateID.GetValue())
 			assert.Equal(t, []byte("new state"), response.Memory.GetBytes())
 			assert.False(t, response.Inactive)
 			return false
@@ -267,7 +267,7 @@ func (s *testSuite) sendVObjectValidationReport(t *testing.T, ctx context.Contex
 func (s *testSuite) sendVCachedMemoryRequest(t *testing.T, ctx context.Context) {
 	pl := &rms.VCachedMemoryRequest{
 		Object:  rms.NewReference(s.objectGlobal),
-		StateID: rms.NewReferenceLocal(s.objDesc.StateID()),
+		StateID: rms.NewReferenceLocal(s.objDesc.State().GetLocal()),
 	}
 	executeDone := s.server.Journal.WaitStopOf(&handlers.SMVCachedMemoryRequest{}, 1)
 	s.server.SendPayload(ctx, pl)

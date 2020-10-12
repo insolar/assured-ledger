@@ -566,6 +566,7 @@ func (s *SMExecute) stepRegisterObjectLifeLine(ctx smachine.ExecutionContext) sm
 		}
 
 		s.lmnLastLifelineRef = reference.NewRecordOf(s.execution.Object, subroutineSM.NewLastLifelineRef.GetLocal())
+		s.lmnIncomingRequestRef = subroutineSM.IncomingRequestRef
 
 		return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 			if ctx.Acquire(s.globalSemaphore.PartialLink()).IsNotPassed() {
@@ -651,7 +652,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 	}
 
 	s.execution.ObjectDescriptor = objectDescriptor
-	s.lmnLastLifelineRef = reference.NewRecordOf(objectDescriptor.HeadRef(), objectDescriptor.StateID())
+	s.lmnLastLifelineRef = objectDescriptor.State()
 
 	return ctx.Jump(s.stepExecuteStart)
 }
@@ -1086,17 +1087,11 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		tEntries = append(tEntries, s.incomingTranscriptEntry())
 	}
 
-	var resultRef reference.Global
-	if s.intolerableCall() {
-		resultRef = s.lmnLastFilamentRef
-	} else {
-		resultRef = s.lmnLastLifelineRef
-	}
 	tEntries = append(tEntries, validation.TranscriptEntry{
 		Reason: s.execution.Outgoing,
 		Custom: validation.TranscriptEntryIncomingResult{
-			IncomingResult: resultRef,
-			ObjectMemory:   s.newObjectMemoryRef(),
+			IncomingResult: s.lmnLastFilamentRef,
+			ObjectMemory:   s.lmnLastLifelineRef,
 		},
 	})
 
@@ -1136,9 +1131,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 func (s *SMExecute) updateMemoryCache(ctx smachine.ExecutionContext, object descriptor.Object) {
 	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
-		ref := reference.NewRecordOf(object.HeadRef(), object.StateID())
-
-		err := svc.Set(ctx, ref, object)
+		err := svc.Set(ctx, object.State(), object)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to set dirty memory", err)
@@ -1205,15 +1198,10 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 	var lastState *rms.ObjectState = nil
 
 	if s.newObjectDescriptor != nil {
-		class, err := s.newObjectDescriptor.Class()
-		if err != nil {
-			panic(throw.W(err, "failed to get class from descriptor", nil))
-		}
-
 		lastState = &rms.ObjectState{
-			Reference:   rms.NewReferenceLocal(s.lmnLastLifelineRef),
+			Reference:   rms.NewReference(s.lmnLastLifelineRef),
 			Memory:      rms.NewBytes(s.executionNewState.Result.Memory),
-			Class:       rms.NewReference(class),
+			Class:       rms.NewReference(s.newObjectDescriptor.Class()),
 			Deactivated: s.executionNewState.Result.SideEffectType == requestresult.SideEffectDeactivate,
 		}
 	}
@@ -1405,21 +1393,8 @@ func (s *SMExecute) objectMemoryRef() reference.Global {
 		if desc == nil {
 			panic(throw.Impossible())
 		}
-		return reference.NewRecordOf(desc.HeadRef(), desc.StateID())
+		return desc.State()
 	}
-}
-
-func (s *SMExecute) newObjectMemoryRef() reference.Global {
-	var res reference.Global
-	if s.newObjectDescriptor != nil {
-		res = reference.NewRecordOf(
-			s.newObjectDescriptor.HeadRef(),
-			s.newObjectDescriptor.StateID(),
-		)
-	} else {
-		res = s.objectMemoryRef()
-	}
-	return res
 }
 
 type RegisterVariant int
