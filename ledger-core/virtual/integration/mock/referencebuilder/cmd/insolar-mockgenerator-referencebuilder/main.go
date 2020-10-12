@@ -16,6 +16,7 @@ import (
 	"go/token"
 	"os"
 	"path"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -57,7 +58,7 @@ func parseHandlers() ([]string, error) {
 		return []string{}, throw.W(err, "failed to parse file")
 	}
 
-	records := make([]string, 0)
+	var records []string
 	for name, object := range fileInfo.Scope.Objects {
 		if name != "RecordExample" && name != "MemoryRecap" && object.Kind == ast.Typ {
 			decl, ok := object.Decl.(*ast.TypeSpec)
@@ -70,6 +71,8 @@ func parseHandlers() ([]string, error) {
 			}
 		}
 	}
+
+	sort.Slice(records, func(i, j int) bool { return strings.Compare(records[i], records[j]) < 0 })
 
 	return records, nil
 }
