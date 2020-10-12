@@ -18,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
@@ -56,7 +55,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 
 	{
 		// send VStateReport: save wallet
-		stateID := gen.UniqueLocalRefWithPulse(prevPulse)
+		stateRef := server.RandomRecordOfWithGivenPulse(objectRef, prevPulse)
 		rawWalletState := makeRawWalletState(testBalance)
 		payloadMeta := &rms.VStateReport{
 			Status:                        rms.StateStatusReady,
@@ -66,7 +65,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 			UnorderedPendingEarliestPulse: prevPulse,
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(stateID),
+					Reference: rms.NewReference(stateRef),
 					Class:     rms.NewReference(testwalletProxy.GetClass()),
 					Memory:    rms.NewBytes(rawWalletState),
 				},

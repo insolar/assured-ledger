@@ -11,7 +11,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -63,9 +62,7 @@ func (s *SMVCachedMemoryRequest) Init(ctx smachine.InitializationContext) smachi
 
 func (s *SMVCachedMemoryRequest) stepGetMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		objectRootRef  = s.Payload.Object.GetValue()
-		objectStateID  = s.Payload.StateID.GetValueWithoutBase()
-		objectStateRef = reference.NewRecordOf(objectRootRef, objectStateID)
+		objectStateRef = s.Payload.StateID.GetValue()
 	)
 
 	return s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
