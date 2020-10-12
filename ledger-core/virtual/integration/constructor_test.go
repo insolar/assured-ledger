@@ -243,9 +243,10 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	})
 
 	{
+		pl := utils.NewStateReportBuilder().Pulse(prevPulse).Object(objectRef).Missing().Report()
+
 		done := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-		pl := makeVStateReportWithState(objectRef, rms.StateStatusMissing, nil, prevPulse)
-		server.SendPayload(ctx, pl)
+		server.SendPayload(ctx, &pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, done)
 	}
 
@@ -319,11 +320,7 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 		)
 		require.Equal(t, flags, req.RequestedContent)
 
-		report := rms.VStateReport{
-			Status: rms.StateStatusMissing,
-			AsOf:   p1,
-			Object: rms.NewReference(objectRef),
-		}
+		report := utils.NewStateReportBuilder().Pulse(p1).Object(objectRef).Missing().Report()
 
 		server.SendMessage(ctx, utils.NewRequestWrapper(p2, &report).SetSender(server.JetCoordinatorMock.Me()).Finalize())
 
