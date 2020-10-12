@@ -14,33 +14,12 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
-
-func makeVStateReportWithState(
-	objectRef reference.Global,
-	stateStatus rms.VStateReport_StateStatus,
-	state *rms.ObjectState,
-	asOf rms.PulseNumber,
-) *rms.VStateReport {
-	res := rms.VStateReport{
-		Status: stateStatus,
-		Object: rms.NewReference(objectRef),
-		AsOf:   asOf,
-	}
-	if state != nil {
-		res.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
-			LatestDirtyState: state,
-		}
-	}
-	return &res
-
-}
 
 func makeRawWalletState(balance uint32) []byte {
 	return insolar.MustSerialize(testwallet.Wallet{
@@ -78,27 +57,13 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 
 			// send first VStateReport
 			{
+				report := server.StateReportBuilder().Object(objectGlobal).Ready().
+					StateRef(initRef).Memory(initState).Report()
+
 				server.IncrementPulse(ctx)
 
-				pl := &rms.VStateReport{
-					Status: rms.StateStatusReady,
-					Object: rms.NewReference(objectGlobal),
-					AsOf:   prevPulse,
-					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReference(initRef),
-							Class:     rms.NewReference(class),
-							Memory:    rms.NewBytes(initState),
-						},
-						LatestValidatedState: &rms.ObjectState{
-							Reference: rms.NewReference(initRef),
-							Class:     rms.NewReference(class),
-							Memory:    rms.NewBytes(initState),
-						},
-					},
-				}
 				waitReport := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-				server.SendPayload(ctx, pl)
+				server.SendPayload(ctx, &report)
 				commontestutils.WaitSignalsTimed(t, 10*time.Second, waitReport)
 			}
 
