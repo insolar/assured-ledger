@@ -17,7 +17,7 @@ type testStrategy struct {
 	retries [][]RetryID
 }
 
-func (p *testStrategy) Retry(ids []RetryID, repeatFn func(RetryID)) {
+func (p *testStrategy) Retry(ids []RetryID, repeatFn func(RetryID), _ func([]RetryID)) {
 	p.retries = append(p.retries, ids)
 	for _, id := range ids {
 		repeatFn(id)
