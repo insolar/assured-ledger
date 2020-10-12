@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/secrets"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
+	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/logoutput"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
@@ -146,6 +147,7 @@ func generateNodeConfigs(nodes []nodeInfo, cloudSettings CloudSettings) []config
 		defaultHost     = "127.0.0.1"
 		certificatePath = "cert_%d.json"
 		keyPath         = "node_%d.json"
+		logLevel        = log.DebugLevel.String()
 	)
 
 	if cloudSettings.API.TestWalletAPIPortStart != 0 {
@@ -153,6 +155,9 @@ func generateNodeConfigs(nodes []nodeInfo, cloudSettings CloudSettings) []config
 	}
 	if cloudSettings.API.AdminPort != 0 {
 		adminAPIPort = cloudSettings.API.AdminPort
+	}
+	if cloudSettings.Log.Level != "" {
+		logLevel = cloudSettings.Log.Level
 	}
 
 	appConfigs := make([]configuration.Configuration, 0, len(nodes))
@@ -198,6 +203,7 @@ func generateNodeConfigs(nodes []nodeInfo, cloudSettings CloudSettings) []config
 			nodes[i].certName = conf.CertificatePath
 			nodes[i].keyName = conf.KeysPath
 		}
+		conf.Log.Level = logLevel
 
 		if cloudFileLogging {
 			// prepare directory for logs
@@ -326,6 +332,9 @@ type CloudSettings struct {
 	}
 	Pulsar struct {
 		PulseTime int
+	}
+	Log struct {
+		Level string
 	}
 }
 

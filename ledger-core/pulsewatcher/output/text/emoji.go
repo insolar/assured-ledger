@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package main
+package text
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
@@ -42,7 +42,7 @@ func NewEmoji() *Emoji {
 	}
 }
 
-//todo: one url has many shortISs if node restart
+//todo: one URL has many shortISs if node restart
 func (e *Emoji) RegisterNode(_ string, n requester.Node) {
 	e.mu.Lock()
 	defer e.mu.Unlock()

@@ -11,7 +11,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -64,9 +63,7 @@ func (s *SMVCachedMemoryRequest) Init(ctx smachine.InitializationContext) smachi
 
 func (s *SMVCachedMemoryRequest) stepGetMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		objectRootRef  = s.Payload.Object.GetValue()
-		objectStateID  = s.Payload.StateID.GetValueWithoutBase()
-		objectStateRef = reference.NewRecordOf(objectRootRef, objectStateID)
+		objectStateRef = s.Payload.StateID.GetValue()
 	)
 
 	done := false
@@ -101,15 +98,11 @@ func (s *SMVCachedMemoryRequest) stepBuildResult(ctx smachine.ExecutionContext) 
 			CallStatus: rms.CachedMemoryStateUnknown,
 		}
 	} else {
-		class, err := s.object.Class()
-		if err != nil {
-			ctx.Log().Error("failed to get class", err)
-		}
 		s.response = &rms.VCachedMemoryResponse{
 			Object:     s.Payload.Object,
 			StateID:    s.Payload.StateID,
 			CallStatus: rms.CachedMemoryStateFound,
-			Class:      rms.NewReference(class),
+			Class:      rms.NewReference(s.object.Class()),
 			// Node:        s.object.HeadRef(),
 			// PrevStateID: s.object.StateID(),
 			Inactive: s.object.Deactivated(),

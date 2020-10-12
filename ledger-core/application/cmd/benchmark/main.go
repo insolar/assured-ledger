@@ -376,7 +376,7 @@ func main() {
 	defer cancel()
 
 	var sigChan = make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGHUP)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGHUP)
 
 	b := switchScenario(out, insSDK)
 

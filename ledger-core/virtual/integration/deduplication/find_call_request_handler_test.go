@@ -234,24 +234,8 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 	}
 	s.executionPoint = synchronization.NewPoint(1)
 
-	report := rms.VStateReport{
-		AsOf:   s.getP1(),
-		Status: rms.StateStatusReady,
-		Object: rms.NewReference(s.getObject()),
-
-		ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-			LatestDirtyState: &rms.ObjectState{
-				Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(s.getP1())),
-				Class:     rms.NewReference(s.getClass()),
-				Memory:    rms.NewBytes([]byte("object memory")),
-			},
-			LatestValidatedState: &rms.ObjectState{
-				Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(s.getP1())),
-				Class:     rms.NewReference(s.getClass()),
-				Memory:    rms.NewBytes([]byte("object memory")),
-			},
-		},
-	}
+	report := utils.NewStateReportBuilder().Pulse(s.getP1()).
+		Object(s.getObject()).Ready().Class(s.getClass()).Report()
 	s.addPayloadAndWaitIdle(ctx, &report)
 
 	req := utils.GenerateVCallRequestMethod(s.server)
@@ -272,11 +256,7 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 	s.executionPoint = synchronization.NewPoint(1)
 
 	if s.getObject().GetLocal().GetPulseNumber() < s.getP2() {
-		report := rms.VStateReport{
-			AsOf:   s.getP1(),
-			Status: rms.StateStatusMissing,
-			Object: rms.NewReference(s.getObject()),
-		}
+		report := utils.NewStateReportBuilder().Pulse(s.getP1()).Object(s.getObject()).Missing().Report()
 		s.addPayloadAndWaitIdle(ctx, &report)
 	}
 

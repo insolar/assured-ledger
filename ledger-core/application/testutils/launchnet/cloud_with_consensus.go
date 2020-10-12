@@ -3,46 +3,38 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// +build cloud_with_consensus
-
 package launchnet
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/server"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func isCloudMode() bool {
-	return true
-}
-
-func Run(cb func() int) int {
+func RunCloudWithConsensus(numVirtual, numLight, numHeavy int, cb func() int) int {
 	fmt.Println("Run tests on cloud with consensus")
 
-	cancelFunc, err := setupCloudWithConsensus()
-	if err != nil {
-		fmt.Println("error while setup cloud with consensus, skip tests: ", err)
-		return 1
-	}
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	code := cb()
-	cancelFunc()
-
-	return code
-}
-
-func setupCloudWithConsensus() (func(), error) {
-	cancelFunc := func() {}
-
-	confProvider, err := prepareConfigProvider()
-	if err != nil {
-		return cancelFunc, throw.W(err, "Can't prepare config provider")
-	}
+	confProvider := prepareConfigProvider(numVirtual, numLight, numHeavy, log.DebugLevel)
 
 	s := server.NewMultiServerWithConsensus(confProvider)
+
+	go func() {
+		sig := <-c
+		fmt.Printf("Got %s signal. Aborting...\n", sig)
+		s.Stop()
+
+		os.Exit(2)
+	}()
+
 	go func() {
 		s.Serve()
 	}()
@@ -55,9 +47,13 @@ func setupCloudWithConsensus() (func(), error) {
 		})
 	}
 
-	err = waitForNetworkState(appConfig{Nodes: nodes}, network.CompleteNetworkState)
+	err := waitForNetworkState(appConfig{Nodes: nodes}, network.CompleteNetworkState)
 	if err != nil {
-		return cancelFunc, throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
+		fmt.Println(throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String()).Error())
+		return 1
 	}
-	return cancelFunc, nil
+
+	code := cb()
+
+	return code
 }

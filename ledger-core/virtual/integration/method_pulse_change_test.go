@@ -24,7 +24,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
@@ -306,25 +305,11 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 	// create object state
 	{
-		objectState := rms.ObjectState{
-			Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
-			Class:     rms.NewReference(testwalletProxy.GetClass()),
-			Memory:    rms.NewBytes(makeRawWalletState(initialBalance)),
-		}
-		content = &rms.VStateReport_ProvidedContentBody{
-			LatestDirtyState:     &objectState,
-			LatestValidatedState: &objectState,
-		}
-
-		vsrPayload := &rms.VStateReport{
-			Status:          rms.StateStatusReady,
-			Object:          rms.NewReference(object),
-			AsOf:            prevPulse,
-			ProvidedContent: content,
-		}
-
+		report := utils.NewStateReportBuilder().Pulse(prevPulse).Object(object).Ready().
+			Class(testwalletProxy.GetClass()).Memory(makeRawWalletState(initialBalance)).Report()
+		content = report.ProvidedContent
 		server.WaitIdleConveyor()
-		server.SendPayload(ctx, vsrPayload)
+		server.SendPayload(ctx, &report)
 		server.WaitActiveThenIdleConveyor()
 	}
 
@@ -519,7 +504,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 				object        = server.RandomGlobalWithPulse()
 				outgoingP1    = server.BuildRandomOutgoingWithPulse()
 				incomingP1    = reference.NewRecordOf(object, outgoingP1.GetLocal())
-				dirtyStateRef = server.RandomLocalWithPulse()
+				dirtyStateRef = server.RandomRecordOf(object)
 				p1            = server.GetPulse().PulseNumber
 				getDelegated  = false
 			)
@@ -533,15 +518,8 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 
 			// create object state
 			{
-				vsrPayload := &rms.VStateReport{
-					Status:                      rms.StateStatusEmpty,
-					Object:                      rms.NewReference(object),
-					AsOf:                        p1,
-					OrderedPendingCount:         1,
-					OrderedPendingEarliestPulse: p1,
-				}
-
-				server.SendPayload(ctx, vsrPayload)
+				report := utils.NewStateReportBuilder().Pulse(p1).Object(object).Empty().Report()
+				server.SendPayload(ctx, &report)
 				server.WaitActiveThenIdleConveyor()
 			}
 
@@ -555,7 +533,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 					logger.Debug("ExecutionStart [SomeMethod]")
 					require.Equal(t, object, ctx.Request.Callee.GetValue())
 					require.Equal(t, []byte("new object memory"), ctx.ObjectDescriptor.Memory())
-					require.Equal(t, dirtyStateRef, ctx.ObjectDescriptor.StateID())
+					require.Equal(t, dirtyStateRef, ctx.ObjectDescriptor.State())
 					require.True(t, getDelegated)
 				}, &execution.Update{
 					Type:   execution.Done,
@@ -604,7 +582,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 					CallOutgoing: rms.NewReference(outgoingP1),
 					CallIncoming: rms.NewReference(incomingP1),
 					LatestState: &rms.ObjectState{
-						Reference: rms.NewReferenceLocal(dirtyStateRef),
+						Reference: rms.NewReference(dirtyStateRef),
 						Class:     rms.NewReference(class),
 						Memory:    rms.NewBytes([]byte("new object memory")),
 					},

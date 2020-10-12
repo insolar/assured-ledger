@@ -107,7 +107,7 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 			logger.Debug("ExecutionStart [SomeMethod]")
 			require.Equal(t, object, ctx.Request.Callee.GetValue())
 			require.Equal(t, bytes, ctx.ObjectDescriptor.Memory())
-			require.Equal(t, afterPendingStateID, ctx.ObjectDescriptor.StateID())
+			require.Equal(t, afterPendingStateID, ctx.ObjectDescriptor.State().GetLocal())
 			require.True(t, getDelegated)
 		}, &execution.Update{
 			Type:   execution.Done,

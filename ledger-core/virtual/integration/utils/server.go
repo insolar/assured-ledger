@@ -129,7 +129,7 @@ func NewUninitializedServerWithErrorFilter(ctx context.Context, t Tester, errorF
 }
 
 func generateGlobalCaller() reference.Global {
-	return reference.NewSelf(reference.NewLocal(pulse.MinTimePulse, 0, gen.UniqueLocalRef().GetHash()))
+	return reference.NewSelf(reference.NewLocal(pulse.MinTimePulse, 0, gen.UniqueLocalRef().IdentityHash()))
 }
 
 type ServerOpts struct {
@@ -384,6 +384,14 @@ func (s *Server) RandomGlobalWithPrevPulse() reference.Global {
 	return gen.UniqueGlobalRefWithPulse(s.GetPrevPulseNumber())
 }
 
+func (s *Server) RandomRecordOf(obj reference.Global) reference.Global {
+	return reference.NewRecordOf(obj, s.RandomLocalWithPulse())
+}
+
+func (s *Server) RandomRecordOfWithGivenPulse(obj reference.Global, pn pulse.Number) reference.Global {
+	return reference.NewRecordOf(obj, gen.UniqueLocalRefWithPulse(pn))
+}
+
 func (s *Server) DelegationToken(outgoing reference.Global, to reference.Global, object reference.Global) rms.CallDelegationToken {
 	return s.virtual.AuthenticationService.GetCallDelegationToken(outgoing, to, s.GetPulseNumber(), object)
 }
@@ -574,4 +582,8 @@ func (s *Server) SendPayloadAsFuture(ctx context.Context, pl rmsreg.GoGoSerializ
 
 func (s *Server) GetPulseTime() time.Duration {
 	return time.Duration(s.pulseGenerator.GetDelta()) * time.Second
+}
+
+func (s *Server) StateReportBuilder() *StateReportBuilder {
+	return NewStateReportBuilder().Pulse(s.GetPulseNumber())
 }

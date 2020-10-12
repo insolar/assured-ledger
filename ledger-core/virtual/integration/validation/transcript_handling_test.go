@@ -184,7 +184,7 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 	{
 		typedChecker.VCachedMemoryRequest.Set(func(report *rms.VCachedMemoryRequest) bool {
 			require.Equal(t, objectRef, report.Object.GetValue())
-			require.Equal(t, objDescriptor.StateID(), report.StateID.GetValueWithoutBase())
+			require.Equal(t, objDescriptor.State().GetLocal(), report.StateID.GetValueWithoutBase())
 
 			pl := &rms.VCachedMemoryResponse{
 				Object:     report.Object,
@@ -211,7 +211,7 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 		// runnerMock.AddExecutionClassify(outgoing.GetValue(), contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}, nil)
 		runnerMock.AddExecutionMock(outgoing.GetValue()).AddStart(
 			func(ctx execution.Context) {
-				assert.Equal(t, stateRef.GetLocal(), ctx.ObjectDescriptor.StateID())
+				assert.Equal(t, stateRef, ctx.ObjectDescriptor.State())
 				assertDescriptor(t, ctx, p)
 				assertExecutionContext(t, ctx, callRequest, objectRef, p)
 			},
@@ -415,13 +415,13 @@ func TestValidation_ObjectTranscriptReport_AfterTwoInterleaving(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
-		typedChecker.VCachedMemoryRequest.Set(func(report *rms.VCachedMemoryRequest) bool {
-			require.Equal(t, objectRef, report.Object.GetValue())
-			require.Equal(t, objDescriptor.StateID(), report.StateID.GetValueWithoutBase())
+		typedChecker.VCachedMemoryRequest.Set(func(req *rms.VCachedMemoryRequest) bool {
+			require.Equal(t, objectRef, req.Object.GetValue())
+			require.Equal(t, objDescriptor.State().GetLocal(), req.StateID.GetValueWithoutBase())
 
 			pl := &rms.VCachedMemoryResponse{
-				Object:     report.Object,
-				StateID:    report.StateID,
+				Object:     req.Object,
+				StateID:    req.StateID,
 				CallStatus: rms.CachedMemoryStateFound,
 				Memory:     rms.NewBytes(objDescriptor.Memory()),
 			}
@@ -443,7 +443,7 @@ func TestValidation_ObjectTranscriptReport_AfterTwoInterleaving(t *testing.T) {
 		requestResult.SetAmend(objDescriptor, []byte("new state"))
 		runnerMock.AddExecutionMock(outgoing1).AddStart(
 			func(ctx execution.Context) {
-				assert.Equal(t, stateRef.GetLocal(), ctx.ObjectDescriptor.StateID())
+				assert.Equal(t, stateRef, ctx.ObjectDescriptor.State())
 				assertDescriptor(t, ctx, p)
 				assertExecutionContext(t, ctx, callRequest1, objectRef, p)
 			},
@@ -454,7 +454,7 @@ func TestValidation_ObjectTranscriptReport_AfterTwoInterleaving(t *testing.T) {
 		)
 		runnerMock.AddExecutionMock(outgoing2).AddStart(
 			func(ctx execution.Context) {
-				assert.Equal(t, stateRef.GetLocal(), ctx.ObjectDescriptor.StateID())
+				assert.Equal(t, stateRef, ctx.ObjectDescriptor.State())
 				assertDescriptor(t, ctx, p)
 				assertExecutionContext(t, ctx, callRequest2, objectRef, p)
 			},
@@ -555,7 +555,7 @@ func TestValidation_ObjectTranscriptReport_AfterTwoSequential(t *testing.T) {
 	{
 		typedChecker.VCachedMemoryRequest.Set(func(report *rms.VCachedMemoryRequest) bool {
 			require.Equal(t, objectRef, report.Object.GetValue())
-			require.Equal(t, objDescriptor.StateID(), report.StateID.GetValueWithoutBase())
+			require.Equal(t, objDescriptor.State().GetLocal(), report.StateID.GetValueWithoutBase())
 
 			pl := &rms.VCachedMemoryResponse{
 				Object:     report.Object,
@@ -581,7 +581,7 @@ func TestValidation_ObjectTranscriptReport_AfterTwoSequential(t *testing.T) {
 		requestResult.SetAmend(objDescriptor, []byte("new state"))
 		runnerMock.AddExecutionMock(outgoing1).AddStart(
 			func(ctx execution.Context) {
-				assert.Equal(t, stateRef.GetLocal(), ctx.ObjectDescriptor.StateID())
+				assert.Equal(t, stateRef, ctx.ObjectDescriptor.State())
 				assertDescriptor(t, ctx, p)
 				assertExecutionContext(t, ctx, callRequest1, objectRef, p)
 			},
@@ -592,7 +592,7 @@ func TestValidation_ObjectTranscriptReport_AfterTwoSequential(t *testing.T) {
 		)
 		runnerMock.AddExecutionMock(outgoing2).AddStart(
 			func(ctx execution.Context) {
-				assert.Equal(t, stateRef.GetLocal(), ctx.ObjectDescriptor.StateID())
+				assert.Equal(t, stateRef, ctx.ObjectDescriptor.State())
 				assertDescriptor(t, ctx, p)
 				assertExecutionContext(t, ctx, callRequest2, objectRef, p)
 			},
@@ -742,7 +742,7 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 		runnerMock.AddExecutionMock(outgoing.GetValue()).AddStart(
 			func(ctx execution.Context) {
 				assert.Equal(t, []byte("after pending state"), ctx.ObjectDescriptor.Memory())
-				assert.Equal(t, pendingFinishedStateRef.GetLocal(), ctx.ObjectDescriptor.StateID())
+				assert.Equal(t, pendingFinishedStateRef, ctx.ObjectDescriptor.State())
 				pulseOfState := pendingFinishedStateRef.GetLocal().Pulse()
 				assertDescriptor(t, ctx, pulseOfState)
 				assertExecutionContext(t, ctx, callRequest, objectRef, currentPulse)
@@ -757,7 +757,7 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 		runnerMock.AddExecutionMock(pendingOutgoing.GetValue()).AddStart(
 			func(ctx execution.Context) {
 				assert.Equal(t, []byte("init state"), ctx.ObjectDescriptor.Memory())
-				assert.Equal(t, initStateRef.GetLocal(), ctx.ObjectDescriptor.StateID())
+				assert.Equal(t, initStateRef, ctx.ObjectDescriptor.State())
 				pulseOfState := initStateRef.GetLocal().Pulse()
 
 				assertDescriptor(t, ctx, pulseOfState)
@@ -845,7 +845,7 @@ func assertExecutionContext(t *testing.T, ctx execution.Context, req *rms.VCallR
 
 func assertDescriptor(t *testing.T, ctx execution.Context, p pulse.Number) {
 	assert.Equal(t, p, ctx.ObjectDescriptor.HeadRef().GetLocal().Pulse())
-	assert.Equal(t, p, ctx.ObjectDescriptor.StateID().GetLocal().Pulse())
+	assert.Equal(t, p, ctx.ObjectDescriptor.State().GetLocal().Pulse())
 	assert.False(t, ctx.ObjectDescriptor.Deactivated())
 	assert.NotEmpty(t, ctx.ObjectDescriptor.Memory())
 	// class, err := ctx.ObjectDescriptor.Class()

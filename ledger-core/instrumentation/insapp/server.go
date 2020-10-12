@@ -114,8 +114,7 @@ func (s *Server) Serve() {
 	global.InitTicker()
 
 	s.gracefulStop = make(chan os.Signal, 1)
-	signal.Notify(s.gracefulStop, syscall.SIGTERM)
-	signal.Notify(s.gracefulStop, syscall.SIGINT)
+	signal.Notify(s.gracefulStop, os.Interrupt, syscall.SIGTERM)
 
 	s.waitChannel = make(chan struct{})
 

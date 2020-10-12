@@ -12,33 +12,21 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"strconv"
+	"syscall"
 )
-
-func isCloudMode() bool {
-	cloudMode := os.Getenv("CLOUD_MODE")
-	v, err := strconv.ParseBool(cloudMode)
-	return err == nil && v
-}
 
 // Run starts launchnet before execution of callback function (cb) and stops launchnet after.
 // Returns exit code as a result from calling callback function.
 func Run(cb func() int) int {
-	setupFunc := setup
-	if isCloudMode() {
-		cr := CloudRunner{}
-		cr.PrepareConfig()
-		setupFunc = cr.SetupCloud
-	}
-	teardown, err := setupFunc()
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	teardown, err := setup()
 	defer teardown()
 	if err != nil {
 		fmt.Println("error while setup, skip tests: ", err)
 		return 1
 	}
-
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt)
 
 	go func() {
 		sig := <-c
@@ -53,7 +41,10 @@ func Run(cb func() int) int {
 	code := cb()
 
 	if code != 0 {
-		out, err := exec.Command(pulseWatcher, "-c", config, "-s").CombinedOutput()
+		pulseWatcherCmd := exec.Command(pulseWatcher, "--config", config)
+
+		pulseWatcherCmd.Env = append(pulseWatcherCmd.Env, fmt.Sprintf("PULSEWATCHER_ONESHOT=TRUE"))
+		out, err := pulseWatcherCmd.CombinedOutput()
 		if err != nil {
 			fmt.Println("PulseWatcher execution error: ", err)
 			return 1

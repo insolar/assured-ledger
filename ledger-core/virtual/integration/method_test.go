@@ -19,7 +19,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
@@ -30,8 +29,8 @@ import (
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
@@ -47,49 +46,29 @@ const initialBalance uint32 = 500
 func Method_PrepareObject(
 	ctx context.Context,
 	server *utils.Server,
-	stateStatus rms.VStateReport_StateStatus,
+	state rms.VStateReport_StateStatus,
 	object reference.Global,
 	pulse rms.PulseNumber,
 ) {
+	var (
+		walletState = makeRawWalletState(initialBalance)
+	)
 
-	bytes := []byte("original object memory")
-	dirtyStateID := server.RandomLocalWithPulse()
+	builder := utils.NewStateReportBuilder().Pulse(pulse).Object(object)
 
-	p := &rms.VStateReport{
-		Status: stateStatus,
-		Object: rms.NewReference(object),
-		AsOf:   pulse,
-	}
-
-	switch stateStatus {
+	switch state {
 	case rms.StateStatusMissing:
+		builder = builder.Missing()
 	case rms.StateStatusReady:
-		state := rms.NewBytes(bytes)
-		p.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
-			LatestDirtyState: &rms.ObjectState{
-				Reference:   rms.NewReferenceLocal(dirtyStateID),
-				Class:       rms.NewReference(testwalletProxy.GetClass()),
-				Memory:      state,
-				Deactivated: false,
-			},
-			LatestValidatedState: &rms.ObjectState{
-				Reference:   rms.NewReferenceLocal(dirtyStateID),
-				Class:       rms.NewReference(testwalletProxy.GetClass()),
-				Memory:      state,
-				Deactivated: false,
-			},
-		}
-		p.LatestDirtyState = rms.NewReferenceLocal(dirtyStateID)
-		p.LatestValidatedState = rms.NewReferenceLocal(dirtyStateID)
+		builder = builder.Ready().Class(testwalletProxy.GetClass()).Memory(walletState)
 	case rms.StateStatusInactive:
-		p.LatestDirtyState = rms.NewReferenceLocal(dirtyStateID)
-		p.LatestValidatedState = rms.NewReferenceLocal(dirtyStateID)
+		builder = builder.Inactive()
 	default:
-		panic("unexpected stateStatus")
+		panic("unexpected state")
 	}
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-	server.SendPayload(ctx, p)
+	server.SendPayload(ctx, builder.ReportPtr())
 
 	select {
 	case <-wait:
@@ -959,22 +938,15 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{server.GlobalCaller()}, nil)
 	jetCoordinatorMock.MeMock.Return(server.GlobalCaller())
 
+	var (
+		objectGlobal = server.RandomGlobalWithPulse()
+		class        = server.RandomGlobalWithPulse()
+		prevPulse    = server.GetPulse().PulseNumber
+	)
+
 	const (
 		validatedMem = "12345"
 		dirtyMem     = "54321"
-	)
-
-	var (
-		objectGlobal      = server.RandomGlobalWithPulse()
-		class             = server.RandomGlobalWithPulse()
-		dirtyStateRef     = server.RandomLocalWithPulse()
-		dirtyState        = reference.NewSelf(dirtyStateRef)
-		validatedStateRef = server.RandomLocalWithPulse()
-		validatedState    = reference.NewSelf(validatedStateRef)
-		prevPulse         = server.GetPulse().PulseNumber
-
-		dirtyStateID     = server.RandomLocalWithPulse()
-		validatedStateID = server.RandomLocalWithPulse()
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -987,26 +959,9 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool { return false })
 	typedChecker.VStateReport.Set(func(res *rms.VStateReport) bool { return false })
 	typedChecker.VStateRequest.Set(func(res *rms.VStateRequest) bool {
-		report := &rms.VStateReport{
-			Status:               rms.StateStatusReady,
-			AsOf:                 p,
-			Object:               rms.NewReference(objectGlobal),
-			LatestValidatedState: rms.NewReference(validatedState),
-			LatestDirtyState:     rms.NewReference(dirtyState),
-			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-				LatestValidatedState: &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(validatedStateID),
-					Class:     rms.NewReference(class),
-					Memory:    rms.NewBytes([]byte(validatedMem)),
-				},
-				LatestDirtyState: &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(dirtyStateID),
-					Class:     rms.NewReference(class),
-					Memory:    rms.NewBytes([]byte(dirtyMem)),
-				},
-			},
-		}
-		server.SendPayload(ctx, report)
+		report := utils.NewStateReportBuilder().Pulse(p).Object(objectGlobal).Ready().
+			ValidatedMemory([]byte(validatedMem)).DirtyMemory([]byte(dirtyMem)).Class(class).Report()
+		server.SendPayload(ctx, &report)
 		return false
 	})
 
@@ -1098,25 +1053,11 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 				class     = server.RandomGlobalWithPulse()
 				objectRef = server.RandomGlobalWithPulse()
 				p1        = server.GetPulse().PulseNumber
-
-				dirtyStateID     = server.RandomLocalWithPulse()
-				validatedStateID = server.RandomLocalWithPulse()
-
-				pl *rms.VCallRequest
 			)
 
 			server.IncrementPulseAndWaitIdle(ctx)
 			outgoing := server.BuildRandomOutgoingWithPulse()
-			p2 := server.GetPulse()
 
-			// prepare VCallRequest payload
-			{
-				pl = utils.GenerateVCallRequestMethod(server)
-				pl.CallFlags = rms.BuildCallFlags(testCase.isolation.Interference, testCase.isolation.State)
-				pl.Callee.Set(objectRef)
-				pl.CallSiteMethod = "SomeMethod"
-				pl.CallOutgoing.Set(outgoing)
-			}
 			// add ExecutionMock to runnerMock
 			{
 				runnerMock.AddExecutionClassify(outgoing, testCase.isolation, nil)
@@ -1152,25 +1093,11 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 						rms.RequestOrderedQueue | rms.RequestUnorderedQueue
 					assert.Equal(t, flags, req.RequestedContent)
 
-					content := &rms.VStateReport_ProvidedContentBody{
-						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(dirtyStateID),
-							Class:     rms.NewReference(class),
-							Memory:    rms.NewBytes([]byte(origDirtyObjectMem)),
-						},
-						LatestValidatedState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(validatedStateID),
-							Class:     rms.NewReference(class),
-							Memory:    rms.NewBytes([]byte(origValidatedObjectMem)),
-						},
-					}
+					report := utils.NewStateReportBuilder().Pulse(req.AsOf).Object(objectRef).
+						Ready().Class(class).DirtyMemory([]byte(origDirtyObjectMem)).
+						ValidatedMemory([]byte(origValidatedObjectMem)).
+						Report()
 
-					report := rms.VStateReport{
-						Status:          rms.StateStatusReady,
-						AsOf:            req.AsOf,
-						Object:          rms.NewReference(objectRef),
-						ProvidedContent: content,
-					}
 					server.SendPayload(ctx, &report)
 					return false
 				})
@@ -1197,54 +1124,29 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 					}
 					return false
 				})
-				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-					assert.Equal(t, objectRef, report.Object.GetValue())
-					assert.Equal(t, p2.PulseNumber, report.AsOf)
-
-					assert.Len(t, report.ObjectTranscript.Entries, 2)
-
-					request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
-					require.True(t, ok)
-					result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
-					require.True(t, ok)
-
-					assert.Empty(t, request.Incoming)
-					switch testCase.isolation.State {
-					case isolation.CallDirty:
-						assert.Equal(t, dirtyStateID, request.ObjectMemory.GetValue().GetLocal())
-					case isolation.CallValidated:
-						assert.Equal(t, validatedStateID, request.ObjectMemory.GetValue().GetLocal())
-					default:
-						t.Fatal("unexpected isolation state")
-					}
-					utils.AssertVCallRequestEqual(t, pl, &request.Request)
-
-					assert.Empty(t, result.IncomingResult)
-					if testCase.canChangeState {
-						assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), result.ObjectState.Get().GetLocal().Pulse())
-					} else {
-						assert.Equal(t, p1, result.ObjectState.Get().GetLocal().Pulse())
-					}
-					assert.Equal(t, objectRef.GetBase(), result.ObjectState.Get().GetBase())
-
-					return false
-				})
 			}
 
-			server.SendPayload(ctx, pl)
+			// VCallRequest
+			{
+				pl := utils.GenerateVCallRequestMethod(server)
+				pl.CallFlags = rms.BuildCallFlags(testCase.isolation.Interference, testCase.isolation.State)
+				pl.Callee.Set(objectRef)
+				pl.CallSiteMethod = "SomeMethod"
+				pl.CallOutgoing.Set(outgoing)
+
+				server.SendPayload(ctx, pl)
+			}
 
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 
 			server.IncrementPulseAndWaitIdle(ctx)
 
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
-			commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 			assert.Equal(t, 1, typedChecker.VStateReport.Count())
 			assert.Equal(t, 1, typedChecker.VStateRequest.Count())
 			assert.Equal(t, 1, typedChecker.VCallResult.Count())
-			require.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 
 			mc.Finish()
 		})
@@ -1288,23 +1190,17 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 				prevPulse = server.GetPulse().PulseNumber
 			)
 
+			state := server.StateReportBuilder().Object(objectRef).Missing().Report()
+
 			server.IncrementPulseAndWaitIdle(ctx)
 
-			if testCase.outgoingFromPast {
-				prevPulse = server.GetPulse().PulseNumber
-				server.IncrementPulseAndWaitIdle(ctx)
-			}
-
-			state := &rms.VStateReport{
-				Status: rms.StateStatusMissing,
-				AsOf:   prevPulse,
-				Object: rms.NewReference(objectRef),
-			}
-
-			server.SendPayload(ctx, state)
+			server.SendPayload(ctx, &state)
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, stateHandled)
 
 			outgoing := server.BuildRandomOutgoingWithPulse()
+			if testCase.outgoingFromPast {
+				outgoing = server.BuildRandomOutgoingWithGivenPulse(prevPulse)
+			}
 
 			expectedError := throw.E("object does not exist", struct {
 				ObjectReference string
@@ -1352,52 +1248,26 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 		testRailCase string
 
 		callFlags                  rms.CallFlags
-		dirtyStateBuilder          func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object
-		validatedStateBuilder      func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object
+		dirtyMemory                []byte
+		validatedMemory            []byte
 		callResult                 []byte
 		expectedUnImplementedError bool
 	}{
 		{
-			name:         "Method tolerable + validated cannot be executed",
-			testRailCase: "C5449",
-			callFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallValidated),
-			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
-				return descriptor.NewObject(
-					objectRef,
-					reference.Local{},
-					classRef,
-					[]byte("ok case"),
-					false,
-				)
-			},
-			validatedStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
-				return descriptor.NewObject(
-					objectRef,
-					reference.Local{},
-					classRef,
-					[]byte("not ok case"),
-					false,
-				)
-			},
+			name:                       "Method tolerable + validated cannot be executed",
+			testRailCase:               "C5449",
+			callFlags:                  rms.BuildCallFlags(isolation.CallTolerable, isolation.CallValidated),
+			dirtyMemory:                []byte("ok case"),
+			validatedMemory:            []byte("not ok case"),
 			callResult:                 []byte("bad case"),
 			expectedUnImplementedError: true,
 		},
 		{
-			name:         "Method intolerable + validated cannot be executed if no validated state",
-			testRailCase: "C5475",
-			callFlags:    rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated),
-			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
-				return descriptor.NewObject(
-					objectRef,
-					reference.Local{},
-					classRef,
-					[]byte("ok case"),
-					false,
-				)
-			},
-			validatedStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
-				return nil
-			},
+			name:                       "Method intolerable + validated cannot be executed if no validated state",
+			testRailCase:               "C5475",
+			callFlags:                  rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated),
+			dirtyMemory:                []byte("ok case"),
+			validatedMemory:            nil,
 			callResult:                 []byte("bad case"),
 			expectedUnImplementedError: true,
 		},
@@ -1431,44 +1301,21 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				class       = server.RandomGlobalWithPulse()
-				pulseNumber = server.GetPulse().PulseNumber
 				objectRef   = server.RandomGlobalWithPulse()
-
-				validatedStateHeadRef reference.Global
-				latestValidatedState  *rms.ObjectState
 			)
 
-			dirtyState := test.dirtyStateBuilder(objectRef, class, pulseNumber)
-			validatedState := test.validatedStateBuilder(objectRef, class, pulseNumber)
-			if validatedState != nil {
-				validatedStateHeadRef = validatedState.HeadRef()
-				latestValidatedState = &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(validatedState.StateID()),
-					Class:     rms.NewReference(class),
-					Memory:    rms.NewBytes(validatedState.Memory()),
-				}
-			}
-
 			{ // send object state to server
-				pl := rms.VStateReport{
-					AsOf:                 pulseNumber,
-					Status:               rms.StateStatusReady,
-					Object:               rms.NewReference(objectRef),
-					LatestValidatedState: rms.NewReference(validatedStateHeadRef),
-					LatestDirtyState:     rms.NewReference(dirtyState.HeadRef()),
-					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-						LatestValidatedState: latestValidatedState,
-						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(dirtyState.StateID()),
-							Class:     rms.NewReference(class),
-							Memory:    rms.NewBytes(dirtyState.Memory()),
-						},
-					},
+				builder := server.StateReportBuilder().Object(objectRef).Ready().
+					DirtyMemory(test.dirtyMemory)
+
+				if test.validatedMemory != nil {
+					builder = builder.ValidatedMemory(test.validatedMemory)
+				} else {
+					builder = builder.NoValidated()
 				}
 
 				server.IncrementPulseAndWaitIdle(ctx)
-				server.SendPayload(ctx, &pl)
+				server.SendPayload(ctx, builder.ReportPtr())
 				server.WaitActiveThenIdleConveyor()
 			}
 
@@ -1498,7 +1345,10 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 				// if we use forbidden isolation, then execute should stop before Start happen
 				if !test.expectedUnImplementedError {
 					result := requestresult.New(test.callResult, outgoingRef)
-					result.SetAmend(dirtyState, []byte("new stuff"))
+					desc := descriptor.NewObject(
+						reference.Global{}, reference.Local{}, server.RandomGlobalWithPulse(), []byte(""), false,
+					)
+					result.SetAmend(desc, []byte("new stuff"))
 
 					runnerMock.AddExecutionMock(key).AddStart(nil, &execution.Update{
 						Type:   execution.Done,
@@ -1536,7 +1386,6 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 	mc := minimock.NewController(t)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
-	defer server.Stop()
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
@@ -1556,8 +1405,6 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 			Interference: isolation.CallIntolerable,
 			State:        isolation.CallValidated,
 		}
-
-		dirtyStateID = server.RandomLocalWithPulse()
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -1589,24 +1436,8 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 				rms.RequestOrderedQueue | rms.RequestUnorderedQueue
 			assert.Equal(t, flags, req.RequestedContent)
 
-			content := &rms.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(dirtyStateID),
-					Class:     rms.NewReference(testwalletProxy.GetClass()),
-					Memory:    rms.NewBytes([]byte(origObjectMem)),
-				},
-				LatestValidatedState: &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(dirtyStateID),
-					Class:     rms.NewReference(testwalletProxy.GetClass()),
-					Memory:    rms.NewBytes([]byte(origObjectMem)),
-				},
-			}
-			report := rms.VStateReport{
-				Status:          rms.StateStatusReady,
-				AsOf:            req.AsOf,
-				Object:          rms.NewReference(objectRef),
-				ProvidedContent: content,
-			}
+			report := utils.NewStateReportBuilder().Pulse(req.AsOf).Object(objectRef).Ready().
+				Memory([]byte(origObjectMem)).Report()
 			server.SendPayload(ctx, &report)
 			return false // no resend msg
 		})
@@ -1627,13 +1458,6 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 			assert.Equal(t, int32(0), report.OrderedPendingCount)
 			assert.NotNil(t, report.ProvidedContent)
 			assert.Equal(t, []byte(origObjectMem), report.ProvidedContent.LatestDirtyState.Memory.GetBytes())
-			return false
-		})
-		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			// todo: we should write VCallResult with 4-type error in transcript ?
-			assert.Equal(t, objectRef, report.Object.GetValue())
-			assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
-			assert.NotEmpty(t, report.ObjectTranscript.Entries)
 			return false
 		})
 	}
@@ -1657,8 +1481,9 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	assert.Equal(t, 1, typedChecker.VStateRequest.Count())
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
-	require.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
+	typedChecker.MinimockFinish()
 
+	server.Stop()
 	mc.Finish()
 }
 
@@ -1686,8 +1511,6 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		class        = server.RandomGlobalWithPulse()
 		initialState = []byte("initial state")
 		newState     = []byte("updated state")
-		prevPulse    = server.GetPulse().PulseNumber
-		vStateID     = reference.NewRecordOf(objectGlobal, server.RandomLocalWithPulse())
 		dStateID     = reference.NewRecordOf(objectGlobal, server.RandomLocalWithPulse())
 	)
 
@@ -1715,28 +1538,12 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 
 	// initial object state
 	{
+		report := server.StateReportBuilder().Object(objectGlobal).Ready().Memory(initialState).Report()
 		// need for correct handle state report (should from prev pulse)
 		server.IncrementPulse(ctx)
 
-		report := &rms.VStateReport{
-			Status: rms.StateStatusReady,
-			Object: rms.NewReference(objectGlobal),
-			AsOf:   prevPulse,
-			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &rms.ObjectState{
-					Reference: rms.NewReference(dStateID),
-					Class:     rms.NewReference(class),
-					Memory:    rms.NewBytes(initialState),
-				},
-				LatestValidatedState: &rms.ObjectState{
-					Reference: rms.NewReference(vStateID),
-					Class:     rms.NewReference(class),
-					Memory:    rms.NewBytes(initialState),
-				},
-			},
-		}
 		waitReport := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-		server.SendPayload(ctx, report)
+		server.SendPayload(ctx, &report)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, waitReport)
 	}
 
@@ -1745,22 +1552,12 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	outgoingDirty1 := server.BuildRandomOutgoingWithPulse()
 	outgoingDirty2 := server.BuildRandomOutgoingWithPulse()
 	outgoingChange := server.BuildRandomOutgoingWithPulse()
-	currentPulse := server.GetPulse().PulseNumber
 
-	// add checks
-	{
-		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			assert.Equal(t, objectGlobal, report.Object.GetValue())
-			assert.Equal(t, currentPulse, report.AsOf)
-			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
-			return false
-		})
-	}
 	// add ExecutionMock to runnerMock
 	{
 		objectDescriptor := descriptor.NewObject(
 			objectGlobal,
-			reference.Local{},
+			dStateID.GetLocal(),
 			class,
 			newState,
 			false,
@@ -1890,13 +1687,11 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	{
 		server.IncrementPulse(ctx)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
-		commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
 		// wait for all VCallResults
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 		assert.Equal(t, 1, typedChecker.VStateReport.Count())
 		assert.Equal(t, 5, typedChecker.VCallResult.Count())
-		require.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 	}
 	mc.Finish()
 }

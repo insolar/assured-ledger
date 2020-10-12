@@ -101,7 +101,7 @@ func (s *SMVObjectValidationReport) stepGetObject(ctx smachine.ExecutionContext)
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	if descriptorDirty.HeadRef().Equal(s.Payload.Object.GetValue()) && descriptorDirty.StateID().Equal(s.Payload.Validated.GetValue()) {
+	if descriptorDirty.HeadRef().Equal(s.Payload.Object.GetValue()) && descriptorDirty.State().GetLocal().Equal(s.Payload.Validated.GetValue()) {
 		s.validatedObjectDescriptor = descriptorDirty
 		return ctx.Jump(s.stepUpdateSharedState)
 	}

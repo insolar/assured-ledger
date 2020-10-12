@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -84,9 +85,9 @@ func TestVStateReport_StopSMIfAsOfOutdated(t *testing.T) {
 
 		catalog          = object.NewCatalogMockWrapper(mc)
 		initState        = []byte("init state")
-		initRef          = gen.UniqueLocalRefWithPulse(pdPMinusThree.PulseNumber)
-		class            = gen.UniqueGlobalRefWithPulse(pdPMinusThree.PulseNumber)
 		smGlobalRef      = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
+		initRef          = reference.NewRecordOf(smGlobalRef, gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		class            = gen.UniqueGlobalRefWithPulse(pdPMinusThree.PulseNumber)
 		smObject         = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData  = smachine.NewUnboundSharedData(&smObject.SharedState)
 		smObjectAccessor = object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -118,12 +119,12 @@ func TestVStateReport_StopSMIfAsOfOutdated(t *testing.T) {
 					AsOf:   testCase.asOf,
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(initRef),
+							Reference: rms.NewReference(initRef),
 							Class:     rms.NewReference(class),
 							Memory:    rms.NewBytes(initState),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(initRef),
+							Reference: rms.NewReference(initRef),
 							Class:     rms.NewReference(class),
 							Memory:    rms.NewBytes(initState),
 						},

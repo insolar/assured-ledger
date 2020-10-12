@@ -6,8 +6,6 @@
 package rmsbox
 
 import (
-	"io"
-
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
@@ -40,7 +38,7 @@ type Reference struct {
 	lazy  ReferenceProvider
 }
 
-func (p *Reference) ensure() {
+func (p *Reference) resolveLazy() {
 	if p.lazy == nil {
 		return
 	}
@@ -53,32 +51,45 @@ func (p *Reference) ensure() {
 }
 
 func (p *Reference) ProtoSize() int {
-	p.ensure()
-	return protokit.BinaryProtoSize(reference.BinarySize(p.value))
+	p.resolveLazy()
+	if p.value == nil {
+		return 0
+	}
+	sz := reference.BinarySize(p.value)
+	if sz > 0 {
+		return protokit.BinaryProtoSize(sz)
+	}
+	return protokit.ExplicitEmptyBinaryProtoSize
 }
 
 func (p *Reference) MarshalTo(b []byte) (int, error) {
-	return protokit.BinaryMarshalTo(b, func(b []byte) (int, error) {
-		p.ensure()
-		switch n := reference.BinarySize(p.value); {
-		case n == 0:
-			return 0, nil
-		case n > len(b):
-			return 0, io.ErrShortBuffer
-		}
+	p.resolveLazy()
+	if p.value == nil {
+		return 0, nil
+	}
+	return protokit.BinaryMarshalTo(b, true, func(b []byte) (int, error) {
 		return reference.MarshalTo(p.value, b)
 	})
 }
 
 func (p *Reference) MarshalToSizedBuffer(b []byte) (int, error) {
-	return protokit.BinaryMarshalToSizedBuffer(b, func(b []byte) (int, error) {
-		p.ensure()
+	p.resolveLazy()
+	if p.value == nil {
+		return 0, nil
+	}
+
+	return protokit.BinaryMarshalToSizedBuffer(b, true, func(b []byte) (int, error) {
 		return reference.MarshalToSizedBuffer(p.value, b)
 	})
 }
 
 func (p *Reference) Unmarshal(b []byte) error {
 	p.lazy = nil
+	if len(b) == 0 {
+		p.value = nil
+		return nil
+	}
+
 	err := protokit.BinaryUnmarshal(b, func(b []byte) (err error) {
 		p.value, err = reference.UnmarshalGlobal(b)
 		return err
@@ -91,6 +102,15 @@ func (p *Reference) Unmarshal(b []byte) error {
 
 func (p *Reference) Set(holder reference.Holder) {
 	p.lazy = nil
+	if reference.IsEmpty(holder) {
+		p.value = nil
+	} else {
+		p.value = holder
+	}
+}
+
+func (p *Reference) SetExact(holder reference.Holder) {
+	p.lazy = nil
 	p.value = holder
 }
 
@@ -100,7 +120,7 @@ func (p *Reference) SetLazy(lazy ReferenceProvider) {
 }
 
 func (p *Reference) Get() reference.Holder {
-	p.ensure()
+	p.resolveLazy()
 	return p.value
 }
 
@@ -120,7 +140,7 @@ func (p *Reference) SetWithoutBase(holder reference.LocalHolder) {
 
 // GetWithoutBase returns only local part and PANICS when base part is present.
 func (p *Reference) GetWithoutBase() reference.LocalHolder {
-	p.ensure()
+	p.resolveLazy()
 	if p.value == nil {
 		return nil
 	}
@@ -139,7 +159,7 @@ func (p *Reference) GetValueWithoutBase() reference.Local {
 
 // GetPulseOfLocal returns pulse number of local portion of reference. Returns zero when reference is not set or empty.
 func (p *Reference) GetPulseOfLocal() pulse.Number {
-	p.ensure()
+	p.resolveLazy()
 	if p.value == nil {
 		return 0
 	}
@@ -148,7 +168,7 @@ func (p *Reference) GetPulseOfLocal() pulse.Number {
 
 // GetPulseOfBase returns pulse number of base portion of reference. Returns zero when reference is not set, is empty or has no base part.
 func (p *Reference) GetPulseOfBase() pulse.Number {
-	p.ensure()
+	p.resolveLazy()
 	if p.value == nil {
 		return 0
 	}
