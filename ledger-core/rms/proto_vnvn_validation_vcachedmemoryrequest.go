@@ -15,8 +15,8 @@ func (m *VCachedMemoryRequest) Validate(currentPulse PulseNumber) error {
 	}
 
 	// TODO stateID and object are from one chain
-	if m.StateID.IsEmpty() {
-		return throw.New("StateID should not be empty")
+	if m.State.IsEmpty() {
+		return throw.New("State should not be empty")
 	}
 
 	return nil
