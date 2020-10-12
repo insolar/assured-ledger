@@ -11,7 +11,6 @@ import (
 	"io"
 	"math"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -319,19 +318,4 @@ func (p *DefaultTransportProvider) CreateSessionfulProvider(binding nwapi.Addres
 		return l1.NewTLS(binding, preference, tlsCfg)
 	}
 	return l1.NewTCP(binding, preference)
-}
-
-func RetryStartListenForTests(p *UnifiedServer, retryCount int) {
-	for i := 0;; i++ {
-		switch err := p.TryStartListen(); {
-		case err == nil:
-			return
-		case strings.Contains(err.Error(), "An attempt was made to access a socket in a way forbidden by its access permissions"):
-			if i > retryCount {
-				panic(err)
-			}
-		default:
-			panic(err)
-		}
-	}
 }
