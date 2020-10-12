@@ -62,7 +62,7 @@ func (s *SMVCachedMemoryRequest) Init(ctx smachine.InitializationContext) smachi
 
 func (s *SMVCachedMemoryRequest) stepGetMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		objectStateRef = s.Payload.StateID.GetValue()
+		objectStateRef = s.Payload.State.GetValue()
 	)
 
 	return s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
@@ -87,19 +87,20 @@ func (s *SMVCachedMemoryRequest) stepWaitResult(ctx smachine.ExecutionContext) s
 func (s *SMVCachedMemoryRequest) stepBuildResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.object.HeadRef().IsEmpty() {
 		s.response = &rms.VCachedMemoryResponse{
-			Object:     s.Payload.Object,
-			StateID:    s.Payload.StateID,
 			CallStatus: rms.CachedMemoryStateUnknown,
+			State: rms.ObjectState{
+				Reference: s.Payload.State,
+			},
 		}
 	} else {
 		s.response = &rms.VCachedMemoryResponse{
-			Object:     s.Payload.Object,
-			StateID:    s.Payload.StateID,
 			CallStatus: rms.CachedMemoryStateFound,
-			// Node:        s.object.HeadRef(),
-			// PrevStateID: s.object.StateID(),
-			Inactive: s.object.Deactivated(),
-			Memory:   rms.NewBytes(s.object.Memory()),
+			State: rms.ObjectState{
+				Reference:   s.Payload.State,
+				Class:       rms.NewReference(s.object.Class()),
+				Memory:      rms.NewBytes(s.object.Memory()),
+				Deactivated: s.object.Deactivated(),
+			},
 		}
 	}
 
