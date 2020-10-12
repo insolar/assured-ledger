@@ -18,4 +18,5 @@ import (
 	_ "golang.org/x/tools/cmd/stringer"
 
 	_ "github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/cmd/insolar-mockgenerator-typedpublisher"
+	_ "github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/referencebuilder/cmd/insolar-mockgenerator-referencebuilder"
 )
