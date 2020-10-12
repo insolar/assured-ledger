@@ -18,7 +18,6 @@ import (
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
@@ -31,43 +30,6 @@ func makeRawWalletState(balance uint32) []byte {
 	return insolar.MustSerialize(testwallet.Wallet{
 		Balance: balance,
 	})
-}
-
-func createWallet(
-	ctx context.Context,
-	t *testing.T,
-	server *utils.Server,
-	object reference.Global,
-	pulse rms.PulseNumber,
-) {
-	var (
-		walletState = makeRawWalletState(initialBalance)
-		stateID     = reference.NewRecordOf(object, server.RandomLocalWithPulse())
-	)
-
-	content := &rms.VStateReport_ProvidedContentBody{
-		LatestDirtyState: &rms.ObjectState{
-			Reference: rms.NewReference(stateID),
-			Class:     rms.NewReference(testwalletProxy.GetClass()),
-			Memory:    rms.NewBytes(walletState),
-		},
-		LatestValidatedState: &rms.ObjectState{
-			Reference: rms.NewReference(stateID),
-			Class:     rms.NewReference(testwalletProxy.GetClass()),
-			Memory:    rms.NewBytes(walletState),
-		},
-	}
-
-	vsrPayload := &rms.VStateReport{
-		Status:          rms.StateStatusReady,
-		Object:          rms.NewReference(object),
-		AsOf:            pulse,
-		ProvidedContent: content,
-	}
-
-	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-	server.SendPayload(ctx, vsrPayload)
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, wait)
 }
 
 func checkBalance(ctx context.Context, t *testing.T, server *utils.Server, objectRef reference.Global, testBalance uint32) {
@@ -100,13 +62,19 @@ func TestVirtual_CallMethodAfterMultiplePulseChanges(t *testing.T) {
 
 	var (
 		objectGlobal    = server.RandomGlobalWithPulse()
-		prevPulse       = server.GetPulse().PulseNumber
 		numPulseChanges = 5
 	)
 
+	report := server.StateReportBuilder().Object(objectGlobal).Ready().
+		Class(testwalletProxy.GetClass()).Memory(makeRawWalletState(initialBalance)).Report()
+
 	server.IncrementPulseAndWaitIdle(ctx)
 
-	createWallet(ctx, t, server, objectGlobal, prevPulse)
+	{
+		wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+		server.SendPayload(ctx, &report)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, wait)
+	}
 
 	for i := 0; i < numPulseChanges; i++ {
 		wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)

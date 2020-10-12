@@ -579,3 +579,7 @@ func (s *Server) SendPayloadAsFuture(ctx context.Context, pl rmsreg.GoGoSerializ
 func (s *Server) GetPulseTime() time.Duration {
 	return time.Duration(s.pulseGenerator.GetDelta()) * time.Second
 }
+
+func (s *Server) StateReportBuilder() *StateReportBuilder {
+	return NewStateReportBuilder().Pulse(s.GetPulseNumber())
+}
