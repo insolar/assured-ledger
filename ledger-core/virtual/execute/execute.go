@@ -1094,7 +1094,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 
 	if s.newObjectDescriptor != nil {
 		lastState = &rms.ObjectState{
-			Reference:   rms.NewReferenceLocal(s.lmnLastLifelineRef),
+			Reference:   rms.NewReference(s.lmnLastLifelineRef),
 			Memory:      rms.NewBytes(s.executionNewState.Result.Memory),
 			Class:       rms.NewReference(s.newObjectDescriptor.Class()),
 			Deactivated: s.executionNewState.Result.SideEffectType == requestresult.SideEffectDeactivate,
