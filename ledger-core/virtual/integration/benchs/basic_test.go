@@ -12,10 +12,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -28,9 +26,7 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 
 	var (
 		prevPulse = server.GetPulse()
-		class     = server.RandomGlobalWithPulse()
 		object    = server.RandomGlobalWithPulse()
-		state     = reference.NewRecordOf(object, server.RandomLocalWithPulse())
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -39,23 +35,11 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 		Balance: 1234567,
 	})
 
-	content := &rms.VStateReport_ProvidedContentBody{
-		LatestDirtyState: &rms.ObjectState{
-			Reference: rms.NewReference(state),
-			Class:     rms.NewReference(class),
-			Memory:    rms.NewBytes(walletMemory),
-		},
-	}
-
-	report := &rms.VStateReport{
-		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          rms.StateStatusReady,
-		Object:          rms.NewReference(object),
-		ProvidedContent: content,
-	}
+	report := utils.NewStateReportBuilder().
+		Pulse(prevPulse.GetPulseNumber()).Ready().Object(object).Memory(walletMemory).Report()
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-	server.SendPayload(ctx, report)
+	server.SendPayload(ctx, &report)
 	testutils.WaitSignalsTimed(b, 10*time.Second, wait)
 
 	resultSignal := make(synckit.ClosableSignalChannel, 1)
@@ -91,9 +75,7 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 
 	var (
 		prevPulse = server.GetPulse()
-		class     = server.RandomGlobalWithPulse()
 		object    = server.RandomGlobalWithPulse()
-		state     = reference.NewRecordOf(object, server.RandomLocalWithPulse())
 	)
 	server.IncrementPulseAndWaitIdle(ctx)
 
@@ -101,23 +83,11 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 		Balance: 1234567,
 	})
 
-	content := &rms.VStateReport_ProvidedContentBody{
-		LatestDirtyState: &rms.ObjectState{
-			Reference: rms.NewReference(state),
-			Class:     rms.NewReference(class),
-			Memory:    rms.NewBytes(walletMemory),
-		},
-	}
-
-	report := &rms.VStateReport{
-		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          rms.StateStatusReady,
-		Object:          rms.NewReference(object),
-		ProvidedContent: content,
-	}
+	report := utils.NewStateReportBuilder().
+		Pulse(prevPulse.GetPulseNumber()).Ready().Object(object).Memory(walletMemory).Report()
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-	server.SendPayload(ctx, report)
+	server.SendPayload(ctx, &report)
 	testutils.WaitSignalsTimed(b, 10*time.Second, wait)
 
 	resultSignal := make(synckit.ClosableSignalChannel, 1)
@@ -207,9 +177,7 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 
 	var (
 		prevPulse = server.GetPulse()
-		class     = testwalletProxy.GetClass()
 		object    = server.RandomGlobalWithPulse()
-		stateID   = reference.NewRecordOf(object, gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
 	)
 	server.IncrementPulseAndWaitIdle(ctx)
 
@@ -217,26 +185,11 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 		Balance: 1234567,
 	})
 
-	state := &rms.ObjectState{
-		Reference:   rms.NewReference(stateID),
-		Class:       rms.NewReference(class),
-		Memory:      rms.NewBytes(walletMemory),
-		Deactivated: false,
-	}
-
-	content := &rms.VStateReport_ProvidedContentBody{
-		LatestDirtyState: state,
-	}
-
-	report := &rms.VStateReport{
-		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          rms.StateStatusReady,
-		Object:          rms.NewReference(object),
-		ProvidedContent: content,
-	}
+	report := utils.NewStateReportBuilder().
+		Pulse(prevPulse.GetPulseNumber()).Ready().Object(object).Memory(walletMemory).Report()
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-	server.SendPayload(ctx, report)
+	server.SendPayload(ctx, &report)
 	testutils.WaitSignalsTimed(b, 10*time.Second, wait)
 
 	b.ResetTimer()
@@ -258,9 +211,7 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 
 	var (
 		prevPulse = server.GetPulse()
-		class     = testwalletProxy.GetClass()
 		object    = server.RandomGlobalWithPulse()
-		stateID   = reference.NewRecordOf(object, gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
 	)
 	server.IncrementPulseAndWaitIdle(ctx)
 
@@ -268,26 +219,12 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 		Balance: 1234567,
 	})
 
-	state := &rms.ObjectState{
-		Reference:   rms.NewReference(stateID),
-		Class:       rms.NewReference(class),
-		Memory:      rms.NewBytes(walletMemory),
-		Deactivated: false,
-	}
-
-	content := &rms.VStateReport_ProvidedContentBody{
-		LatestDirtyState: state,
-	}
-
-	report := &rms.VStateReport{
-		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          rms.StateStatusReady,
-		Object:          rms.NewReference(object),
-		ProvidedContent: content,
-	}
+	report := utils.NewStateReportBuilder().
+		Pulse(prevPulse.GetPulseNumber()).Ready().Object(object).
+		Class(testwalletProxy.GetClass()).Memory(walletMemory).Report()
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-	server.SendPayload(ctx, report)
+	server.SendPayload(ctx, &report)
 	testutils.WaitSignalsTimed(b, 10*time.Second, wait)
 
 	b.ResetTimer()
