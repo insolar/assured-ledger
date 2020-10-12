@@ -237,7 +237,7 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 			CallIncoming: rms.NewReference(incoming),
 			CallFlags:    flags,
 			LatestState: &rms.ObjectState{
-				Reference: rms.NewReferenceLocal(s.server.RandomLocalWithPulse()),
+				Reference: rms.NewReference(s.server.RandomRecordOf(s.object)),
 				Class:     rms.NewReference(s.class),
 				Memory:    rms.NewBytes([]byte(newState)),
 			},

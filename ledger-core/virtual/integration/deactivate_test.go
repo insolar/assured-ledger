@@ -62,31 +62,31 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 				objectGlobal     = server.RandomGlobalWithPulse()
 				pulseNumberFirst = server.GetPulse().PulseNumber
 
-				validatedStateRef = server.RandomLocalWithPulse()
+				validatedStateRef = server.RandomRecordOf(objectGlobal)
 				dirtyStateRef     = validatedStateRef
 
 				validatedState = []byte("initial state")
 				dirtyState     = validatedState
 			)
+			if !test.stateIsEqual {
+				dirtyState = []byte("dirty state")
+				dirtyStateRef = server.RandomRecordOf(objectGlobal)
+			}
 
 			server.IncrementPulseAndWaitIdle(ctx)
 
 			// Send VStateReport
 			{
-				if !test.stateIsEqual {
-					dirtyState = []byte("dirty state")
-					dirtyStateRef = server.RandomLocalWithPulse()
-				}
 
 				content := &rms.VStateReport_ProvidedContentBody{
 					LatestDirtyState: &rms.ObjectState{
-						Reference:   rms.NewReferenceLocal(dirtyStateRef),
+						Reference:   rms.NewReference(dirtyStateRef),
 						Class:       rms.NewReference(class),
 						Memory:      rms.NewBytes(dirtyState),
 						Deactivated: test.dirtyIsDeactivated,
 					},
 					LatestValidatedState: &rms.ObjectState{
-						Reference: rms.NewReferenceLocal(validatedStateRef),
+						Reference: rms.NewReference(validatedStateRef),
 						Class:     rms.NewReference(class),
 						Memory:    rms.NewBytes(validatedState),
 					},
@@ -344,7 +344,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 				class        = server.RandomGlobalWithPulse()
 				objectGlobal = server.RandomGlobalWithPulse()
 				prevPulse    = server.GetPulse().PulseNumber
-				stateID      = reference.NewRecordOf(objectGlobal, server.RandomLocalWithPulse())
+				stateRef     = reference.NewRecordOf(objectGlobal, server.RandomLocalWithPulse())
 			)
 
 			// Create object
@@ -357,12 +357,12 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 					AsOf:   prevPulse,
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReference(stateID),
+							Reference: rms.NewReference(stateRef),
 							Class:     rms.NewReference(class),
 							Memory:    rms.NewBytes([]byte("initial state")),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Reference: rms.NewReference(stateID),
+							Reference: rms.NewReference(stateRef),
 							Class:     rms.NewReference(class),
 							Memory:    rms.NewBytes([]byte("initial state")),
 						},
@@ -926,7 +926,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 					Interference: isolation.CallTolerable,
 					State:        isolation.CallDirty,
 				}
-				stateRef = server.RandomGlobalWithPulse()
+				stateRef = server.RandomRecordOf(objectRef)
 				outgoing = server.BuildRandomOutgoingWithPulse()
 				incoming = reference.NewRecordOf(objectRef, outgoing.GetLocal())
 			)
@@ -990,12 +990,12 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 					LatestDirtyState:            rms.NewReference(stateRef),
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(stateRef.GetLocal()),
+							Reference: rms.NewReference(stateRef),
 							Class:     rms.NewReference(class),
 							Memory:    rms.NewBytes([]byte(origMem)),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(stateRef.GetLocal()),
+							Reference: rms.NewReference(stateRef),
 							Class:     rms.NewReference(class),
 							Memory:    rms.NewBytes([]byte(origMem)),
 						},
@@ -1026,7 +1026,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 					CallIncoming: rms.NewReference(incoming),
 					CallFlags:    rms.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
 					LatestState: &rms.ObjectState{
-						Reference:   rms.NewReferenceLocal(stateRef.GetLocal()),
+						Reference:   rms.NewReference(stateRef),
 						Memory:      rms.NewBytes(nil),
 						Deactivated: true,
 					},
