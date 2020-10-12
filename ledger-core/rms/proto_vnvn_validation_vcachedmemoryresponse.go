@@ -10,27 +10,22 @@ import (
 )
 
 func (m *VCachedMemoryResponse) Validate(currentPulse PulseNumber) error {
-	object := m.Object.GetValue()
-	_, err := validSelfScopedGlobalWithPulseBeforeOrEq(object, currentPulse, "Object")
-	if err != nil {
-		return err
+	if m.State.Reference.IsEmpty() {
+		return throw.New("State.Reference should not be empty")
 	}
 
 	switch m.CallStatus {
 	case CachedMemoryStateFound:
-		if m.Memory.IsEmpty() {
-			return throw.New("Memory should not be empty")
+		if m.State.Class.IsEmpty() {
+			return throw.New("State.Class should not be empty")
 		}
-		fallthrough
-	case CachedMemoryStateUnknown:
-		// TODO need to add check for m.Class, it doesn't exist at master right now
-		// TODO add check for correlation between object and class
-
-		// TODO stateID and object are from one chain
-		if m.StateID.IsEmpty() {
-			return throw.New("StateID should not be empty")
+	case CachedMemoryStateUnknown, CachedMemoryStateMissing:
+		if !m.State.Class.IsEmpty() {
+			return throw.New("State.Class should be empty")
 		}
-
+		if !m.State.Memory.IsEmpty() {
+			return throw.New("State.Memory should be empty")
+		}
 	default:
 		return throw.New("unexpected CallStatus")
 	}
