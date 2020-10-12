@@ -154,7 +154,7 @@ func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) s
 
 func (s *SMVObjectTranscriptReport) stepGetMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	subSM := &statemachine.SMGetCachedMemory{
-		Object: s.object, State: s.objState.GetLocal(),
+		Object: s.object, State: s.objState,
 	}
 	return ctx.CallSubroutine(subSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		if subSM.Result == nil {

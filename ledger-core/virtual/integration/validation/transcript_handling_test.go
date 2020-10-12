@@ -182,15 +182,17 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 	// add typedChecker
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
-		typedChecker.VCachedMemoryRequest.Set(func(report *rms.VCachedMemoryRequest) bool {
-			require.Equal(t, objectRef, report.Object.GetValue())
-			require.Equal(t, objDescriptor.State().GetLocal(), report.StateID.GetValueWithoutBase())
+		typedChecker.VCachedMemoryRequest.Set(func(req *rms.VCachedMemoryRequest) bool {
+			require.Equal(t, objectRef, req.Object.GetValue())
+			require.Equal(t, objDescriptor.State(), req.State.GetValue())
 
 			pl := &rms.VCachedMemoryResponse{
-				Object:     report.Object,
-				StateID:    report.StateID,
 				CallStatus: rms.CachedMemoryStateFound,
-				Memory:     rms.NewBytes(objDescriptor.Memory()),
+				State: rms.ObjectState{
+					Reference:   req.State,
+					Class:       rms.NewReference(classRef),
+					Memory:      rms.NewBytes(objDescriptor.Memory()),
+				},
 			}
 			server.SendPayload(ctx, pl)
 			return false
@@ -417,13 +419,15 @@ func TestValidation_ObjectTranscriptReport_AfterTwoInterleaving(t *testing.T) {
 	{
 		typedChecker.VCachedMemoryRequest.Set(func(req *rms.VCachedMemoryRequest) bool {
 			require.Equal(t, objectRef, req.Object.GetValue())
-			require.Equal(t, objDescriptor.State().GetLocal(), req.StateID.GetValueWithoutBase())
+			require.Equal(t, objDescriptor.State(), req.State.GetValue())
 
 			pl := &rms.VCachedMemoryResponse{
-				Object:     req.Object,
-				StateID:    req.StateID,
 				CallStatus: rms.CachedMemoryStateFound,
-				Memory:     rms.NewBytes(objDescriptor.Memory()),
+				State: rms.ObjectState{
+					Reference:   req.State,
+					Class:       rms.NewReference(classRef),
+					Memory:      rms.NewBytes(objDescriptor.Memory()),
+				},
 			}
 			server.SendPayload(ctx, pl)
 			return false
@@ -553,16 +557,19 @@ func TestValidation_ObjectTranscriptReport_AfterTwoSequential(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
-		typedChecker.VCachedMemoryRequest.Set(func(report *rms.VCachedMemoryRequest) bool {
-			require.Equal(t, objectRef, report.Object.GetValue())
-			require.Equal(t, objDescriptor.State().GetLocal(), report.StateID.GetValueWithoutBase())
+		typedChecker.VCachedMemoryRequest.Set(func(req *rms.VCachedMemoryRequest) bool {
+			require.Equal(t, objectRef, req.Object.GetValue())
+			require.Equal(t, objDescriptor.State(), req.State.GetValue())
 
 			pl := &rms.VCachedMemoryResponse{
-				Object:     report.Object,
-				StateID:    report.StateID,
 				CallStatus: rms.CachedMemoryStateFound,
-				Memory:     rms.NewBytes(objDescriptor.Memory()),
+				State: rms.ObjectState{
+					Reference:   req.State,
+					Class:       rms.NewReference(classRef),
+					Memory:      rms.NewBytes(objDescriptor.Memory()),
+				},
 			}
+
 			server.SendPayload(ctx, pl)
 			return false
 		})
@@ -704,24 +711,25 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 	// add typedChecker
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
-		typedChecker.VCachedMemoryRequest.Set(func(request *rms.VCachedMemoryRequest) bool {
-			assert.Equal(t, objectRef, request.Object.GetValue())
+		typedChecker.VCachedMemoryRequest.Set(func(req *rms.VCachedMemoryRequest) bool {
+			assert.Equal(t, objectRef, req.Object.GetValue())
 
 			var memory []byte
-			switch request.StateID.GetValueWithoutBase() {
-			case initStateRef.GetLocal():
+			switch req.State.GetValue() {
+			case initStateRef:
 				memory = []byte("init state")
-			case pendingFinishedStateRef.GetLocal():
+			case pendingFinishedStateRef:
 				memory = []byte("after pending state")
 			default:
 				t.Fatalf("unexpected stateRef")
 			}
-
 			pl := &rms.VCachedMemoryResponse{
-				Object:     request.Object,
-				StateID:    request.StateID,
 				CallStatus: rms.CachedMemoryStateFound,
-				Memory:     rms.NewBytes(memory),
+				State: rms.ObjectState{
+					Reference:   req.State,
+					Class:       rms.NewReference(classRef),
+					Memory:      rms.NewBytes(memory),
+				},
 			}
 			server.SendPayload(ctx, pl)
 			return false
