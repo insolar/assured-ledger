@@ -80,8 +80,7 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, suite.typedChecker.VStateReport.Wait(ctx, 1))
 
 			suite.typedChecker.VCachedMemoryResponse.Set(func(resp *rms.VCachedMemoryResponse) bool {
-				assert.Equal(t, suite.object, resp.Object.GetValue())
-				assert.Equal(t, []byte(newState), resp.Memory.GetBytes())
+				assert.Equal(t, []byte(newState), resp.State.Memory.GetBytes())
 				return false
 			})
 
@@ -96,8 +95,8 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 			executeDone := suite.server.Journal.WaitStopOf(&handlers.SMVCachedMemoryRequest{}, 1)
 			{
 				cachReq := &rms.VCachedMemoryRequest{
-					Object:  rms.NewReference(suite.object),
-					StateID: stateRef,
+					Object: rms.NewReference(suite.object),
+					State: stateRef,
 				}
 				suite.server.SendPayload(ctx, cachReq)
 			}
