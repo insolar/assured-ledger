@@ -25,9 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulsewatcher/status"
 )
 
-var client http.Client
-
-func CollectNodesStatuses(cfg configuration.PulseWatcherConfig, lastResults []status.Node) []status.Node {
+func CollectNodesStatuses(cfg configuration.PulseWatcherConfig, lastResults []status.Node, client *http.Client) []status.Node {
 	results := make([]status.Node, len(cfg.Nodes))
 	lock := &sync.Mutex{}
 
@@ -107,7 +105,7 @@ func Run(_ context.Context, cfg configuration.PulseWatcherConfig) {
 		global.Fatal("Unhandled output format:" + string(cfg.Format))
 	}
 
-	client = http.Client{
+	client := &http.Client{
 		Transport: &http.Transport{},
 		Timeout:   cfg.Timeout,
 	}
@@ -115,7 +113,7 @@ func Run(_ context.Context, cfg configuration.PulseWatcherConfig) {
 	ticker := time.NewTicker(cfg.Interval)
 	defer ticker.Stop()
 	for ; true; <-ticker.C {
-		results = CollectNodesStatuses(cfg, results)
+		results = CollectNodesStatuses(cfg, results, client)
 		printer.Print(results)
 
 		if cfg.OneShot {
