@@ -27,7 +27,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/network/pulsenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/network/servicenetwork"
-	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar/entropygenerator"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -116,7 +115,7 @@ func initPulsar(ctx context.Context, cfg configuration.PulsarConfiguration) *pul
 	cm := component.NewManager(nil)
 	cm.SetLogger(global.Logger())
 
-	cm.Register(cryptographyScheme, keyStore, keyProcessor, transport.NewFactory(cfg.Pulsar.DistributionTransport))
+	cm.Register(cryptographyScheme, keyStore, keyProcessor)
 	cm.Inject(cryptographyService, pulseDistributor)
 
 	if err = cm.Init(ctx); err != nil {

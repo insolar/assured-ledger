@@ -18,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/future"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/pool"
 )
 
 // RequestHandler is callback function for request handling

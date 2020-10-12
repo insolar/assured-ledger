@@ -89,14 +89,6 @@ type Future interface {
 	Cancel()
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.RoutingTable -o ../testutils/network -s _mock.go -g
-
-// RoutingTable contains all routing information of the network.
-type RoutingTable interface {
-	// Resolve NodeID -> ShortID, Address. Can initiate network requests.
-	Resolve(reference.Global) (*legacyhost.Host, error)
-}
-
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Gatewayer -o ../testutils/network -s _mock.go -g
 
 // Gatewayer is a network which can change it's Gateway
