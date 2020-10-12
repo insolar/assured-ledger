@@ -12,7 +12,6 @@ import (
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -27,6 +26,7 @@ func BenchmarkRunnerService(b *testing.B) {
 		ctx = instestlogger.TestContext(b)
 
 		object        = gen.UniqueGlobalRef()
+		state         = gen.UniqueLocalRefWithPulse(object.GetLocal().Pulse())
 		remoteObject  = gen.UniqueGlobalRef()
 		class         = testwalletProxy.GetClass()
 		wallet, _     = testwallet.New()
@@ -35,7 +35,7 @@ func BenchmarkRunnerService(b *testing.B) {
 	)
 
 	executionContext := execution.Context{
-		ObjectDescriptor: descriptor.NewObject(object, reference.Local{}, class, defaultObject, false),
+		ObjectDescriptor: descriptor.NewObject(object, state, class, defaultObject, false),
 		Context:          ctx,
 		Request: &rms.VCallRequest{
 			CallType:       rms.CallTypeMethod,
