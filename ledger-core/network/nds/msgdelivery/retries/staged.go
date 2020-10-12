@@ -23,7 +23,10 @@ type StagedController struct {
 }
 
 type RetryStrategy interface {
-	Retry(ids []RetryID, repeatFn func(RetryID), bulkOverflow func([]RetryID))
+	// Retry initiates resend for the given ids.
+	// When id was resent and is still valid, it should be returned back by calling (repeatFn).
+	// When some ids were not resent, then these should be returned back by calling (bulkOverflowFn).
+	Retry(ids []RetryID, repeatFn func(RetryID), bulkOverflowFn func([]RetryID))
 	CheckState(RetryID) RetryState
 	Remove([]RetryID)
 }
