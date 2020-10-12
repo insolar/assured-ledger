@@ -288,25 +288,11 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 	// create object state
 	{
-		objectState := rms.ObjectState{
-			Reference: rms.NewReference(server.RandomRecordOfWithGivenPulse(object, prevPulse)),
-			Class:     rms.NewReference(testwalletProxy.GetClass()),
-			Memory:    rms.NewBytes(makeRawWalletState(initialBalance)),
-		}
-		content = &rms.VStateReport_ProvidedContentBody{
-			LatestDirtyState:     &objectState,
-			LatestValidatedState: &objectState,
-		}
-
-		vsrPayload := &rms.VStateReport{
-			Status:          rms.StateStatusReady,
-			Object:          rms.NewReference(object),
-			AsOf:            prevPulse,
-			ProvidedContent: content,
-		}
-
+		report := utils.NewStateReportBuilder().Pulse(prevPulse).Object(object).Ready().
+			Class(testwalletProxy.GetClass()).Memory(makeRawWalletState(initialBalance)).Report()
+		content = report.ProvidedContent
 		server.WaitIdleConveyor()
-		server.SendPayload(ctx, vsrPayload)
+		server.SendPayload(ctx, &report)
 		server.WaitActiveThenIdleConveyor()
 	}
 
@@ -498,15 +484,8 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 
 			// create object state
 			{
-				vsrPayload := &rms.VStateReport{
-					Status:                      rms.StateStatusEmpty,
-					Object:                      rms.NewReference(object),
-					AsOf:                        p1,
-					OrderedPendingCount:         1,
-					OrderedPendingEarliestPulse: p1,
-				}
-
-				server.SendPayload(ctx, vsrPayload)
+				report := utils.NewStateReportBuilder().Pulse(p1).Object(object).Empty().Report()
+				server.SendPayload(ctx, &report)
 				server.WaitActiveThenIdleConveyor()
 			}
 

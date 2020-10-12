@@ -442,13 +442,9 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 				return false
 			})
 
-			statePl := rms.VStateReport{
-				Status:                      rms.StateStatusEmpty,
-				Object:                      rms.NewReference(object),
-				AsOf:                        p,
-				OrderedPendingCount:         1,
-				OrderedPendingEarliestPulse: firstPulse.PulseNumber,
-			}
+			statePl := utils.NewStateReportBuilder().Pulse(p).Object(object).Empty().
+				PendingsPulse(firstPulse.PulseNumber).Report()
+
 			server.SendMessage(ctx, utils.NewRequestWrapper(server.GetPulse().PulseNumber, &statePl).SetSender(approver).Finalize())
 			server.WaitActiveThenIdleConveyor()
 
