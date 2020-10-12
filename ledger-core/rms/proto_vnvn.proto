@@ -251,26 +251,20 @@ message VFindCallResponse {
 message VCachedMemoryRequest {
     option (insproto.id) = 1013;
     Reference Object = 21;
-    Reference StateID = 50;
+    Reference State = 22;
 }
 
 message VCachedMemoryResponse {
     option (insproto.id) = 1014;
     enum Status {
-        CachedMemoryStateUnknown = 0; // zero value in Go
+        CachedMemoryStateInvalid = 0; // zero value in Go
         CachedMemoryStateFound = 1;
-        CachedMemoryStateRedirect = 2;
+        CachedMemoryStateUnknown = 2;
         CachedMemoryStateMissing = 3;
     }
 
-    Reference Object = 21;
-    Reference Class = 22;
-    Reference StateID = 50;
-    Status CallStatus = 51;
-    Reference Node = 52;
-    Reference PrevStateID = 53;
-    bool Inactive = 25;
-    Binary Memory = 54;
+    Status CallStatus = 21;
+    ObjectState State = 22;
 }
 
 message Transcript {
