@@ -380,6 +380,14 @@ func (s *Server) RandomGlobalWithPrevPulse() reference.Global {
 	return gen.UniqueGlobalRefWithPulse(s.GetPrevPulseNumber())
 }
 
+func (s *Server) RandomRecordOf(obj reference.Global) reference.Global {
+	return reference.NewRecordOf(obj, s.RandomLocalWithPulse())
+}
+
+func (s *Server) RandomRecordOfWithGivenPulse(obj reference.Global, pn pulse.Number) reference.Global {
+	return reference.NewRecordOf(obj, gen.UniqueLocalRefWithPulse(pn))
+}
+
 func (s *Server) DelegationToken(outgoing reference.Global, to reference.Global, object reference.Global) rms.CallDelegationToken {
 	return s.virtual.AuthenticationService.GetCallDelegationToken(outgoing, to, s.GetPulseNumber(), object)
 }

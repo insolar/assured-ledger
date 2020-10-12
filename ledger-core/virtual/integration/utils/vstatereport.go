@@ -17,12 +17,12 @@ import (
 func GenerateVStateReport(server *Server, object reference.Global, pulse pulse.Number) *rms.VStateReport {
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(pulse)),
+			Reference: rms.NewReference(reference.NewRecordOf(object, gen.UniqueLocalRefWithPulse(pulse))),
 			Class:     rms.NewReference(testwalletProxy.GetClass()),
 			Memory:    rms.NewBytes([]byte("dirty")),
 		},
 		LatestValidatedState: &rms.ObjectState{
-			Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(pulse)),
+			Reference: rms.NewReference(reference.NewRecordOf(object, gen.UniqueLocalRefWithPulse(pulse))),
 			Class:     rms.NewReference(testwalletProxy.GetClass()),
 			Memory:    rms.NewBytes([]byte("validated")),
 		},

@@ -702,7 +702,9 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(s.getP1())),
+					Reference: rms.NewReference(
+						reference.NewRecordOf(s.getObject(), gen.UniqueLocalRefWithPulse(s.getP1())),
+					),
 					Class:     rms.NewReference(s.getClass()),
 					Memory:    rms.NewBytes([]byte("object memory")),
 				},

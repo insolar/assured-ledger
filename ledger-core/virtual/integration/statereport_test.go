@@ -70,9 +70,9 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 
 			var (
 				initState    = []byte("init state")
-				initRef      = server.RandomLocalWithPulse()
 				prevPulse    = server.GetPulse().PulseNumber
 				objectGlobal = server.RandomGlobalWithPulse()
+				initRef      = server.RandomRecordOf(objectGlobal)
 				class        = server.RandomGlobalWithPulse()
 			)
 
@@ -86,12 +86,12 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 					AsOf:   prevPulse,
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(initRef),
+							Reference: rms.NewReference(initRef),
 							Class:     rms.NewReference(class),
 							Memory:    rms.NewBytes(initState),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(initRef),
+							Reference: rms.NewReference(initRef),
 							Class:     rms.NewReference(class),
 							Memory:    rms.NewBytes(initState),
 						},
@@ -108,8 +108,8 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 				typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 					assert.NotNil(t, report.ProvidedContent)
 					assert.Equal(t, rms.StateStatusReady, report.Status)
-					assert.Equal(t, initRef, report.ProvidedContent.LatestDirtyState.Reference.GetValueWithoutBase())
-					assert.Equal(t, initRef, report.ProvidedContent.LatestValidatedState.Reference.GetValueWithoutBase())
+					assert.Equal(t, initRef, report.ProvidedContent.LatestDirtyState.Reference.GetValue())
+					assert.Equal(t, initRef, report.ProvidedContent.LatestValidatedState.Reference.GetValue())
 					assert.Equal(t, initState, report.ProvidedContent.LatestDirtyState.Memory.GetBytes())
 					assert.Equal(t, initState, report.ProvidedContent.LatestValidatedState.Memory.GetBytes())
 					return false
@@ -126,7 +126,7 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 				if testCase.status == rms.StateStatusReady {
 					pl.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(server.RandomLocalWithPulse()),
+							Reference: rms.NewReference(server.RandomRecordOfWithGivenPulse(objectGlobal, prevPulse)),
 							Class:     rms.NewReference(class),
 							Memory:    rms.NewBytes([]byte("new state")),
 						},
