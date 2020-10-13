@@ -61,10 +61,10 @@ func (n *ServiceNetwork) initUniproto(ctx context.Context) msgdelivery.Service {
 
 	n.unifiedServer = uniserver.NewUnifiedServer(&n.dispatcher, TestLogAdapter{ctx})
 	n.unifiedServer.SetConfig(uniserver.ServerConfig{
-		BindingAddress: nwapi.IncrementPort(n.cfg.Host.Transport.Address), // todo: ?
+		BindingAddress: n.cfg.Host.Transport.Address,
 		// BindingAddress: n.cfg.Host.Transport.Address,
 		UDPMaxSize:     1400,
-		UDPParallelism: 1,
+		UDPParallelism: 2,
 		PeerLimit:      -1,
 	})
 

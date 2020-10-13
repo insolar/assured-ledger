@@ -7,8 +7,6 @@ import (
 
 // IncrementPort increments port number if it not equals 0
 func IncrementPort(address string) string {
-	return address
-
 	parts := strings.Split(address, ":")
 	if len(parts) < 2 {
 		panic("failed to get port from address")

@@ -31,8 +31,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
 	"github.com/insolar/assured-ledger/ledger-core/network/sequence"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
@@ -47,7 +45,6 @@ type distributor struct {
 	pulseRequestTimeout time.Duration
 
 	publicAddress  string
-	pulsarHost     *legacyhost.Host
 	bootstrapHosts []string
 	unifiedServer  *uniserver.UnifiedServer
 }
@@ -86,13 +83,6 @@ func (d *distributor) Init(context.Context) error {
 func (d *distributor) Start(ctx context.Context) error {
 	d.unifiedServer.StartListen()
 
-	pulsarHost, err := legacyhost.NewHost(d.publicAddress)
-	if err != nil {
-		return errors.W(err, "[ NewDistributor ] failed to create pulsar host")
-	}
-	pulsarHost.NodeID = reference.Global{}
-
-	d.pulsarHost = pulsarHost
 	return nil
 }
 
@@ -138,7 +128,7 @@ func (d *distributor) Distribute(ctx context.Context, puls pulsar.PulsePacket) {
 
 			atomic.AddInt32(&distributed, 1)
 			logger.Infof("Successfully sent pulse %d to node %s", pulse.PulseNumber, nodeAddr)
-		}(pulseCtx, puls, nwapi.IncrementPort(nodeAddr))
+		}(pulseCtx, puls, nodeAddr)
 	}
 	wg.Wait()
 
