@@ -9,8 +9,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/component-manager"
-
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
@@ -50,14 +48,7 @@ type RequestHandler func(ctx context.Context, request ReceivedPacket) (response 
 
 // HostNetwork simple interface to send network requests and process network responses.
 type HostNetwork interface {
-	component.Starter
-	component.Stopper
-
-	// PublicAddress returns public address that can be published for all nodes.
-	PublicAddress() string
-
-	// SendRequest send request to a remote node addressed by reference.
-	SendRequest(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global) (Future, error)
+	uniproto.Receiver
 	// SendRequestToHost send request packet to a remote host.
 	SendRequestToHost(ctx context.Context, t types.PacketType, requestData interface{}, receiver *legacyhost.Host) (Future, error)
 	// RegisterRequestHandler register a handler function to process incoming requests of a specific type.

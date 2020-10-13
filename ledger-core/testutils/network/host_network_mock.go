@@ -4,6 +4,7 @@ package network
 
 import (
 	"context"
+	"io"
 	"sync"
 	mm_atomic "sync/atomic"
 	mm_time "time"
@@ -11,7 +12,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 	mm_network "github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
@@ -25,11 +26,17 @@ type HostNetworkMock struct {
 	beforeBuildResponseCounter uint64
 	BuildResponseMock          mHostNetworkMockBuildResponse
 
-	funcPublicAddress          func() (s1 string)
-	inspectFuncPublicAddress   func()
-	afterPublicAddressCounter  uint64
-	beforePublicAddressCounter uint64
-	PublicAddressMock          mHostNetworkMockPublicAddress
+	funcReceiveLargePacket          func(rp *uniproto.ReceivedPacket, preRead []byte, r io.LimitedReader) (err error)
+	inspectFuncReceiveLargePacket   func(rp *uniproto.ReceivedPacket, preRead []byte, r io.LimitedReader)
+	afterReceiveLargePacketCounter  uint64
+	beforeReceiveLargePacketCounter uint64
+	ReceiveLargePacketMock          mHostNetworkMockReceiveLargePacket
+
+	funcReceiveSmallPacket          func(rp *uniproto.ReceivedPacket, b []byte)
+	inspectFuncReceiveSmallPacket   func(rp *uniproto.ReceivedPacket, b []byte)
+	afterReceiveSmallPacketCounter  uint64
+	beforeReceiveSmallPacketCounter uint64
+	ReceiveSmallPacketMock          mHostNetworkMockReceiveSmallPacket
 
 	funcRegisterRequestHandler          func(t types.PacketType, handler mm_network.RequestHandler)
 	inspectFuncRegisterRequestHandler   func(t types.PacketType, handler mm_network.RequestHandler)
@@ -37,29 +44,11 @@ type HostNetworkMock struct {
 	beforeRegisterRequestHandlerCounter uint64
 	RegisterRequestHandlerMock          mHostNetworkMockRegisterRequestHandler
 
-	funcSendRequest          func(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global) (f1 mm_network.Future, err error)
-	inspectFuncSendRequest   func(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global)
-	afterSendRequestCounter  uint64
-	beforeSendRequestCounter uint64
-	SendRequestMock          mHostNetworkMockSendRequest
-
 	funcSendRequestToHost          func(ctx context.Context, t types.PacketType, requestData interface{}, receiver *legacyhost.Host) (f1 mm_network.Future, err error)
 	inspectFuncSendRequestToHost   func(ctx context.Context, t types.PacketType, requestData interface{}, receiver *legacyhost.Host)
 	afterSendRequestToHostCounter  uint64
 	beforeSendRequestToHostCounter uint64
 	SendRequestToHostMock          mHostNetworkMockSendRequestToHost
-
-	funcStart          func(ctx context.Context) (err error)
-	inspectFuncStart   func(ctx context.Context)
-	afterStartCounter  uint64
-	beforeStartCounter uint64
-	StartMock          mHostNetworkMockStart
-
-	funcStop          func(ctx context.Context) (err error)
-	inspectFuncStop   func(ctx context.Context)
-	afterStopCounter  uint64
-	beforeStopCounter uint64
-	StopMock          mHostNetworkMockStop
 }
 
 // NewHostNetworkMock returns a mock for network.HostNetwork
@@ -72,22 +61,17 @@ func NewHostNetworkMock(t minimock.Tester) *HostNetworkMock {
 	m.BuildResponseMock = mHostNetworkMockBuildResponse{mock: m}
 	m.BuildResponseMock.callArgs = []*HostNetworkMockBuildResponseParams{}
 
-	m.PublicAddressMock = mHostNetworkMockPublicAddress{mock: m}
+	m.ReceiveLargePacketMock = mHostNetworkMockReceiveLargePacket{mock: m}
+	m.ReceiveLargePacketMock.callArgs = []*HostNetworkMockReceiveLargePacketParams{}
+
+	m.ReceiveSmallPacketMock = mHostNetworkMockReceiveSmallPacket{mock: m}
+	m.ReceiveSmallPacketMock.callArgs = []*HostNetworkMockReceiveSmallPacketParams{}
 
 	m.RegisterRequestHandlerMock = mHostNetworkMockRegisterRequestHandler{mock: m}
 	m.RegisterRequestHandlerMock.callArgs = []*HostNetworkMockRegisterRequestHandlerParams{}
 
-	m.SendRequestMock = mHostNetworkMockSendRequest{mock: m}
-	m.SendRequestMock.callArgs = []*HostNetworkMockSendRequestParams{}
-
 	m.SendRequestToHostMock = mHostNetworkMockSendRequestToHost{mock: m}
 	m.SendRequestToHostMock.callArgs = []*HostNetworkMockSendRequestToHostParams{}
-
-	m.StartMock = mHostNetworkMockStart{mock: m}
-	m.StartMock.callArgs = []*HostNetworkMockStartParams{}
-
-	m.StopMock = mHostNetworkMockStop{mock: m}
-	m.StopMock.callArgs = []*HostNetworkMockStopParams{}
 
 	return m
 }
@@ -309,146 +293,408 @@ func (m *HostNetworkMock) MinimockBuildResponseInspect() {
 	}
 }
 
-type mHostNetworkMockPublicAddress struct {
+type mHostNetworkMockReceiveLargePacket struct {
 	mock               *HostNetworkMock
-	defaultExpectation *HostNetworkMockPublicAddressExpectation
-	expectations       []*HostNetworkMockPublicAddressExpectation
+	defaultExpectation *HostNetworkMockReceiveLargePacketExpectation
+	expectations       []*HostNetworkMockReceiveLargePacketExpectation
+
+	callArgs []*HostNetworkMockReceiveLargePacketParams
+	mutex    sync.RWMutex
 }
 
-// HostNetworkMockPublicAddressExpectation specifies expectation struct of the HostNetwork.PublicAddress
-type HostNetworkMockPublicAddressExpectation struct {
-	mock *HostNetworkMock
-
-	results *HostNetworkMockPublicAddressResults
+// HostNetworkMockReceiveLargePacketExpectation specifies expectation struct of the HostNetwork.ReceiveLargePacket
+type HostNetworkMockReceiveLargePacketExpectation struct {
+	mock    *HostNetworkMock
+	params  *HostNetworkMockReceiveLargePacketParams
+	results *HostNetworkMockReceiveLargePacketResults
 	Counter uint64
 }
 
-// HostNetworkMockPublicAddressResults contains results of the HostNetwork.PublicAddress
-type HostNetworkMockPublicAddressResults struct {
-	s1 string
+// HostNetworkMockReceiveLargePacketParams contains parameters of the HostNetwork.ReceiveLargePacket
+type HostNetworkMockReceiveLargePacketParams struct {
+	rp      *uniproto.ReceivedPacket
+	preRead []byte
+	r       io.LimitedReader
 }
 
-// Expect sets up expected params for HostNetwork.PublicAddress
-func (mmPublicAddress *mHostNetworkMockPublicAddress) Expect() *mHostNetworkMockPublicAddress {
-	if mmPublicAddress.mock.funcPublicAddress != nil {
-		mmPublicAddress.mock.t.Fatalf("HostNetworkMock.PublicAddress mock is already set by Set")
-	}
-
-	if mmPublicAddress.defaultExpectation == nil {
-		mmPublicAddress.defaultExpectation = &HostNetworkMockPublicAddressExpectation{}
-	}
-
-	return mmPublicAddress
+// HostNetworkMockReceiveLargePacketResults contains results of the HostNetwork.ReceiveLargePacket
+type HostNetworkMockReceiveLargePacketResults struct {
+	err error
 }
 
-// Inspect accepts an inspector function that has same arguments as the HostNetwork.PublicAddress
-func (mmPublicAddress *mHostNetworkMockPublicAddress) Inspect(f func()) *mHostNetworkMockPublicAddress {
-	if mmPublicAddress.mock.inspectFuncPublicAddress != nil {
-		mmPublicAddress.mock.t.Fatalf("Inspect function is already set for HostNetworkMock.PublicAddress")
+// Expect sets up expected params for HostNetwork.ReceiveLargePacket
+func (mmReceiveLargePacket *mHostNetworkMockReceiveLargePacket) Expect(rp *uniproto.ReceivedPacket, preRead []byte, r io.LimitedReader) *mHostNetworkMockReceiveLargePacket {
+	if mmReceiveLargePacket.mock.funcReceiveLargePacket != nil {
+		mmReceiveLargePacket.mock.t.Fatalf("HostNetworkMock.ReceiveLargePacket mock is already set by Set")
 	}
 
-	mmPublicAddress.mock.inspectFuncPublicAddress = f
-
-	return mmPublicAddress
-}
-
-// Return sets up results that will be returned by HostNetwork.PublicAddress
-func (mmPublicAddress *mHostNetworkMockPublicAddress) Return(s1 string) *HostNetworkMock {
-	if mmPublicAddress.mock.funcPublicAddress != nil {
-		mmPublicAddress.mock.t.Fatalf("HostNetworkMock.PublicAddress mock is already set by Set")
+	if mmReceiveLargePacket.defaultExpectation == nil {
+		mmReceiveLargePacket.defaultExpectation = &HostNetworkMockReceiveLargePacketExpectation{}
 	}
 
-	if mmPublicAddress.defaultExpectation == nil {
-		mmPublicAddress.defaultExpectation = &HostNetworkMockPublicAddressExpectation{mock: mmPublicAddress.mock}
-	}
-	mmPublicAddress.defaultExpectation.results = &HostNetworkMockPublicAddressResults{s1}
-	return mmPublicAddress.mock
-}
-
-//Set uses given function f to mock the HostNetwork.PublicAddress method
-func (mmPublicAddress *mHostNetworkMockPublicAddress) Set(f func() (s1 string)) *HostNetworkMock {
-	if mmPublicAddress.defaultExpectation != nil {
-		mmPublicAddress.mock.t.Fatalf("Default expectation is already set for the HostNetwork.PublicAddress method")
-	}
-
-	if len(mmPublicAddress.expectations) > 0 {
-		mmPublicAddress.mock.t.Fatalf("Some expectations are already set for the HostNetwork.PublicAddress method")
-	}
-
-	mmPublicAddress.mock.funcPublicAddress = f
-	return mmPublicAddress.mock
-}
-
-// PublicAddress implements network.HostNetwork
-func (mmPublicAddress *HostNetworkMock) PublicAddress() (s1 string) {
-	mm_atomic.AddUint64(&mmPublicAddress.beforePublicAddressCounter, 1)
-	defer mm_atomic.AddUint64(&mmPublicAddress.afterPublicAddressCounter, 1)
-
-	if mmPublicAddress.inspectFuncPublicAddress != nil {
-		mmPublicAddress.inspectFuncPublicAddress()
-	}
-
-	if mmPublicAddress.PublicAddressMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmPublicAddress.PublicAddressMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmPublicAddress.PublicAddressMock.defaultExpectation.results
-		if mm_results == nil {
-			mmPublicAddress.t.Fatal("No results are set for the HostNetworkMock.PublicAddress")
+	mmReceiveLargePacket.defaultExpectation.params = &HostNetworkMockReceiveLargePacketParams{rp, preRead, r}
+	for _, e := range mmReceiveLargePacket.expectations {
+		if minimock.Equal(e.params, mmReceiveLargePacket.defaultExpectation.params) {
+			mmReceiveLargePacket.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmReceiveLargePacket.defaultExpectation.params)
 		}
-		return (*mm_results).s1
 	}
-	if mmPublicAddress.funcPublicAddress != nil {
-		return mmPublicAddress.funcPublicAddress()
+
+	return mmReceiveLargePacket
+}
+
+// Inspect accepts an inspector function that has same arguments as the HostNetwork.ReceiveLargePacket
+func (mmReceiveLargePacket *mHostNetworkMockReceiveLargePacket) Inspect(f func(rp *uniproto.ReceivedPacket, preRead []byte, r io.LimitedReader)) *mHostNetworkMockReceiveLargePacket {
+	if mmReceiveLargePacket.mock.inspectFuncReceiveLargePacket != nil {
+		mmReceiveLargePacket.mock.t.Fatalf("Inspect function is already set for HostNetworkMock.ReceiveLargePacket")
 	}
-	mmPublicAddress.t.Fatalf("Unexpected call to HostNetworkMock.PublicAddress.")
+
+	mmReceiveLargePacket.mock.inspectFuncReceiveLargePacket = f
+
+	return mmReceiveLargePacket
+}
+
+// Return sets up results that will be returned by HostNetwork.ReceiveLargePacket
+func (mmReceiveLargePacket *mHostNetworkMockReceiveLargePacket) Return(err error) *HostNetworkMock {
+	if mmReceiveLargePacket.mock.funcReceiveLargePacket != nil {
+		mmReceiveLargePacket.mock.t.Fatalf("HostNetworkMock.ReceiveLargePacket mock is already set by Set")
+	}
+
+	if mmReceiveLargePacket.defaultExpectation == nil {
+		mmReceiveLargePacket.defaultExpectation = &HostNetworkMockReceiveLargePacketExpectation{mock: mmReceiveLargePacket.mock}
+	}
+	mmReceiveLargePacket.defaultExpectation.results = &HostNetworkMockReceiveLargePacketResults{err}
+	return mmReceiveLargePacket.mock
+}
+
+//Set uses given function f to mock the HostNetwork.ReceiveLargePacket method
+func (mmReceiveLargePacket *mHostNetworkMockReceiveLargePacket) Set(f func(rp *uniproto.ReceivedPacket, preRead []byte, r io.LimitedReader) (err error)) *HostNetworkMock {
+	if mmReceiveLargePacket.defaultExpectation != nil {
+		mmReceiveLargePacket.mock.t.Fatalf("Default expectation is already set for the HostNetwork.ReceiveLargePacket method")
+	}
+
+	if len(mmReceiveLargePacket.expectations) > 0 {
+		mmReceiveLargePacket.mock.t.Fatalf("Some expectations are already set for the HostNetwork.ReceiveLargePacket method")
+	}
+
+	mmReceiveLargePacket.mock.funcReceiveLargePacket = f
+	return mmReceiveLargePacket.mock
+}
+
+// When sets expectation for the HostNetwork.ReceiveLargePacket which will trigger the result defined by the following
+// Then helper
+func (mmReceiveLargePacket *mHostNetworkMockReceiveLargePacket) When(rp *uniproto.ReceivedPacket, preRead []byte, r io.LimitedReader) *HostNetworkMockReceiveLargePacketExpectation {
+	if mmReceiveLargePacket.mock.funcReceiveLargePacket != nil {
+		mmReceiveLargePacket.mock.t.Fatalf("HostNetworkMock.ReceiveLargePacket mock is already set by Set")
+	}
+
+	expectation := &HostNetworkMockReceiveLargePacketExpectation{
+		mock:   mmReceiveLargePacket.mock,
+		params: &HostNetworkMockReceiveLargePacketParams{rp, preRead, r},
+	}
+	mmReceiveLargePacket.expectations = append(mmReceiveLargePacket.expectations, expectation)
+	return expectation
+}
+
+// Then sets up HostNetwork.ReceiveLargePacket return parameters for the expectation previously defined by the When method
+func (e *HostNetworkMockReceiveLargePacketExpectation) Then(err error) *HostNetworkMock {
+	e.results = &HostNetworkMockReceiveLargePacketResults{err}
+	return e.mock
+}
+
+// ReceiveLargePacket implements network.HostNetwork
+func (mmReceiveLargePacket *HostNetworkMock) ReceiveLargePacket(rp *uniproto.ReceivedPacket, preRead []byte, r io.LimitedReader) (err error) {
+	mm_atomic.AddUint64(&mmReceiveLargePacket.beforeReceiveLargePacketCounter, 1)
+	defer mm_atomic.AddUint64(&mmReceiveLargePacket.afterReceiveLargePacketCounter, 1)
+
+	if mmReceiveLargePacket.inspectFuncReceiveLargePacket != nil {
+		mmReceiveLargePacket.inspectFuncReceiveLargePacket(rp, preRead, r)
+	}
+
+	mm_params := &HostNetworkMockReceiveLargePacketParams{rp, preRead, r}
+
+	// Record call args
+	mmReceiveLargePacket.ReceiveLargePacketMock.mutex.Lock()
+	mmReceiveLargePacket.ReceiveLargePacketMock.callArgs = append(mmReceiveLargePacket.ReceiveLargePacketMock.callArgs, mm_params)
+	mmReceiveLargePacket.ReceiveLargePacketMock.mutex.Unlock()
+
+	for _, e := range mmReceiveLargePacket.ReceiveLargePacketMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmReceiveLargePacket.ReceiveLargePacketMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmReceiveLargePacket.ReceiveLargePacketMock.defaultExpectation.Counter, 1)
+		mm_want := mmReceiveLargePacket.ReceiveLargePacketMock.defaultExpectation.params
+		mm_got := HostNetworkMockReceiveLargePacketParams{rp, preRead, r}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmReceiveLargePacket.t.Errorf("HostNetworkMock.ReceiveLargePacket got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmReceiveLargePacket.ReceiveLargePacketMock.defaultExpectation.results
+		if mm_results == nil {
+			mmReceiveLargePacket.t.Fatal("No results are set for the HostNetworkMock.ReceiveLargePacket")
+		}
+		return (*mm_results).err
+	}
+	if mmReceiveLargePacket.funcReceiveLargePacket != nil {
+		return mmReceiveLargePacket.funcReceiveLargePacket(rp, preRead, r)
+	}
+	mmReceiveLargePacket.t.Fatalf("Unexpected call to HostNetworkMock.ReceiveLargePacket. %v %v %v", rp, preRead, r)
 	return
 }
 
-// PublicAddressAfterCounter returns a count of finished HostNetworkMock.PublicAddress invocations
-func (mmPublicAddress *HostNetworkMock) PublicAddressAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmPublicAddress.afterPublicAddressCounter)
+// ReceiveLargePacketAfterCounter returns a count of finished HostNetworkMock.ReceiveLargePacket invocations
+func (mmReceiveLargePacket *HostNetworkMock) ReceiveLargePacketAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmReceiveLargePacket.afterReceiveLargePacketCounter)
 }
 
-// PublicAddressBeforeCounter returns a count of HostNetworkMock.PublicAddress invocations
-func (mmPublicAddress *HostNetworkMock) PublicAddressBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmPublicAddress.beforePublicAddressCounter)
+// ReceiveLargePacketBeforeCounter returns a count of HostNetworkMock.ReceiveLargePacket invocations
+func (mmReceiveLargePacket *HostNetworkMock) ReceiveLargePacketBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmReceiveLargePacket.beforeReceiveLargePacketCounter)
 }
 
-// MinimockPublicAddressDone returns true if the count of the PublicAddress invocations corresponds
+// Calls returns a list of arguments used in each call to HostNetworkMock.ReceiveLargePacket.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmReceiveLargePacket *mHostNetworkMockReceiveLargePacket) Calls() []*HostNetworkMockReceiveLargePacketParams {
+	mmReceiveLargePacket.mutex.RLock()
+
+	argCopy := make([]*HostNetworkMockReceiveLargePacketParams, len(mmReceiveLargePacket.callArgs))
+	copy(argCopy, mmReceiveLargePacket.callArgs)
+
+	mmReceiveLargePacket.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockReceiveLargePacketDone returns true if the count of the ReceiveLargePacket invocations corresponds
 // the number of defined expectations
-func (m *HostNetworkMock) MinimockPublicAddressDone() bool {
-	for _, e := range m.PublicAddressMock.expectations {
+func (m *HostNetworkMock) MinimockReceiveLargePacketDone() bool {
+	for _, e := range m.ReceiveLargePacketMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.PublicAddressMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterPublicAddressCounter) < 1 {
+	if m.ReceiveLargePacketMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReceiveLargePacketCounter) < 1 {
 		return false
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcPublicAddress != nil && mm_atomic.LoadUint64(&m.afterPublicAddressCounter) < 1 {
+	if m.funcReceiveLargePacket != nil && mm_atomic.LoadUint64(&m.afterReceiveLargePacketCounter) < 1 {
 		return false
 	}
 	return true
 }
 
-// MinimockPublicAddressInspect logs each unmet expectation
-func (m *HostNetworkMock) MinimockPublicAddressInspect() {
-	for _, e := range m.PublicAddressMock.expectations {
+// MinimockReceiveLargePacketInspect logs each unmet expectation
+func (m *HostNetworkMock) MinimockReceiveLargePacketInspect() {
+	for _, e := range m.ReceiveLargePacketMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to HostNetworkMock.PublicAddress")
+			m.t.Errorf("Expected call to HostNetworkMock.ReceiveLargePacket with params: %#v", *e.params)
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.PublicAddressMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterPublicAddressCounter) < 1 {
-		m.t.Error("Expected call to HostNetworkMock.PublicAddress")
+	if m.ReceiveLargePacketMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReceiveLargePacketCounter) < 1 {
+		if m.ReceiveLargePacketMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to HostNetworkMock.ReceiveLargePacket")
+		} else {
+			m.t.Errorf("Expected call to HostNetworkMock.ReceiveLargePacket with params: %#v", *m.ReceiveLargePacketMock.defaultExpectation.params)
+		}
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcPublicAddress != nil && mm_atomic.LoadUint64(&m.afterPublicAddressCounter) < 1 {
-		m.t.Error("Expected call to HostNetworkMock.PublicAddress")
+	if m.funcReceiveLargePacket != nil && mm_atomic.LoadUint64(&m.afterReceiveLargePacketCounter) < 1 {
+		m.t.Error("Expected call to HostNetworkMock.ReceiveLargePacket")
+	}
+}
+
+type mHostNetworkMockReceiveSmallPacket struct {
+	mock               *HostNetworkMock
+	defaultExpectation *HostNetworkMockReceiveSmallPacketExpectation
+	expectations       []*HostNetworkMockReceiveSmallPacketExpectation
+
+	callArgs []*HostNetworkMockReceiveSmallPacketParams
+	mutex    sync.RWMutex
+}
+
+// HostNetworkMockReceiveSmallPacketExpectation specifies expectation struct of the HostNetwork.ReceiveSmallPacket
+type HostNetworkMockReceiveSmallPacketExpectation struct {
+	mock   *HostNetworkMock
+	params *HostNetworkMockReceiveSmallPacketParams
+
+	Counter uint64
+}
+
+// HostNetworkMockReceiveSmallPacketParams contains parameters of the HostNetwork.ReceiveSmallPacket
+type HostNetworkMockReceiveSmallPacketParams struct {
+	rp *uniproto.ReceivedPacket
+	b  []byte
+}
+
+// Expect sets up expected params for HostNetwork.ReceiveSmallPacket
+func (mmReceiveSmallPacket *mHostNetworkMockReceiveSmallPacket) Expect(rp *uniproto.ReceivedPacket, b []byte) *mHostNetworkMockReceiveSmallPacket {
+	if mmReceiveSmallPacket.mock.funcReceiveSmallPacket != nil {
+		mmReceiveSmallPacket.mock.t.Fatalf("HostNetworkMock.ReceiveSmallPacket mock is already set by Set")
+	}
+
+	if mmReceiveSmallPacket.defaultExpectation == nil {
+		mmReceiveSmallPacket.defaultExpectation = &HostNetworkMockReceiveSmallPacketExpectation{}
+	}
+
+	mmReceiveSmallPacket.defaultExpectation.params = &HostNetworkMockReceiveSmallPacketParams{rp, b}
+	for _, e := range mmReceiveSmallPacket.expectations {
+		if minimock.Equal(e.params, mmReceiveSmallPacket.defaultExpectation.params) {
+			mmReceiveSmallPacket.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmReceiveSmallPacket.defaultExpectation.params)
+		}
+	}
+
+	return mmReceiveSmallPacket
+}
+
+// Inspect accepts an inspector function that has same arguments as the HostNetwork.ReceiveSmallPacket
+func (mmReceiveSmallPacket *mHostNetworkMockReceiveSmallPacket) Inspect(f func(rp *uniproto.ReceivedPacket, b []byte)) *mHostNetworkMockReceiveSmallPacket {
+	if mmReceiveSmallPacket.mock.inspectFuncReceiveSmallPacket != nil {
+		mmReceiveSmallPacket.mock.t.Fatalf("Inspect function is already set for HostNetworkMock.ReceiveSmallPacket")
+	}
+
+	mmReceiveSmallPacket.mock.inspectFuncReceiveSmallPacket = f
+
+	return mmReceiveSmallPacket
+}
+
+// Return sets up results that will be returned by HostNetwork.ReceiveSmallPacket
+func (mmReceiveSmallPacket *mHostNetworkMockReceiveSmallPacket) Return() *HostNetworkMock {
+	if mmReceiveSmallPacket.mock.funcReceiveSmallPacket != nil {
+		mmReceiveSmallPacket.mock.t.Fatalf("HostNetworkMock.ReceiveSmallPacket mock is already set by Set")
+	}
+
+	if mmReceiveSmallPacket.defaultExpectation == nil {
+		mmReceiveSmallPacket.defaultExpectation = &HostNetworkMockReceiveSmallPacketExpectation{mock: mmReceiveSmallPacket.mock}
+	}
+
+	return mmReceiveSmallPacket.mock
+}
+
+//Set uses given function f to mock the HostNetwork.ReceiveSmallPacket method
+func (mmReceiveSmallPacket *mHostNetworkMockReceiveSmallPacket) Set(f func(rp *uniproto.ReceivedPacket, b []byte)) *HostNetworkMock {
+	if mmReceiveSmallPacket.defaultExpectation != nil {
+		mmReceiveSmallPacket.mock.t.Fatalf("Default expectation is already set for the HostNetwork.ReceiveSmallPacket method")
+	}
+
+	if len(mmReceiveSmallPacket.expectations) > 0 {
+		mmReceiveSmallPacket.mock.t.Fatalf("Some expectations are already set for the HostNetwork.ReceiveSmallPacket method")
+	}
+
+	mmReceiveSmallPacket.mock.funcReceiveSmallPacket = f
+	return mmReceiveSmallPacket.mock
+}
+
+// ReceiveSmallPacket implements network.HostNetwork
+func (mmReceiveSmallPacket *HostNetworkMock) ReceiveSmallPacket(rp *uniproto.ReceivedPacket, b []byte) {
+	mm_atomic.AddUint64(&mmReceiveSmallPacket.beforeReceiveSmallPacketCounter, 1)
+	defer mm_atomic.AddUint64(&mmReceiveSmallPacket.afterReceiveSmallPacketCounter, 1)
+
+	if mmReceiveSmallPacket.inspectFuncReceiveSmallPacket != nil {
+		mmReceiveSmallPacket.inspectFuncReceiveSmallPacket(rp, b)
+	}
+
+	mm_params := &HostNetworkMockReceiveSmallPacketParams{rp, b}
+
+	// Record call args
+	mmReceiveSmallPacket.ReceiveSmallPacketMock.mutex.Lock()
+	mmReceiveSmallPacket.ReceiveSmallPacketMock.callArgs = append(mmReceiveSmallPacket.ReceiveSmallPacketMock.callArgs, mm_params)
+	mmReceiveSmallPacket.ReceiveSmallPacketMock.mutex.Unlock()
+
+	for _, e := range mmReceiveSmallPacket.ReceiveSmallPacketMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return
+		}
+	}
+
+	if mmReceiveSmallPacket.ReceiveSmallPacketMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmReceiveSmallPacket.ReceiveSmallPacketMock.defaultExpectation.Counter, 1)
+		mm_want := mmReceiveSmallPacket.ReceiveSmallPacketMock.defaultExpectation.params
+		mm_got := HostNetworkMockReceiveSmallPacketParams{rp, b}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmReceiveSmallPacket.t.Errorf("HostNetworkMock.ReceiveSmallPacket got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		return
+
+	}
+	if mmReceiveSmallPacket.funcReceiveSmallPacket != nil {
+		mmReceiveSmallPacket.funcReceiveSmallPacket(rp, b)
+		return
+	}
+	mmReceiveSmallPacket.t.Fatalf("Unexpected call to HostNetworkMock.ReceiveSmallPacket. %v %v", rp, b)
+
+}
+
+// ReceiveSmallPacketAfterCounter returns a count of finished HostNetworkMock.ReceiveSmallPacket invocations
+func (mmReceiveSmallPacket *HostNetworkMock) ReceiveSmallPacketAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmReceiveSmallPacket.afterReceiveSmallPacketCounter)
+}
+
+// ReceiveSmallPacketBeforeCounter returns a count of HostNetworkMock.ReceiveSmallPacket invocations
+func (mmReceiveSmallPacket *HostNetworkMock) ReceiveSmallPacketBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmReceiveSmallPacket.beforeReceiveSmallPacketCounter)
+}
+
+// Calls returns a list of arguments used in each call to HostNetworkMock.ReceiveSmallPacket.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmReceiveSmallPacket *mHostNetworkMockReceiveSmallPacket) Calls() []*HostNetworkMockReceiveSmallPacketParams {
+	mmReceiveSmallPacket.mutex.RLock()
+
+	argCopy := make([]*HostNetworkMockReceiveSmallPacketParams, len(mmReceiveSmallPacket.callArgs))
+	copy(argCopy, mmReceiveSmallPacket.callArgs)
+
+	mmReceiveSmallPacket.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockReceiveSmallPacketDone returns true if the count of the ReceiveSmallPacket invocations corresponds
+// the number of defined expectations
+func (m *HostNetworkMock) MinimockReceiveSmallPacketDone() bool {
+	for _, e := range m.ReceiveSmallPacketMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ReceiveSmallPacketMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReceiveSmallPacketCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcReceiveSmallPacket != nil && mm_atomic.LoadUint64(&m.afterReceiveSmallPacketCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockReceiveSmallPacketInspect logs each unmet expectation
+func (m *HostNetworkMock) MinimockReceiveSmallPacketInspect() {
+	for _, e := range m.ReceiveSmallPacketMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to HostNetworkMock.ReceiveSmallPacket with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ReceiveSmallPacketMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReceiveSmallPacketCounter) < 1 {
+		if m.ReceiveSmallPacketMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to HostNetworkMock.ReceiveSmallPacket")
+		} else {
+			m.t.Errorf("Expected call to HostNetworkMock.ReceiveSmallPacket with params: %#v", *m.ReceiveSmallPacketMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcReceiveSmallPacket != nil && mm_atomic.LoadUint64(&m.afterReceiveSmallPacketCounter) < 1 {
+		m.t.Error("Expected call to HostNetworkMock.ReceiveSmallPacket")
 	}
 }
 
@@ -637,225 +883,6 @@ func (m *HostNetworkMock) MinimockRegisterRequestHandlerInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcRegisterRequestHandler != nil && mm_atomic.LoadUint64(&m.afterRegisterRequestHandlerCounter) < 1 {
 		m.t.Error("Expected call to HostNetworkMock.RegisterRequestHandler")
-	}
-}
-
-type mHostNetworkMockSendRequest struct {
-	mock               *HostNetworkMock
-	defaultExpectation *HostNetworkMockSendRequestExpectation
-	expectations       []*HostNetworkMockSendRequestExpectation
-
-	callArgs []*HostNetworkMockSendRequestParams
-	mutex    sync.RWMutex
-}
-
-// HostNetworkMockSendRequestExpectation specifies expectation struct of the HostNetwork.SendRequest
-type HostNetworkMockSendRequestExpectation struct {
-	mock    *HostNetworkMock
-	params  *HostNetworkMockSendRequestParams
-	results *HostNetworkMockSendRequestResults
-	Counter uint64
-}
-
-// HostNetworkMockSendRequestParams contains parameters of the HostNetwork.SendRequest
-type HostNetworkMockSendRequestParams struct {
-	ctx         context.Context
-	t           types.PacketType
-	requestData interface{}
-	receiver    reference.Global
-}
-
-// HostNetworkMockSendRequestResults contains results of the HostNetwork.SendRequest
-type HostNetworkMockSendRequestResults struct {
-	f1  mm_network.Future
-	err error
-}
-
-// Expect sets up expected params for HostNetwork.SendRequest
-func (mmSendRequest *mHostNetworkMockSendRequest) Expect(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global) *mHostNetworkMockSendRequest {
-	if mmSendRequest.mock.funcSendRequest != nil {
-		mmSendRequest.mock.t.Fatalf("HostNetworkMock.SendRequest mock is already set by Set")
-	}
-
-	if mmSendRequest.defaultExpectation == nil {
-		mmSendRequest.defaultExpectation = &HostNetworkMockSendRequestExpectation{}
-	}
-
-	mmSendRequest.defaultExpectation.params = &HostNetworkMockSendRequestParams{ctx, t, requestData, receiver}
-	for _, e := range mmSendRequest.expectations {
-		if minimock.Equal(e.params, mmSendRequest.defaultExpectation.params) {
-			mmSendRequest.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSendRequest.defaultExpectation.params)
-		}
-	}
-
-	return mmSendRequest
-}
-
-// Inspect accepts an inspector function that has same arguments as the HostNetwork.SendRequest
-func (mmSendRequest *mHostNetworkMockSendRequest) Inspect(f func(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global)) *mHostNetworkMockSendRequest {
-	if mmSendRequest.mock.inspectFuncSendRequest != nil {
-		mmSendRequest.mock.t.Fatalf("Inspect function is already set for HostNetworkMock.SendRequest")
-	}
-
-	mmSendRequest.mock.inspectFuncSendRequest = f
-
-	return mmSendRequest
-}
-
-// Return sets up results that will be returned by HostNetwork.SendRequest
-func (mmSendRequest *mHostNetworkMockSendRequest) Return(f1 mm_network.Future, err error) *HostNetworkMock {
-	if mmSendRequest.mock.funcSendRequest != nil {
-		mmSendRequest.mock.t.Fatalf("HostNetworkMock.SendRequest mock is already set by Set")
-	}
-
-	if mmSendRequest.defaultExpectation == nil {
-		mmSendRequest.defaultExpectation = &HostNetworkMockSendRequestExpectation{mock: mmSendRequest.mock}
-	}
-	mmSendRequest.defaultExpectation.results = &HostNetworkMockSendRequestResults{f1, err}
-	return mmSendRequest.mock
-}
-
-//Set uses given function f to mock the HostNetwork.SendRequest method
-func (mmSendRequest *mHostNetworkMockSendRequest) Set(f func(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global) (f1 mm_network.Future, err error)) *HostNetworkMock {
-	if mmSendRequest.defaultExpectation != nil {
-		mmSendRequest.mock.t.Fatalf("Default expectation is already set for the HostNetwork.SendRequest method")
-	}
-
-	if len(mmSendRequest.expectations) > 0 {
-		mmSendRequest.mock.t.Fatalf("Some expectations are already set for the HostNetwork.SendRequest method")
-	}
-
-	mmSendRequest.mock.funcSendRequest = f
-	return mmSendRequest.mock
-}
-
-// When sets expectation for the HostNetwork.SendRequest which will trigger the result defined by the following
-// Then helper
-func (mmSendRequest *mHostNetworkMockSendRequest) When(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global) *HostNetworkMockSendRequestExpectation {
-	if mmSendRequest.mock.funcSendRequest != nil {
-		mmSendRequest.mock.t.Fatalf("HostNetworkMock.SendRequest mock is already set by Set")
-	}
-
-	expectation := &HostNetworkMockSendRequestExpectation{
-		mock:   mmSendRequest.mock,
-		params: &HostNetworkMockSendRequestParams{ctx, t, requestData, receiver},
-	}
-	mmSendRequest.expectations = append(mmSendRequest.expectations, expectation)
-	return expectation
-}
-
-// Then sets up HostNetwork.SendRequest return parameters for the expectation previously defined by the When method
-func (e *HostNetworkMockSendRequestExpectation) Then(f1 mm_network.Future, err error) *HostNetworkMock {
-	e.results = &HostNetworkMockSendRequestResults{f1, err}
-	return e.mock
-}
-
-// SendRequest implements network.HostNetwork
-func (mmSendRequest *HostNetworkMock) SendRequest(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global) (f1 mm_network.Future, err error) {
-	mm_atomic.AddUint64(&mmSendRequest.beforeSendRequestCounter, 1)
-	defer mm_atomic.AddUint64(&mmSendRequest.afterSendRequestCounter, 1)
-
-	if mmSendRequest.inspectFuncSendRequest != nil {
-		mmSendRequest.inspectFuncSendRequest(ctx, t, requestData, receiver)
-	}
-
-	mm_params := &HostNetworkMockSendRequestParams{ctx, t, requestData, receiver}
-
-	// Record call args
-	mmSendRequest.SendRequestMock.mutex.Lock()
-	mmSendRequest.SendRequestMock.callArgs = append(mmSendRequest.SendRequestMock.callArgs, mm_params)
-	mmSendRequest.SendRequestMock.mutex.Unlock()
-
-	for _, e := range mmSendRequest.SendRequestMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.f1, e.results.err
-		}
-	}
-
-	if mmSendRequest.SendRequestMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmSendRequest.SendRequestMock.defaultExpectation.Counter, 1)
-		mm_want := mmSendRequest.SendRequestMock.defaultExpectation.params
-		mm_got := HostNetworkMockSendRequestParams{ctx, t, requestData, receiver}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmSendRequest.t.Errorf("HostNetworkMock.SendRequest got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmSendRequest.SendRequestMock.defaultExpectation.results
-		if mm_results == nil {
-			mmSendRequest.t.Fatal("No results are set for the HostNetworkMock.SendRequest")
-		}
-		return (*mm_results).f1, (*mm_results).err
-	}
-	if mmSendRequest.funcSendRequest != nil {
-		return mmSendRequest.funcSendRequest(ctx, t, requestData, receiver)
-	}
-	mmSendRequest.t.Fatalf("Unexpected call to HostNetworkMock.SendRequest. %v %v %v %v", ctx, t, requestData, receiver)
-	return
-}
-
-// SendRequestAfterCounter returns a count of finished HostNetworkMock.SendRequest invocations
-func (mmSendRequest *HostNetworkMock) SendRequestAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmSendRequest.afterSendRequestCounter)
-}
-
-// SendRequestBeforeCounter returns a count of HostNetworkMock.SendRequest invocations
-func (mmSendRequest *HostNetworkMock) SendRequestBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmSendRequest.beforeSendRequestCounter)
-}
-
-// Calls returns a list of arguments used in each call to HostNetworkMock.SendRequest.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmSendRequest *mHostNetworkMockSendRequest) Calls() []*HostNetworkMockSendRequestParams {
-	mmSendRequest.mutex.RLock()
-
-	argCopy := make([]*HostNetworkMockSendRequestParams, len(mmSendRequest.callArgs))
-	copy(argCopy, mmSendRequest.callArgs)
-
-	mmSendRequest.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockSendRequestDone returns true if the count of the SendRequest invocations corresponds
-// the number of defined expectations
-func (m *HostNetworkMock) MinimockSendRequestDone() bool {
-	for _, e := range m.SendRequestMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.SendRequestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSendRequestCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcSendRequest != nil && mm_atomic.LoadUint64(&m.afterSendRequestCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockSendRequestInspect logs each unmet expectation
-func (m *HostNetworkMock) MinimockSendRequestInspect() {
-	for _, e := range m.SendRequestMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to HostNetworkMock.SendRequest with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.SendRequestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSendRequestCounter) < 1 {
-		if m.SendRequestMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to HostNetworkMock.SendRequest")
-		} else {
-			m.t.Errorf("Expected call to HostNetworkMock.SendRequest with params: %#v", *m.SendRequestMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcSendRequest != nil && mm_atomic.LoadUint64(&m.afterSendRequestCounter) < 1 {
-		m.t.Error("Expected call to HostNetworkMock.SendRequest")
 	}
 }
 
@@ -1078,452 +1105,18 @@ func (m *HostNetworkMock) MinimockSendRequestToHostInspect() {
 	}
 }
 
-type mHostNetworkMockStart struct {
-	mock               *HostNetworkMock
-	defaultExpectation *HostNetworkMockStartExpectation
-	expectations       []*HostNetworkMockStartExpectation
-
-	callArgs []*HostNetworkMockStartParams
-	mutex    sync.RWMutex
-}
-
-// HostNetworkMockStartExpectation specifies expectation struct of the HostNetwork.Start
-type HostNetworkMockStartExpectation struct {
-	mock    *HostNetworkMock
-	params  *HostNetworkMockStartParams
-	results *HostNetworkMockStartResults
-	Counter uint64
-}
-
-// HostNetworkMockStartParams contains parameters of the HostNetwork.Start
-type HostNetworkMockStartParams struct {
-	ctx context.Context
-}
-
-// HostNetworkMockStartResults contains results of the HostNetwork.Start
-type HostNetworkMockStartResults struct {
-	err error
-}
-
-// Expect sets up expected params for HostNetwork.Start
-func (mmStart *mHostNetworkMockStart) Expect(ctx context.Context) *mHostNetworkMockStart {
-	if mmStart.mock.funcStart != nil {
-		mmStart.mock.t.Fatalf("HostNetworkMock.Start mock is already set by Set")
-	}
-
-	if mmStart.defaultExpectation == nil {
-		mmStart.defaultExpectation = &HostNetworkMockStartExpectation{}
-	}
-
-	mmStart.defaultExpectation.params = &HostNetworkMockStartParams{ctx}
-	for _, e := range mmStart.expectations {
-		if minimock.Equal(e.params, mmStart.defaultExpectation.params) {
-			mmStart.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmStart.defaultExpectation.params)
-		}
-	}
-
-	return mmStart
-}
-
-// Inspect accepts an inspector function that has same arguments as the HostNetwork.Start
-func (mmStart *mHostNetworkMockStart) Inspect(f func(ctx context.Context)) *mHostNetworkMockStart {
-	if mmStart.mock.inspectFuncStart != nil {
-		mmStart.mock.t.Fatalf("Inspect function is already set for HostNetworkMock.Start")
-	}
-
-	mmStart.mock.inspectFuncStart = f
-
-	return mmStart
-}
-
-// Return sets up results that will be returned by HostNetwork.Start
-func (mmStart *mHostNetworkMockStart) Return(err error) *HostNetworkMock {
-	if mmStart.mock.funcStart != nil {
-		mmStart.mock.t.Fatalf("HostNetworkMock.Start mock is already set by Set")
-	}
-
-	if mmStart.defaultExpectation == nil {
-		mmStart.defaultExpectation = &HostNetworkMockStartExpectation{mock: mmStart.mock}
-	}
-	mmStart.defaultExpectation.results = &HostNetworkMockStartResults{err}
-	return mmStart.mock
-}
-
-//Set uses given function f to mock the HostNetwork.Start method
-func (mmStart *mHostNetworkMockStart) Set(f func(ctx context.Context) (err error)) *HostNetworkMock {
-	if mmStart.defaultExpectation != nil {
-		mmStart.mock.t.Fatalf("Default expectation is already set for the HostNetwork.Start method")
-	}
-
-	if len(mmStart.expectations) > 0 {
-		mmStart.mock.t.Fatalf("Some expectations are already set for the HostNetwork.Start method")
-	}
-
-	mmStart.mock.funcStart = f
-	return mmStart.mock
-}
-
-// When sets expectation for the HostNetwork.Start which will trigger the result defined by the following
-// Then helper
-func (mmStart *mHostNetworkMockStart) When(ctx context.Context) *HostNetworkMockStartExpectation {
-	if mmStart.mock.funcStart != nil {
-		mmStart.mock.t.Fatalf("HostNetworkMock.Start mock is already set by Set")
-	}
-
-	expectation := &HostNetworkMockStartExpectation{
-		mock:   mmStart.mock,
-		params: &HostNetworkMockStartParams{ctx},
-	}
-	mmStart.expectations = append(mmStart.expectations, expectation)
-	return expectation
-}
-
-// Then sets up HostNetwork.Start return parameters for the expectation previously defined by the When method
-func (e *HostNetworkMockStartExpectation) Then(err error) *HostNetworkMock {
-	e.results = &HostNetworkMockStartResults{err}
-	return e.mock
-}
-
-// Start implements network.HostNetwork
-func (mmStart *HostNetworkMock) Start(ctx context.Context) (err error) {
-	mm_atomic.AddUint64(&mmStart.beforeStartCounter, 1)
-	defer mm_atomic.AddUint64(&mmStart.afterStartCounter, 1)
-
-	if mmStart.inspectFuncStart != nil {
-		mmStart.inspectFuncStart(ctx)
-	}
-
-	mm_params := &HostNetworkMockStartParams{ctx}
-
-	// Record call args
-	mmStart.StartMock.mutex.Lock()
-	mmStart.StartMock.callArgs = append(mmStart.StartMock.callArgs, mm_params)
-	mmStart.StartMock.mutex.Unlock()
-
-	for _, e := range mmStart.StartMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.err
-		}
-	}
-
-	if mmStart.StartMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmStart.StartMock.defaultExpectation.Counter, 1)
-		mm_want := mmStart.StartMock.defaultExpectation.params
-		mm_got := HostNetworkMockStartParams{ctx}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmStart.t.Errorf("HostNetworkMock.Start got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmStart.StartMock.defaultExpectation.results
-		if mm_results == nil {
-			mmStart.t.Fatal("No results are set for the HostNetworkMock.Start")
-		}
-		return (*mm_results).err
-	}
-	if mmStart.funcStart != nil {
-		return mmStart.funcStart(ctx)
-	}
-	mmStart.t.Fatalf("Unexpected call to HostNetworkMock.Start. %v", ctx)
-	return
-}
-
-// StartAfterCounter returns a count of finished HostNetworkMock.Start invocations
-func (mmStart *HostNetworkMock) StartAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmStart.afterStartCounter)
-}
-
-// StartBeforeCounter returns a count of HostNetworkMock.Start invocations
-func (mmStart *HostNetworkMock) StartBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmStart.beforeStartCounter)
-}
-
-// Calls returns a list of arguments used in each call to HostNetworkMock.Start.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmStart *mHostNetworkMockStart) Calls() []*HostNetworkMockStartParams {
-	mmStart.mutex.RLock()
-
-	argCopy := make([]*HostNetworkMockStartParams, len(mmStart.callArgs))
-	copy(argCopy, mmStart.callArgs)
-
-	mmStart.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockStartDone returns true if the count of the Start invocations corresponds
-// the number of defined expectations
-func (m *HostNetworkMock) MinimockStartDone() bool {
-	for _, e := range m.StartMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.StartMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterStartCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcStart != nil && mm_atomic.LoadUint64(&m.afterStartCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockStartInspect logs each unmet expectation
-func (m *HostNetworkMock) MinimockStartInspect() {
-	for _, e := range m.StartMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to HostNetworkMock.Start with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.StartMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterStartCounter) < 1 {
-		if m.StartMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to HostNetworkMock.Start")
-		} else {
-			m.t.Errorf("Expected call to HostNetworkMock.Start with params: %#v", *m.StartMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcStart != nil && mm_atomic.LoadUint64(&m.afterStartCounter) < 1 {
-		m.t.Error("Expected call to HostNetworkMock.Start")
-	}
-}
-
-type mHostNetworkMockStop struct {
-	mock               *HostNetworkMock
-	defaultExpectation *HostNetworkMockStopExpectation
-	expectations       []*HostNetworkMockStopExpectation
-
-	callArgs []*HostNetworkMockStopParams
-	mutex    sync.RWMutex
-}
-
-// HostNetworkMockStopExpectation specifies expectation struct of the HostNetwork.Stop
-type HostNetworkMockStopExpectation struct {
-	mock    *HostNetworkMock
-	params  *HostNetworkMockStopParams
-	results *HostNetworkMockStopResults
-	Counter uint64
-}
-
-// HostNetworkMockStopParams contains parameters of the HostNetwork.Stop
-type HostNetworkMockStopParams struct {
-	ctx context.Context
-}
-
-// HostNetworkMockStopResults contains results of the HostNetwork.Stop
-type HostNetworkMockStopResults struct {
-	err error
-}
-
-// Expect sets up expected params for HostNetwork.Stop
-func (mmStop *mHostNetworkMockStop) Expect(ctx context.Context) *mHostNetworkMockStop {
-	if mmStop.mock.funcStop != nil {
-		mmStop.mock.t.Fatalf("HostNetworkMock.Stop mock is already set by Set")
-	}
-
-	if mmStop.defaultExpectation == nil {
-		mmStop.defaultExpectation = &HostNetworkMockStopExpectation{}
-	}
-
-	mmStop.defaultExpectation.params = &HostNetworkMockStopParams{ctx}
-	for _, e := range mmStop.expectations {
-		if minimock.Equal(e.params, mmStop.defaultExpectation.params) {
-			mmStop.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmStop.defaultExpectation.params)
-		}
-	}
-
-	return mmStop
-}
-
-// Inspect accepts an inspector function that has same arguments as the HostNetwork.Stop
-func (mmStop *mHostNetworkMockStop) Inspect(f func(ctx context.Context)) *mHostNetworkMockStop {
-	if mmStop.mock.inspectFuncStop != nil {
-		mmStop.mock.t.Fatalf("Inspect function is already set for HostNetworkMock.Stop")
-	}
-
-	mmStop.mock.inspectFuncStop = f
-
-	return mmStop
-}
-
-// Return sets up results that will be returned by HostNetwork.Stop
-func (mmStop *mHostNetworkMockStop) Return(err error) *HostNetworkMock {
-	if mmStop.mock.funcStop != nil {
-		mmStop.mock.t.Fatalf("HostNetworkMock.Stop mock is already set by Set")
-	}
-
-	if mmStop.defaultExpectation == nil {
-		mmStop.defaultExpectation = &HostNetworkMockStopExpectation{mock: mmStop.mock}
-	}
-	mmStop.defaultExpectation.results = &HostNetworkMockStopResults{err}
-	return mmStop.mock
-}
-
-//Set uses given function f to mock the HostNetwork.Stop method
-func (mmStop *mHostNetworkMockStop) Set(f func(ctx context.Context) (err error)) *HostNetworkMock {
-	if mmStop.defaultExpectation != nil {
-		mmStop.mock.t.Fatalf("Default expectation is already set for the HostNetwork.Stop method")
-	}
-
-	if len(mmStop.expectations) > 0 {
-		mmStop.mock.t.Fatalf("Some expectations are already set for the HostNetwork.Stop method")
-	}
-
-	mmStop.mock.funcStop = f
-	return mmStop.mock
-}
-
-// When sets expectation for the HostNetwork.Stop which will trigger the result defined by the following
-// Then helper
-func (mmStop *mHostNetworkMockStop) When(ctx context.Context) *HostNetworkMockStopExpectation {
-	if mmStop.mock.funcStop != nil {
-		mmStop.mock.t.Fatalf("HostNetworkMock.Stop mock is already set by Set")
-	}
-
-	expectation := &HostNetworkMockStopExpectation{
-		mock:   mmStop.mock,
-		params: &HostNetworkMockStopParams{ctx},
-	}
-	mmStop.expectations = append(mmStop.expectations, expectation)
-	return expectation
-}
-
-// Then sets up HostNetwork.Stop return parameters for the expectation previously defined by the When method
-func (e *HostNetworkMockStopExpectation) Then(err error) *HostNetworkMock {
-	e.results = &HostNetworkMockStopResults{err}
-	return e.mock
-}
-
-// Stop implements network.HostNetwork
-func (mmStop *HostNetworkMock) Stop(ctx context.Context) (err error) {
-	mm_atomic.AddUint64(&mmStop.beforeStopCounter, 1)
-	defer mm_atomic.AddUint64(&mmStop.afterStopCounter, 1)
-
-	if mmStop.inspectFuncStop != nil {
-		mmStop.inspectFuncStop(ctx)
-	}
-
-	mm_params := &HostNetworkMockStopParams{ctx}
-
-	// Record call args
-	mmStop.StopMock.mutex.Lock()
-	mmStop.StopMock.callArgs = append(mmStop.StopMock.callArgs, mm_params)
-	mmStop.StopMock.mutex.Unlock()
-
-	for _, e := range mmStop.StopMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.err
-		}
-	}
-
-	if mmStop.StopMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmStop.StopMock.defaultExpectation.Counter, 1)
-		mm_want := mmStop.StopMock.defaultExpectation.params
-		mm_got := HostNetworkMockStopParams{ctx}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmStop.t.Errorf("HostNetworkMock.Stop got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmStop.StopMock.defaultExpectation.results
-		if mm_results == nil {
-			mmStop.t.Fatal("No results are set for the HostNetworkMock.Stop")
-		}
-		return (*mm_results).err
-	}
-	if mmStop.funcStop != nil {
-		return mmStop.funcStop(ctx)
-	}
-	mmStop.t.Fatalf("Unexpected call to HostNetworkMock.Stop. %v", ctx)
-	return
-}
-
-// StopAfterCounter returns a count of finished HostNetworkMock.Stop invocations
-func (mmStop *HostNetworkMock) StopAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmStop.afterStopCounter)
-}
-
-// StopBeforeCounter returns a count of HostNetworkMock.Stop invocations
-func (mmStop *HostNetworkMock) StopBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmStop.beforeStopCounter)
-}
-
-// Calls returns a list of arguments used in each call to HostNetworkMock.Stop.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmStop *mHostNetworkMockStop) Calls() []*HostNetworkMockStopParams {
-	mmStop.mutex.RLock()
-
-	argCopy := make([]*HostNetworkMockStopParams, len(mmStop.callArgs))
-	copy(argCopy, mmStop.callArgs)
-
-	mmStop.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockStopDone returns true if the count of the Stop invocations corresponds
-// the number of defined expectations
-func (m *HostNetworkMock) MinimockStopDone() bool {
-	for _, e := range m.StopMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.StopMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterStopCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcStop != nil && mm_atomic.LoadUint64(&m.afterStopCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockStopInspect logs each unmet expectation
-func (m *HostNetworkMock) MinimockStopInspect() {
-	for _, e := range m.StopMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to HostNetworkMock.Stop with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.StopMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterStopCounter) < 1 {
-		if m.StopMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to HostNetworkMock.Stop")
-		} else {
-			m.t.Errorf("Expected call to HostNetworkMock.Stop with params: %#v", *m.StopMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcStop != nil && mm_atomic.LoadUint64(&m.afterStopCounter) < 1 {
-		m.t.Error("Expected call to HostNetworkMock.Stop")
-	}
-}
-
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *HostNetworkMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockBuildResponseInspect()
 
-		m.MinimockPublicAddressInspect()
+		m.MinimockReceiveLargePacketInspect()
+
+		m.MinimockReceiveSmallPacketInspect()
 
 		m.MinimockRegisterRequestHandlerInspect()
 
-		m.MinimockSendRequestInspect()
-
 		m.MinimockSendRequestToHostInspect()
-
-		m.MinimockStartInspect()
-
-		m.MinimockStopInspect()
 		m.t.FailNow()
 	}
 }
@@ -1548,10 +1141,8 @@ func (m *HostNetworkMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockBuildResponseDone() &&
-		m.MinimockPublicAddressDone() &&
+		m.MinimockReceiveLargePacketDone() &&
+		m.MinimockReceiveSmallPacketDone() &&
 		m.MinimockRegisterRequestHandlerDone() &&
-		m.MinimockSendRequestDone() &&
-		m.MinimockSendRequestToHostDone() &&
-		m.MinimockStartDone() &&
-		m.MinimockStopDone()
+		m.MinimockSendRequestToHostDone()
 }
