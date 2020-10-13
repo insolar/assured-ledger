@@ -22,110 +22,6 @@ import (
 
 // ============================================================================
 
-type ROutboundResponseDefinition struct {
-	touched                           bool
-	count                             atomickit.Int
-	countBefore                       atomickit.Int
-	expectedCount                     int
-	anticipatedRefFromBytesHandler    ROutboundResponseAnticipatedRefFromBytesHandler
-	anticipatedRefFromWriterToHandler ROutboundResponseAnticipatedRefFromWriterToHandler
-	anticipatedRefFromRecordHandler   ROutboundResponseAnticipatedRefFromRecordHandler
-}
-type ROutboundResponseAnticipatedRefFromBytesHandler func(object reference.Global, pn pulse.Number, record *rms.ROutboundResponse) reference.Global
-type ROutboundResponseAnticipatedRefFromWriterToHandler func(object reference.Global, pn pulse.Number, record *rms.ROutboundResponse) reference.Global
-type ROutboundResponseAnticipatedRefFromRecordHandler func(object reference.Global, pn pulse.Number, record *rms.ROutboundResponse) reference.Global
-type ROutboundResponseBuilderMock struct{ parent *TypedReferenceBuilder }
-
-func (p ROutboundResponseBuilderMock) ExpectedCount(count int) ROutboundResponseBuilderMock {
-	p.parent.Handlers.ROutboundResponse.touched = true
-	p.parent.Handlers.ROutboundResponse.expectedCount = count
-	return p
-}
-
-func (p *ROutboundResponseBuilderMock) AnticipatedRefFromBytesMock(handler ROutboundResponseAnticipatedRefFromBytesHandler) *ROutboundResponseBuilderMock {
-	p.parent.Handlers.ROutboundResponse.touched = true
-	p.parent.Handlers.ROutboundResponse.anticipatedRefFromBytesHandler = handler
-	return p
-}
-
-func (p *ROutboundResponseBuilderMock) AnticipatedRefFromWriterToMock(handler ROutboundResponseAnticipatedRefFromWriterToHandler) *ROutboundResponseBuilderMock {
-	p.parent.Handlers.ROutboundResponse.touched = true
-	p.parent.Handlers.ROutboundResponse.anticipatedRefFromWriterToHandler = handler
-	return p
-}
-
-func (p *ROutboundResponseBuilderMock) AnticipatedRefFromRecordMock(handler ROutboundResponseAnticipatedRefFromRecordHandler) *ROutboundResponseBuilderMock {
-	p.parent.Handlers.ROutboundResponse.touched = true
-	p.parent.Handlers.ROutboundResponse.anticipatedRefFromRecordHandler = handler
-	return p
-}
-
-func (p ROutboundResponseBuilderMock) Count() int {
-	return p.parent.Handlers.ROutboundResponse.count.Load()
-}
-
-func (p ROutboundResponseBuilderMock) CountBefore() int {
-	return p.parent.Handlers.ROutboundResponse.countBefore.Load()
-}
-
-func (p ROutboundResponseBuilderMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
-	return waitCounterIndefinitely(ctx, &p.parent.Handlers.ROutboundResponse.count, count)
-}
-
-// ============================================================================
-
-type RLineDeactivateDefinition struct {
-	touched                           bool
-	count                             atomickit.Int
-	countBefore                       atomickit.Int
-	expectedCount                     int
-	anticipatedRefFromBytesHandler    RLineDeactivateAnticipatedRefFromBytesHandler
-	anticipatedRefFromWriterToHandler RLineDeactivateAnticipatedRefFromWriterToHandler
-	anticipatedRefFromRecordHandler   RLineDeactivateAnticipatedRefFromRecordHandler
-}
-type RLineDeactivateAnticipatedRefFromBytesHandler func(object reference.Global, pn pulse.Number, record *rms.RLineDeactivate) reference.Global
-type RLineDeactivateAnticipatedRefFromWriterToHandler func(object reference.Global, pn pulse.Number, record *rms.RLineDeactivate) reference.Global
-type RLineDeactivateAnticipatedRefFromRecordHandler func(object reference.Global, pn pulse.Number, record *rms.RLineDeactivate) reference.Global
-type RLineDeactivateBuilderMock struct{ parent *TypedReferenceBuilder }
-
-func (p RLineDeactivateBuilderMock) ExpectedCount(count int) RLineDeactivateBuilderMock {
-	p.parent.Handlers.RLineDeactivate.touched = true
-	p.parent.Handlers.RLineDeactivate.expectedCount = count
-	return p
-}
-
-func (p *RLineDeactivateBuilderMock) AnticipatedRefFromBytesMock(handler RLineDeactivateAnticipatedRefFromBytesHandler) *RLineDeactivateBuilderMock {
-	p.parent.Handlers.RLineDeactivate.touched = true
-	p.parent.Handlers.RLineDeactivate.anticipatedRefFromBytesHandler = handler
-	return p
-}
-
-func (p *RLineDeactivateBuilderMock) AnticipatedRefFromWriterToMock(handler RLineDeactivateAnticipatedRefFromWriterToHandler) *RLineDeactivateBuilderMock {
-	p.parent.Handlers.RLineDeactivate.touched = true
-	p.parent.Handlers.RLineDeactivate.anticipatedRefFromWriterToHandler = handler
-	return p
-}
-
-func (p *RLineDeactivateBuilderMock) AnticipatedRefFromRecordMock(handler RLineDeactivateAnticipatedRefFromRecordHandler) *RLineDeactivateBuilderMock {
-	p.parent.Handlers.RLineDeactivate.touched = true
-	p.parent.Handlers.RLineDeactivate.anticipatedRefFromRecordHandler = handler
-	return p
-}
-
-func (p RLineDeactivateBuilderMock) Count() int {
-	return p.parent.Handlers.RLineDeactivate.count.Load()
-}
-
-func (p RLineDeactivateBuilderMock) CountBefore() int {
-	return p.parent.Handlers.RLineDeactivate.countBefore.Load()
-}
-
-func (p RLineDeactivateBuilderMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
-	return waitCounterIndefinitely(ctx, &p.parent.Handlers.RLineDeactivate.count, count)
-}
-
-// ============================================================================
-
 type RInboundResponseDefinition struct {
 	touched                           bool
 	count                             atomickit.Int
@@ -174,58 +70,6 @@ func (p RInboundResponseBuilderMock) CountBefore() int {
 
 func (p RInboundResponseBuilderMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
 	return waitCounterIndefinitely(ctx, &p.parent.Handlers.RInboundResponse.count, count)
-}
-
-// ============================================================================
-
-type RLineMemoryDefinition struct {
-	touched                           bool
-	count                             atomickit.Int
-	countBefore                       atomickit.Int
-	expectedCount                     int
-	anticipatedRefFromBytesHandler    RLineMemoryAnticipatedRefFromBytesHandler
-	anticipatedRefFromWriterToHandler RLineMemoryAnticipatedRefFromWriterToHandler
-	anticipatedRefFromRecordHandler   RLineMemoryAnticipatedRefFromRecordHandler
-}
-type RLineMemoryAnticipatedRefFromBytesHandler func(object reference.Global, pn pulse.Number, record *rms.RLineMemory) reference.Global
-type RLineMemoryAnticipatedRefFromWriterToHandler func(object reference.Global, pn pulse.Number, record *rms.RLineMemory) reference.Global
-type RLineMemoryAnticipatedRefFromRecordHandler func(object reference.Global, pn pulse.Number, record *rms.RLineMemory) reference.Global
-type RLineMemoryBuilderMock struct{ parent *TypedReferenceBuilder }
-
-func (p RLineMemoryBuilderMock) ExpectedCount(count int) RLineMemoryBuilderMock {
-	p.parent.Handlers.RLineMemory.touched = true
-	p.parent.Handlers.RLineMemory.expectedCount = count
-	return p
-}
-
-func (p *RLineMemoryBuilderMock) AnticipatedRefFromBytesMock(handler RLineMemoryAnticipatedRefFromBytesHandler) *RLineMemoryBuilderMock {
-	p.parent.Handlers.RLineMemory.touched = true
-	p.parent.Handlers.RLineMemory.anticipatedRefFromBytesHandler = handler
-	return p
-}
-
-func (p *RLineMemoryBuilderMock) AnticipatedRefFromWriterToMock(handler RLineMemoryAnticipatedRefFromWriterToHandler) *RLineMemoryBuilderMock {
-	p.parent.Handlers.RLineMemory.touched = true
-	p.parent.Handlers.RLineMemory.anticipatedRefFromWriterToHandler = handler
-	return p
-}
-
-func (p *RLineMemoryBuilderMock) AnticipatedRefFromRecordMock(handler RLineMemoryAnticipatedRefFromRecordHandler) *RLineMemoryBuilderMock {
-	p.parent.Handlers.RLineMemory.touched = true
-	p.parent.Handlers.RLineMemory.anticipatedRefFromRecordHandler = handler
-	return p
-}
-
-func (p RLineMemoryBuilderMock) Count() int {
-	return p.parent.Handlers.RLineMemory.count.Load()
-}
-
-func (p RLineMemoryBuilderMock) CountBefore() int {
-	return p.parent.Handlers.RLineMemory.countBefore.Load()
-}
-
-func (p RLineMemoryBuilderMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
-	return waitCounterIndefinitely(ctx, &p.parent.Handlers.RLineMemory.count, count)
 }
 
 // ============================================================================
@@ -282,54 +126,158 @@ func (p RLineActivateBuilderMock) Wait(ctx context.Context, count int) synckit.S
 
 // ============================================================================
 
-type RPrevDropReportDefinition struct {
+type RLineDeactivateDefinition struct {
 	touched                           bool
 	count                             atomickit.Int
 	countBefore                       atomickit.Int
 	expectedCount                     int
-	anticipatedRefFromBytesHandler    RPrevDropReportAnticipatedRefFromBytesHandler
-	anticipatedRefFromWriterToHandler RPrevDropReportAnticipatedRefFromWriterToHandler
-	anticipatedRefFromRecordHandler   RPrevDropReportAnticipatedRefFromRecordHandler
+	anticipatedRefFromBytesHandler    RLineDeactivateAnticipatedRefFromBytesHandler
+	anticipatedRefFromWriterToHandler RLineDeactivateAnticipatedRefFromWriterToHandler
+	anticipatedRefFromRecordHandler   RLineDeactivateAnticipatedRefFromRecordHandler
 }
-type RPrevDropReportAnticipatedRefFromBytesHandler func(object reference.Global, pn pulse.Number, record *rms.RPrevDropReport) reference.Global
-type RPrevDropReportAnticipatedRefFromWriterToHandler func(object reference.Global, pn pulse.Number, record *rms.RPrevDropReport) reference.Global
-type RPrevDropReportAnticipatedRefFromRecordHandler func(object reference.Global, pn pulse.Number, record *rms.RPrevDropReport) reference.Global
-type RPrevDropReportBuilderMock struct{ parent *TypedReferenceBuilder }
+type RLineDeactivateAnticipatedRefFromBytesHandler func(object reference.Global, pn pulse.Number, record *rms.RLineDeactivate) reference.Global
+type RLineDeactivateAnticipatedRefFromWriterToHandler func(object reference.Global, pn pulse.Number, record *rms.RLineDeactivate) reference.Global
+type RLineDeactivateAnticipatedRefFromRecordHandler func(object reference.Global, pn pulse.Number, record *rms.RLineDeactivate) reference.Global
+type RLineDeactivateBuilderMock struct{ parent *TypedReferenceBuilder }
 
-func (p RPrevDropReportBuilderMock) ExpectedCount(count int) RPrevDropReportBuilderMock {
-	p.parent.Handlers.RPrevDropReport.touched = true
-	p.parent.Handlers.RPrevDropReport.expectedCount = count
+func (p RLineDeactivateBuilderMock) ExpectedCount(count int) RLineDeactivateBuilderMock {
+	p.parent.Handlers.RLineDeactivate.touched = true
+	p.parent.Handlers.RLineDeactivate.expectedCount = count
 	return p
 }
 
-func (p *RPrevDropReportBuilderMock) AnticipatedRefFromBytesMock(handler RPrevDropReportAnticipatedRefFromBytesHandler) *RPrevDropReportBuilderMock {
-	p.parent.Handlers.RPrevDropReport.touched = true
-	p.parent.Handlers.RPrevDropReport.anticipatedRefFromBytesHandler = handler
+func (p *RLineDeactivateBuilderMock) AnticipatedRefFromBytesMock(handler RLineDeactivateAnticipatedRefFromBytesHandler) *RLineDeactivateBuilderMock {
+	p.parent.Handlers.RLineDeactivate.touched = true
+	p.parent.Handlers.RLineDeactivate.anticipatedRefFromBytesHandler = handler
 	return p
 }
 
-func (p *RPrevDropReportBuilderMock) AnticipatedRefFromWriterToMock(handler RPrevDropReportAnticipatedRefFromWriterToHandler) *RPrevDropReportBuilderMock {
-	p.parent.Handlers.RPrevDropReport.touched = true
-	p.parent.Handlers.RPrevDropReport.anticipatedRefFromWriterToHandler = handler
+func (p *RLineDeactivateBuilderMock) AnticipatedRefFromWriterToMock(handler RLineDeactivateAnticipatedRefFromWriterToHandler) *RLineDeactivateBuilderMock {
+	p.parent.Handlers.RLineDeactivate.touched = true
+	p.parent.Handlers.RLineDeactivate.anticipatedRefFromWriterToHandler = handler
 	return p
 }
 
-func (p *RPrevDropReportBuilderMock) AnticipatedRefFromRecordMock(handler RPrevDropReportAnticipatedRefFromRecordHandler) *RPrevDropReportBuilderMock {
-	p.parent.Handlers.RPrevDropReport.touched = true
-	p.parent.Handlers.RPrevDropReport.anticipatedRefFromRecordHandler = handler
+func (p *RLineDeactivateBuilderMock) AnticipatedRefFromRecordMock(handler RLineDeactivateAnticipatedRefFromRecordHandler) *RLineDeactivateBuilderMock {
+	p.parent.Handlers.RLineDeactivate.touched = true
+	p.parent.Handlers.RLineDeactivate.anticipatedRefFromRecordHandler = handler
 	return p
 }
 
-func (p RPrevDropReportBuilderMock) Count() int {
-	return p.parent.Handlers.RPrevDropReport.count.Load()
+func (p RLineDeactivateBuilderMock) Count() int {
+	return p.parent.Handlers.RLineDeactivate.count.Load()
 }
 
-func (p RPrevDropReportBuilderMock) CountBefore() int {
-	return p.parent.Handlers.RPrevDropReport.countBefore.Load()
+func (p RLineDeactivateBuilderMock) CountBefore() int {
+	return p.parent.Handlers.RLineDeactivate.countBefore.Load()
 }
 
-func (p RPrevDropReportBuilderMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
-	return waitCounterIndefinitely(ctx, &p.parent.Handlers.RPrevDropReport.count, count)
+func (p RLineDeactivateBuilderMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.RLineDeactivate.count, count)
+}
+
+// ============================================================================
+
+type RLineMemoryDefinition struct {
+	touched                           bool
+	count                             atomickit.Int
+	countBefore                       atomickit.Int
+	expectedCount                     int
+	anticipatedRefFromBytesHandler    RLineMemoryAnticipatedRefFromBytesHandler
+	anticipatedRefFromWriterToHandler RLineMemoryAnticipatedRefFromWriterToHandler
+	anticipatedRefFromRecordHandler   RLineMemoryAnticipatedRefFromRecordHandler
+}
+type RLineMemoryAnticipatedRefFromBytesHandler func(object reference.Global, pn pulse.Number, record *rms.RLineMemory) reference.Global
+type RLineMemoryAnticipatedRefFromWriterToHandler func(object reference.Global, pn pulse.Number, record *rms.RLineMemory) reference.Global
+type RLineMemoryAnticipatedRefFromRecordHandler func(object reference.Global, pn pulse.Number, record *rms.RLineMemory) reference.Global
+type RLineMemoryBuilderMock struct{ parent *TypedReferenceBuilder }
+
+func (p RLineMemoryBuilderMock) ExpectedCount(count int) RLineMemoryBuilderMock {
+	p.parent.Handlers.RLineMemory.touched = true
+	p.parent.Handlers.RLineMemory.expectedCount = count
+	return p
+}
+
+func (p *RLineMemoryBuilderMock) AnticipatedRefFromBytesMock(handler RLineMemoryAnticipatedRefFromBytesHandler) *RLineMemoryBuilderMock {
+	p.parent.Handlers.RLineMemory.touched = true
+	p.parent.Handlers.RLineMemory.anticipatedRefFromBytesHandler = handler
+	return p
+}
+
+func (p *RLineMemoryBuilderMock) AnticipatedRefFromWriterToMock(handler RLineMemoryAnticipatedRefFromWriterToHandler) *RLineMemoryBuilderMock {
+	p.parent.Handlers.RLineMemory.touched = true
+	p.parent.Handlers.RLineMemory.anticipatedRefFromWriterToHandler = handler
+	return p
+}
+
+func (p *RLineMemoryBuilderMock) AnticipatedRefFromRecordMock(handler RLineMemoryAnticipatedRefFromRecordHandler) *RLineMemoryBuilderMock {
+	p.parent.Handlers.RLineMemory.touched = true
+	p.parent.Handlers.RLineMemory.anticipatedRefFromRecordHandler = handler
+	return p
+}
+
+func (p RLineMemoryBuilderMock) Count() int {
+	return p.parent.Handlers.RLineMemory.count.Load()
+}
+
+func (p RLineMemoryBuilderMock) CountBefore() int {
+	return p.parent.Handlers.RLineMemory.countBefore.Load()
+}
+
+func (p RLineMemoryBuilderMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.RLineMemory.count, count)
+}
+
+// ============================================================================
+
+type RLineMemoryExpectedDefinition struct {
+	touched                           bool
+	count                             atomickit.Int
+	countBefore                       atomickit.Int
+	expectedCount                     int
+	anticipatedRefFromBytesHandler    RLineMemoryExpectedAnticipatedRefFromBytesHandler
+	anticipatedRefFromWriterToHandler RLineMemoryExpectedAnticipatedRefFromWriterToHandler
+	anticipatedRefFromRecordHandler   RLineMemoryExpectedAnticipatedRefFromRecordHandler
+}
+type RLineMemoryExpectedAnticipatedRefFromBytesHandler func(object reference.Global, pn pulse.Number, record *rms.RLineMemoryExpected) reference.Global
+type RLineMemoryExpectedAnticipatedRefFromWriterToHandler func(object reference.Global, pn pulse.Number, record *rms.RLineMemoryExpected) reference.Global
+type RLineMemoryExpectedAnticipatedRefFromRecordHandler func(object reference.Global, pn pulse.Number, record *rms.RLineMemoryExpected) reference.Global
+type RLineMemoryExpectedBuilderMock struct{ parent *TypedReferenceBuilder }
+
+func (p RLineMemoryExpectedBuilderMock) ExpectedCount(count int) RLineMemoryExpectedBuilderMock {
+	p.parent.Handlers.RLineMemoryExpected.touched = true
+	p.parent.Handlers.RLineMemoryExpected.expectedCount = count
+	return p
+}
+
+func (p *RLineMemoryExpectedBuilderMock) AnticipatedRefFromBytesMock(handler RLineMemoryExpectedAnticipatedRefFromBytesHandler) *RLineMemoryExpectedBuilderMock {
+	p.parent.Handlers.RLineMemoryExpected.touched = true
+	p.parent.Handlers.RLineMemoryExpected.anticipatedRefFromBytesHandler = handler
+	return p
+}
+
+func (p *RLineMemoryExpectedBuilderMock) AnticipatedRefFromWriterToMock(handler RLineMemoryExpectedAnticipatedRefFromWriterToHandler) *RLineMemoryExpectedBuilderMock {
+	p.parent.Handlers.RLineMemoryExpected.touched = true
+	p.parent.Handlers.RLineMemoryExpected.anticipatedRefFromWriterToHandler = handler
+	return p
+}
+
+func (p *RLineMemoryExpectedBuilderMock) AnticipatedRefFromRecordMock(handler RLineMemoryExpectedAnticipatedRefFromRecordHandler) *RLineMemoryExpectedBuilderMock {
+	p.parent.Handlers.RLineMemoryExpected.touched = true
+	p.parent.Handlers.RLineMemoryExpected.anticipatedRefFromRecordHandler = handler
+	return p
+}
+
+func (p RLineMemoryExpectedBuilderMock) Count() int {
+	return p.parent.Handlers.RLineMemoryExpected.count.Load()
+}
+
+func (p RLineMemoryExpectedBuilderMock) CountBefore() int {
+	return p.parent.Handlers.RLineMemoryExpected.countBefore.Load()
+}
+
+func (p RLineMemoryExpectedBuilderMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.RLineMemoryExpected.count, count)
 }
 
 // ============================================================================
@@ -438,58 +386,6 @@ func (p RLineRecapBuilderMock) Wait(ctx context.Context, count int) synckit.Sign
 
 // ============================================================================
 
-type RLineMemoryExpectedDefinition struct {
-	touched                           bool
-	count                             atomickit.Int
-	countBefore                       atomickit.Int
-	expectedCount                     int
-	anticipatedRefFromBytesHandler    RLineMemoryExpectedAnticipatedRefFromBytesHandler
-	anticipatedRefFromWriterToHandler RLineMemoryExpectedAnticipatedRefFromWriterToHandler
-	anticipatedRefFromRecordHandler   RLineMemoryExpectedAnticipatedRefFromRecordHandler
-}
-type RLineMemoryExpectedAnticipatedRefFromBytesHandler func(object reference.Global, pn pulse.Number, record *rms.RLineMemoryExpected) reference.Global
-type RLineMemoryExpectedAnticipatedRefFromWriterToHandler func(object reference.Global, pn pulse.Number, record *rms.RLineMemoryExpected) reference.Global
-type RLineMemoryExpectedAnticipatedRefFromRecordHandler func(object reference.Global, pn pulse.Number, record *rms.RLineMemoryExpected) reference.Global
-type RLineMemoryExpectedBuilderMock struct{ parent *TypedReferenceBuilder }
-
-func (p RLineMemoryExpectedBuilderMock) ExpectedCount(count int) RLineMemoryExpectedBuilderMock {
-	p.parent.Handlers.RLineMemoryExpected.touched = true
-	p.parent.Handlers.RLineMemoryExpected.expectedCount = count
-	return p
-}
-
-func (p *RLineMemoryExpectedBuilderMock) AnticipatedRefFromBytesMock(handler RLineMemoryExpectedAnticipatedRefFromBytesHandler) *RLineMemoryExpectedBuilderMock {
-	p.parent.Handlers.RLineMemoryExpected.touched = true
-	p.parent.Handlers.RLineMemoryExpected.anticipatedRefFromBytesHandler = handler
-	return p
-}
-
-func (p *RLineMemoryExpectedBuilderMock) AnticipatedRefFromWriterToMock(handler RLineMemoryExpectedAnticipatedRefFromWriterToHandler) *RLineMemoryExpectedBuilderMock {
-	p.parent.Handlers.RLineMemoryExpected.touched = true
-	p.parent.Handlers.RLineMemoryExpected.anticipatedRefFromWriterToHandler = handler
-	return p
-}
-
-func (p *RLineMemoryExpectedBuilderMock) AnticipatedRefFromRecordMock(handler RLineMemoryExpectedAnticipatedRefFromRecordHandler) *RLineMemoryExpectedBuilderMock {
-	p.parent.Handlers.RLineMemoryExpected.touched = true
-	p.parent.Handlers.RLineMemoryExpected.anticipatedRefFromRecordHandler = handler
-	return p
-}
-
-func (p RLineMemoryExpectedBuilderMock) Count() int {
-	return p.parent.Handlers.RLineMemoryExpected.count.Load()
-}
-
-func (p RLineMemoryExpectedBuilderMock) CountBefore() int {
-	return p.parent.Handlers.RLineMemoryExpected.countBefore.Load()
-}
-
-func (p RLineMemoryExpectedBuilderMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
-	return waitCounterIndefinitely(ctx, &p.parent.Handlers.RLineMemoryExpected.count, count)
-}
-
-// ============================================================================
-
 type ROutboundRequestDefinition struct {
 	touched                           bool
 	count                             atomickit.Int
@@ -542,17 +438,121 @@ func (p ROutboundRequestBuilderMock) Wait(ctx context.Context, count int) syncki
 
 // ============================================================================
 
+type ROutboundResponseDefinition struct {
+	touched                           bool
+	count                             atomickit.Int
+	countBefore                       atomickit.Int
+	expectedCount                     int
+	anticipatedRefFromBytesHandler    ROutboundResponseAnticipatedRefFromBytesHandler
+	anticipatedRefFromWriterToHandler ROutboundResponseAnticipatedRefFromWriterToHandler
+	anticipatedRefFromRecordHandler   ROutboundResponseAnticipatedRefFromRecordHandler
+}
+type ROutboundResponseAnticipatedRefFromBytesHandler func(object reference.Global, pn pulse.Number, record *rms.ROutboundResponse) reference.Global
+type ROutboundResponseAnticipatedRefFromWriterToHandler func(object reference.Global, pn pulse.Number, record *rms.ROutboundResponse) reference.Global
+type ROutboundResponseAnticipatedRefFromRecordHandler func(object reference.Global, pn pulse.Number, record *rms.ROutboundResponse) reference.Global
+type ROutboundResponseBuilderMock struct{ parent *TypedReferenceBuilder }
+
+func (p ROutboundResponseBuilderMock) ExpectedCount(count int) ROutboundResponseBuilderMock {
+	p.parent.Handlers.ROutboundResponse.touched = true
+	p.parent.Handlers.ROutboundResponse.expectedCount = count
+	return p
+}
+
+func (p *ROutboundResponseBuilderMock) AnticipatedRefFromBytesMock(handler ROutboundResponseAnticipatedRefFromBytesHandler) *ROutboundResponseBuilderMock {
+	p.parent.Handlers.ROutboundResponse.touched = true
+	p.parent.Handlers.ROutboundResponse.anticipatedRefFromBytesHandler = handler
+	return p
+}
+
+func (p *ROutboundResponseBuilderMock) AnticipatedRefFromWriterToMock(handler ROutboundResponseAnticipatedRefFromWriterToHandler) *ROutboundResponseBuilderMock {
+	p.parent.Handlers.ROutboundResponse.touched = true
+	p.parent.Handlers.ROutboundResponse.anticipatedRefFromWriterToHandler = handler
+	return p
+}
+
+func (p *ROutboundResponseBuilderMock) AnticipatedRefFromRecordMock(handler ROutboundResponseAnticipatedRefFromRecordHandler) *ROutboundResponseBuilderMock {
+	p.parent.Handlers.ROutboundResponse.touched = true
+	p.parent.Handlers.ROutboundResponse.anticipatedRefFromRecordHandler = handler
+	return p
+}
+
+func (p ROutboundResponseBuilderMock) Count() int {
+	return p.parent.Handlers.ROutboundResponse.count.Load()
+}
+
+func (p ROutboundResponseBuilderMock) CountBefore() int {
+	return p.parent.Handlers.ROutboundResponse.countBefore.Load()
+}
+
+func (p ROutboundResponseBuilderMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.ROutboundResponse.count, count)
+}
+
+// ============================================================================
+
+type RPrevDropReportDefinition struct {
+	touched                           bool
+	count                             atomickit.Int
+	countBefore                       atomickit.Int
+	expectedCount                     int
+	anticipatedRefFromBytesHandler    RPrevDropReportAnticipatedRefFromBytesHandler
+	anticipatedRefFromWriterToHandler RPrevDropReportAnticipatedRefFromWriterToHandler
+	anticipatedRefFromRecordHandler   RPrevDropReportAnticipatedRefFromRecordHandler
+}
+type RPrevDropReportAnticipatedRefFromBytesHandler func(object reference.Global, pn pulse.Number, record *rms.RPrevDropReport) reference.Global
+type RPrevDropReportAnticipatedRefFromWriterToHandler func(object reference.Global, pn pulse.Number, record *rms.RPrevDropReport) reference.Global
+type RPrevDropReportAnticipatedRefFromRecordHandler func(object reference.Global, pn pulse.Number, record *rms.RPrevDropReport) reference.Global
+type RPrevDropReportBuilderMock struct{ parent *TypedReferenceBuilder }
+
+func (p RPrevDropReportBuilderMock) ExpectedCount(count int) RPrevDropReportBuilderMock {
+	p.parent.Handlers.RPrevDropReport.touched = true
+	p.parent.Handlers.RPrevDropReport.expectedCount = count
+	return p
+}
+
+func (p *RPrevDropReportBuilderMock) AnticipatedRefFromBytesMock(handler RPrevDropReportAnticipatedRefFromBytesHandler) *RPrevDropReportBuilderMock {
+	p.parent.Handlers.RPrevDropReport.touched = true
+	p.parent.Handlers.RPrevDropReport.anticipatedRefFromBytesHandler = handler
+	return p
+}
+
+func (p *RPrevDropReportBuilderMock) AnticipatedRefFromWriterToMock(handler RPrevDropReportAnticipatedRefFromWriterToHandler) *RPrevDropReportBuilderMock {
+	p.parent.Handlers.RPrevDropReport.touched = true
+	p.parent.Handlers.RPrevDropReport.anticipatedRefFromWriterToHandler = handler
+	return p
+}
+
+func (p *RPrevDropReportBuilderMock) AnticipatedRefFromRecordMock(handler RPrevDropReportAnticipatedRefFromRecordHandler) *RPrevDropReportBuilderMock {
+	p.parent.Handlers.RPrevDropReport.touched = true
+	p.parent.Handlers.RPrevDropReport.anticipatedRefFromRecordHandler = handler
+	return p
+}
+
+func (p RPrevDropReportBuilderMock) Count() int {
+	return p.parent.Handlers.RPrevDropReport.count.Load()
+}
+
+func (p RPrevDropReportBuilderMock) CountBefore() int {
+	return p.parent.Handlers.RPrevDropReport.countBefore.Load()
+}
+
+func (p RPrevDropReportBuilderMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.RPrevDropReport.count, count)
+}
+
+// ============================================================================
+
 type TypedHandlers struct {
-	ROutboundResponse   ROutboundResponseDefinition
-	RLineDeactivate     RLineDeactivateDefinition
 	RInboundResponse    RInboundResponseDefinition
-	RLineMemory         RLineMemoryDefinition
 	RLineActivate       RLineActivateDefinition
-	RPrevDropReport     RPrevDropReportDefinition
+	RLineDeactivate     RLineDeactivateDefinition
+	RLineMemory         RLineMemoryDefinition
+	RLineMemoryExpected RLineMemoryExpectedDefinition
 	RLineMemoryReuse    RLineMemoryReuseDefinition
 	RLineRecap          RLineRecapDefinition
-	RLineMemoryExpected RLineMemoryExpectedDefinition
 	ROutboundRequest    ROutboundRequestDefinition
+	ROutboundResponse   ROutboundResponseDefinition
+	RPrevDropReport     RPrevDropReportDefinition
 }
 
 type TypedReferenceBuilder struct {
@@ -562,16 +562,16 @@ type TypedReferenceBuilder struct {
 
 	Handlers TypedHandlers
 
-	ROutboundResponse   ROutboundResponseBuilderMock
-	RLineDeactivate     RLineDeactivateBuilderMock
 	RInboundResponse    RInboundResponseBuilderMock
-	RLineMemory         RLineMemoryBuilderMock
 	RLineActivate       RLineActivateBuilderMock
-	RPrevDropReport     RPrevDropReportBuilderMock
+	RLineDeactivate     RLineDeactivateBuilderMock
+	RLineMemory         RLineMemoryBuilderMock
+	RLineMemoryExpected RLineMemoryExpectedBuilderMock
 	RLineMemoryReuse    RLineMemoryReuseBuilderMock
 	RLineRecap          RLineRecapBuilderMock
-	RLineMemoryExpected RLineMemoryExpectedBuilderMock
 	ROutboundRequest    ROutboundRequestBuilderMock
+	ROutboundResponse   ROutboundResponseBuilderMock
+	RPrevDropReport     RPrevDropReportBuilderMock
 }
 
 func NewTypedReferenceBuilder(ctx context.Context, t minimock.Tester) *TypedReferenceBuilder {
@@ -581,29 +581,29 @@ func NewTypedReferenceBuilder(ctx context.Context, t minimock.Tester) *TypedRefe
 		timeout: 10 * time.Second,
 
 		Handlers: TypedHandlers{
-			ROutboundResponse:   ROutboundResponseDefinition{expectedCount: -1},
-			RLineDeactivate:     RLineDeactivateDefinition{expectedCount: -1},
 			RInboundResponse:    RInboundResponseDefinition{expectedCount: -1},
-			RLineMemory:         RLineMemoryDefinition{expectedCount: -1},
 			RLineActivate:       RLineActivateDefinition{expectedCount: -1},
-			RPrevDropReport:     RPrevDropReportDefinition{expectedCount: -1},
+			RLineDeactivate:     RLineDeactivateDefinition{expectedCount: -1},
+			RLineMemory:         RLineMemoryDefinition{expectedCount: -1},
+			RLineMemoryExpected: RLineMemoryExpectedDefinition{expectedCount: -1},
 			RLineMemoryReuse:    RLineMemoryReuseDefinition{expectedCount: -1},
 			RLineRecap:          RLineRecapDefinition{expectedCount: -1},
-			RLineMemoryExpected: RLineMemoryExpectedDefinition{expectedCount: -1},
 			ROutboundRequest:    ROutboundRequestDefinition{expectedCount: -1},
+			ROutboundResponse:   ROutboundResponseDefinition{expectedCount: -1},
+			RPrevDropReport:     RPrevDropReportDefinition{expectedCount: -1},
 		},
 	}
 
-	checker.ROutboundResponse = ROutboundResponseBuilderMock{parent: checker}
-	checker.RLineDeactivate = RLineDeactivateBuilderMock{parent: checker}
 	checker.RInboundResponse = RInboundResponseBuilderMock{parent: checker}
-	checker.RLineMemory = RLineMemoryBuilderMock{parent: checker}
 	checker.RLineActivate = RLineActivateBuilderMock{parent: checker}
-	checker.RPrevDropReport = RPrevDropReportBuilderMock{parent: checker}
+	checker.RLineDeactivate = RLineDeactivateBuilderMock{parent: checker}
+	checker.RLineMemory = RLineMemoryBuilderMock{parent: checker}
+	checker.RLineMemoryExpected = RLineMemoryExpectedBuilderMock{parent: checker}
 	checker.RLineMemoryReuse = RLineMemoryReuseBuilderMock{parent: checker}
 	checker.RLineRecap = RLineRecapBuilderMock{parent: checker}
-	checker.RLineMemoryExpected = RLineMemoryExpectedBuilderMock{parent: checker}
 	checker.ROutboundRequest = ROutboundRequestBuilderMock{parent: checker}
+	checker.ROutboundResponse = ROutboundResponseBuilderMock{parent: checker}
+	checker.RPrevDropReport = RPrevDropReportBuilderMock{parent: checker}
 
 	if controller, ok := t.(minimock.MockController); ok {
 		controller.RegisterMocker(checker)
@@ -629,58 +629,6 @@ func (p *TypedReferenceBuilder) AnticipatedRefFromBytes(object reference.Global,
 
 	var resultRef reference.Global
 	switch record := rec.Get().(type) {
-	case *rms.ROutboundResponse:
-		msg := rec.Get().(*rms.ROutboundResponse)
-		hdlStruct := &p.Handlers.ROutboundResponse
-		oldCount := hdlStruct.countBefore.Add(1)
-
-		if hdlStruct.anticipatedRefFromBytesHandler != nil {
-			done := make(synckit.ClosableSignalChannel)
-
-			go func() {
-				defer func() { _ = synckit.SafeClose(done) }()
-
-				resultRef = hdlStruct.anticipatedRefFromBytesHandler(object, pn, msg)
-			}()
-
-			select {
-			case <-done:
-			case <-time.After(p.timeout):
-				p.t.Error("timeout: failed to check message ROutboundResponse (position: %s)", oldCount)
-			}
-		} else if !hdlStruct.touched {
-			p.t.Fatalf("unexpected %T record", record)
-			return reference.Global{}
-		}
-
-		hdlStruct.count.Add(1)
-
-	case *rms.RLineDeactivate:
-		msg := rec.Get().(*rms.RLineDeactivate)
-		hdlStruct := &p.Handlers.RLineDeactivate
-		oldCount := hdlStruct.countBefore.Add(1)
-
-		if hdlStruct.anticipatedRefFromBytesHandler != nil {
-			done := make(synckit.ClosableSignalChannel)
-
-			go func() {
-				defer func() { _ = synckit.SafeClose(done) }()
-
-				resultRef = hdlStruct.anticipatedRefFromBytesHandler(object, pn, msg)
-			}()
-
-			select {
-			case <-done:
-			case <-time.After(p.timeout):
-				p.t.Error("timeout: failed to check message RLineDeactivate (position: %s)", oldCount)
-			}
-		} else if !hdlStruct.touched {
-			p.t.Fatalf("unexpected %T record", record)
-			return reference.Global{}
-		}
-
-		hdlStruct.count.Add(1)
-
 	case *rms.RInboundResponse:
 		msg := rec.Get().(*rms.RInboundResponse)
 		hdlStruct := &p.Handlers.RInboundResponse
@@ -699,32 +647,6 @@ func (p *TypedReferenceBuilder) AnticipatedRefFromBytes(object reference.Global,
 			case <-done:
 			case <-time.After(p.timeout):
 				p.t.Error("timeout: failed to check message RInboundResponse (position: %s)", oldCount)
-			}
-		} else if !hdlStruct.touched {
-			p.t.Fatalf("unexpected %T record", record)
-			return reference.Global{}
-		}
-
-		hdlStruct.count.Add(1)
-
-	case *rms.RLineMemory:
-		msg := rec.Get().(*rms.RLineMemory)
-		hdlStruct := &p.Handlers.RLineMemory
-		oldCount := hdlStruct.countBefore.Add(1)
-
-		if hdlStruct.anticipatedRefFromBytesHandler != nil {
-			done := make(synckit.ClosableSignalChannel)
-
-			go func() {
-				defer func() { _ = synckit.SafeClose(done) }()
-
-				resultRef = hdlStruct.anticipatedRefFromBytesHandler(object, pn, msg)
-			}()
-
-			select {
-			case <-done:
-			case <-time.After(p.timeout):
-				p.t.Error("timeout: failed to check message RLineMemory (position: %s)", oldCount)
 			}
 		} else if !hdlStruct.touched {
 			p.t.Fatalf("unexpected %T record", record)
@@ -759,9 +681,9 @@ func (p *TypedReferenceBuilder) AnticipatedRefFromBytes(object reference.Global,
 
 		hdlStruct.count.Add(1)
 
-	case *rms.RPrevDropReport:
-		msg := rec.Get().(*rms.RPrevDropReport)
-		hdlStruct := &p.Handlers.RPrevDropReport
+	case *rms.RLineDeactivate:
+		msg := rec.Get().(*rms.RLineDeactivate)
+		hdlStruct := &p.Handlers.RLineDeactivate
 		oldCount := hdlStruct.countBefore.Add(1)
 
 		if hdlStruct.anticipatedRefFromBytesHandler != nil {
@@ -776,7 +698,59 @@ func (p *TypedReferenceBuilder) AnticipatedRefFromBytes(object reference.Global,
 			select {
 			case <-done:
 			case <-time.After(p.timeout):
-				p.t.Error("timeout: failed to check message RPrevDropReport (position: %s)", oldCount)
+				p.t.Error("timeout: failed to check message RLineDeactivate (position: %s)", oldCount)
+			}
+		} else if !hdlStruct.touched {
+			p.t.Fatalf("unexpected %T record", record)
+			return reference.Global{}
+		}
+
+		hdlStruct.count.Add(1)
+
+	case *rms.RLineMemory:
+		msg := rec.Get().(*rms.RLineMemory)
+		hdlStruct := &p.Handlers.RLineMemory
+		oldCount := hdlStruct.countBefore.Add(1)
+
+		if hdlStruct.anticipatedRefFromBytesHandler != nil {
+			done := make(synckit.ClosableSignalChannel)
+
+			go func() {
+				defer func() { _ = synckit.SafeClose(done) }()
+
+				resultRef = hdlStruct.anticipatedRefFromBytesHandler(object, pn, msg)
+			}()
+
+			select {
+			case <-done:
+			case <-time.After(p.timeout):
+				p.t.Error("timeout: failed to check message RLineMemory (position: %s)", oldCount)
+			}
+		} else if !hdlStruct.touched {
+			p.t.Fatalf("unexpected %T record", record)
+			return reference.Global{}
+		}
+
+		hdlStruct.count.Add(1)
+
+	case *rms.RLineMemoryExpected:
+		msg := rec.Get().(*rms.RLineMemoryExpected)
+		hdlStruct := &p.Handlers.RLineMemoryExpected
+		oldCount := hdlStruct.countBefore.Add(1)
+
+		if hdlStruct.anticipatedRefFromBytesHandler != nil {
+			done := make(synckit.ClosableSignalChannel)
+
+			go func() {
+				defer func() { _ = synckit.SafeClose(done) }()
+
+				resultRef = hdlStruct.anticipatedRefFromBytesHandler(object, pn, msg)
+			}()
+
+			select {
+			case <-done:
+			case <-time.After(p.timeout):
+				p.t.Error("timeout: failed to check message RLineMemoryExpected (position: %s)", oldCount)
 			}
 		} else if !hdlStruct.touched {
 			p.t.Fatalf("unexpected %T record", record)
@@ -837,32 +811,6 @@ func (p *TypedReferenceBuilder) AnticipatedRefFromBytes(object reference.Global,
 
 		hdlStruct.count.Add(1)
 
-	case *rms.RLineMemoryExpected:
-		msg := rec.Get().(*rms.RLineMemoryExpected)
-		hdlStruct := &p.Handlers.RLineMemoryExpected
-		oldCount := hdlStruct.countBefore.Add(1)
-
-		if hdlStruct.anticipatedRefFromBytesHandler != nil {
-			done := make(synckit.ClosableSignalChannel)
-
-			go func() {
-				defer func() { _ = synckit.SafeClose(done) }()
-
-				resultRef = hdlStruct.anticipatedRefFromBytesHandler(object, pn, msg)
-			}()
-
-			select {
-			case <-done:
-			case <-time.After(p.timeout):
-				p.t.Error("timeout: failed to check message RLineMemoryExpected (position: %s)", oldCount)
-			}
-		} else if !hdlStruct.touched {
-			p.t.Fatalf("unexpected %T record", record)
-			return reference.Global{}
-		}
-
-		hdlStruct.count.Add(1)
-
 	case *rms.ROutboundRequest:
 		msg := rec.Get().(*rms.ROutboundRequest)
 		hdlStruct := &p.Handlers.ROutboundRequest
@@ -889,6 +837,58 @@ func (p *TypedReferenceBuilder) AnticipatedRefFromBytes(object reference.Global,
 
 		hdlStruct.count.Add(1)
 
+	case *rms.ROutboundResponse:
+		msg := rec.Get().(*rms.ROutboundResponse)
+		hdlStruct := &p.Handlers.ROutboundResponse
+		oldCount := hdlStruct.countBefore.Add(1)
+
+		if hdlStruct.anticipatedRefFromBytesHandler != nil {
+			done := make(synckit.ClosableSignalChannel)
+
+			go func() {
+				defer func() { _ = synckit.SafeClose(done) }()
+
+				resultRef = hdlStruct.anticipatedRefFromBytesHandler(object, pn, msg)
+			}()
+
+			select {
+			case <-done:
+			case <-time.After(p.timeout):
+				p.t.Error("timeout: failed to check message ROutboundResponse (position: %s)", oldCount)
+			}
+		} else if !hdlStruct.touched {
+			p.t.Fatalf("unexpected %T record", record)
+			return reference.Global{}
+		}
+
+		hdlStruct.count.Add(1)
+
+	case *rms.RPrevDropReport:
+		msg := rec.Get().(*rms.RPrevDropReport)
+		hdlStruct := &p.Handlers.RPrevDropReport
+		oldCount := hdlStruct.countBefore.Add(1)
+
+		if hdlStruct.anticipatedRefFromBytesHandler != nil {
+			done := make(synckit.ClosableSignalChannel)
+
+			go func() {
+				defer func() { _ = synckit.SafeClose(done) }()
+
+				resultRef = hdlStruct.anticipatedRefFromBytesHandler(object, pn, msg)
+			}()
+
+			select {
+			case <-done:
+			case <-time.After(p.timeout):
+				p.t.Error("timeout: failed to check message RPrevDropReport (position: %s)", oldCount)
+			}
+		} else if !hdlStruct.touched {
+			p.t.Fatalf("unexpected %T record", record)
+			return reference.Global{}
+		}
+
+		hdlStruct.count.Add(1)
+
 	default:
 		p.t.Fatalf("unexpected %T record", record)
 		return reference.Global{}
@@ -902,55 +902,7 @@ func (p *TypedReferenceBuilder) minimockDone() bool {
 
 	{
 		fn := func() bool {
-			hdl := &p.Handlers.ROutboundResponse
-
-			switch {
-			case hdl.expectedCount < 0:
-				return true
-			case hdl.expectedCount == 0:
-				return true
-			}
-
-			return hdl.count.Load() == hdl.expectedCount
-		}
-
-		ok = ok && fn()
-	}
-	{
-		fn := func() bool {
-			hdl := &p.Handlers.RLineDeactivate
-
-			switch {
-			case hdl.expectedCount < 0:
-				return true
-			case hdl.expectedCount == 0:
-				return true
-			}
-
-			return hdl.count.Load() == hdl.expectedCount
-		}
-
-		ok = ok && fn()
-	}
-	{
-		fn := func() bool {
 			hdl := &p.Handlers.RInboundResponse
-
-			switch {
-			case hdl.expectedCount < 0:
-				return true
-			case hdl.expectedCount == 0:
-				return true
-			}
-
-			return hdl.count.Load() == hdl.expectedCount
-		}
-
-		ok = ok && fn()
-	}
-	{
-		fn := func() bool {
-			hdl := &p.Handlers.RLineMemory
 
 			switch {
 			case hdl.expectedCount < 0:
@@ -982,7 +934,39 @@ func (p *TypedReferenceBuilder) minimockDone() bool {
 	}
 	{
 		fn := func() bool {
-			hdl := &p.Handlers.RPrevDropReport
+			hdl := &p.Handlers.RLineDeactivate
+
+			switch {
+			case hdl.expectedCount < 0:
+				return true
+			case hdl.expectedCount == 0:
+				return true
+			}
+
+			return hdl.count.Load() == hdl.expectedCount
+		}
+
+		ok = ok && fn()
+	}
+	{
+		fn := func() bool {
+			hdl := &p.Handlers.RLineMemory
+
+			switch {
+			case hdl.expectedCount < 0:
+				return true
+			case hdl.expectedCount == 0:
+				return true
+			}
+
+			return hdl.count.Load() == hdl.expectedCount
+		}
+
+		ok = ok && fn()
+	}
+	{
+		fn := func() bool {
+			hdl := &p.Handlers.RLineMemoryExpected
 
 			switch {
 			case hdl.expectedCount < 0:
@@ -1030,7 +1014,7 @@ func (p *TypedReferenceBuilder) minimockDone() bool {
 	}
 	{
 		fn := func() bool {
-			hdl := &p.Handlers.RLineMemoryExpected
+			hdl := &p.Handlers.ROutboundRequest
 
 			switch {
 			case hdl.expectedCount < 0:
@@ -1046,7 +1030,23 @@ func (p *TypedReferenceBuilder) minimockDone() bool {
 	}
 	{
 		fn := func() bool {
-			hdl := &p.Handlers.ROutboundRequest
+			hdl := &p.Handlers.ROutboundResponse
+
+			switch {
+			case hdl.expectedCount < 0:
+				return true
+			case hdl.expectedCount == 0:
+				return true
+			}
+
+			return hdl.count.Load() == hdl.expectedCount
+		}
+
+		ok = ok && fn()
+	}
+	{
+		fn := func() bool {
+			hdl := &p.Handlers.RPrevDropReport
 
 			switch {
 			case hdl.expectedCount < 0:
