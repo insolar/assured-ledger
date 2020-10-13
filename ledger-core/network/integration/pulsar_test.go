@@ -127,7 +127,6 @@ func (tp *testPulsar) Start(ctx context.Context, bootstrapHosts []string) error 
 	cfg := configuration.NewHostNetwork()
 	cfg.Transport.Protocol = "udp"
 
-	tp.cm.Register(transport.NewFactory(cfg.Transport))
 	tp.cm.Inject(tp.distributor)
 
 	if err = tp.cm.Init(ctx); err != nil {

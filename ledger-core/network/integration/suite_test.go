@@ -52,7 +52,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 )
 
 var (
@@ -563,8 +562,6 @@ func (s *testSuite) preInitNode(nd *networkNode) {
 	keyProc := platformpolicy.NewKeyProcessor()
 
 	pubMock := &PublisherMock{}
-
-	nd.componentManager.Register(transport.NewFactory(cfg.Host.Transport))
 
 	pulseManager := chorus.NewConductorMock(s.t)
 	pulseManager.RequestNodeStateMock.Set(func(fn chorus.NodeStateFunc) {
