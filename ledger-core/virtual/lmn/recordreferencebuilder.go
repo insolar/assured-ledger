@@ -18,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/virtual/lmn.RecordReferenceBuilderService -o ./ -s _mock.go -g
 type RecordReferenceBuilderService interface {
 	AnticipatedRefFromWriterTo(reference.Global, pulse.Number, io.WriterTo) reference.Global
 	AnticipatedRefFromBytes(reference.Global, pulse.Number, []byte) reference.Global

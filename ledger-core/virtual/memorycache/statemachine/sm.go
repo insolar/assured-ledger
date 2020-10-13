@@ -24,7 +24,7 @@ import (
 //go:generate sm-uml-gen -f $GOFILE
 
 type CachedMemoryReportAwaitKey struct {
-	State reference.Global
+	State rms.Reference
 }
 
 type SMGetCachedMemory struct {
@@ -122,7 +122,7 @@ func (s *SMGetCachedMemory) stepRequestMemory(ctx smachine.ExecutionContext) sma
 		}
 	})
 
-	key := CachedMemoryReportAwaitKey{State: s.State}
+	key := CachedMemoryReportAwaitKey{State: rms.NewReferenceLocal(s.State)}
 	if !ctx.PublishGlobalAliasAndBargeIn(key, bargeInCallback) {
 		return ctx.Error(throw.E("failed to publish bargeIn callback"))
 	}
