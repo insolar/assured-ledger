@@ -17,33 +17,31 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
-	transport2 "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
-	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
-	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/version"
-
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
-	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
 const (
@@ -66,13 +64,11 @@ type Base struct {
 	BootstrapRequester  bootstrap.Requester                     `inject:""`
 	KeyProcessor        cryptography.KeyProcessor               `inject:""`
 	Aborter             network.Aborter                         `inject:""`
-	TransportFactory    transport.Factory                       `inject:""`
 	UnifiedServer       *uniserver.UnifiedServer
 	Dispatcher          *uniserver.Dispatcher
 
-	transportCrypt  transport2.CryptographyAssistant
+	transportCrypt  transport.CryptographyAssistant
 	datagramHandler *adapters.DatagramHandler
-	// datagramTransport transport.DatagramTransport
 
 	ConsensusMode       consensus.Mode
 	consensusInstaller  consensus.Installer
@@ -151,35 +147,24 @@ func (g *Base) Stop(ctx context.Context) error {
 func (g *Base) InitConsensusProtocolMarshaller() {
 	g.datagramHandler = adapters.NewDatagramHandler()
 
-	// uniproto.ProtocolTypeGlobulaConsensus
+	// todo: use uniproto.ProtocolTypeGlobulaConsensus
 	var desc = uniproto.Descriptor{
 		SupportedPackets: uniproto.PacketDescriptors{
-			0: {Flags: uniproto.NoSourceID | uniproto.OptionalTarget | uniproto.DatagramAllowed, LengthBits: 16},
+			uniproto.ProtocolTypePulsar:        {Flags: uniproto.NoSourceID | uniproto.OptionalTarget | uniproto.DatagramAllowed, LengthBits: 16},
+			uniproto.ProtocolTypeJoinCandidate: {Flags: uniproto.NoSourceID | uniproto.OptionalTarget | uniproto.DatagramAllowed, LengthBits: 16},
 		},
 	}
 
 	marshaller := &adapters.ConsensusProtocolMarshaller{HandlerAdapter: g.datagramHandler}
-	g.Dispatcher.SetMode(uniproto.NewConnectionMode(uniproto.AllowUnknownPeer, 0))
-	g.Dispatcher.RegisterProtocol(0, desc, marshaller, marshaller)
+	g.Dispatcher.SetMode(uniproto.NewConnectionMode(uniproto.AllowUnknownPeer, uniproto.ProtocolTypePulsar, uniproto.ProtocolTypeJoinCandidate))
+	g.Dispatcher.RegisterProtocol(uniproto.ProtocolTypePulsar, desc, marshaller, marshaller)
+	g.Dispatcher.RegisterProtocol(uniproto.ProtocolTypeJoinCandidate, desc, marshaller, g.HostNetwork) // todo: dummy controller instead of marshaller
 }
 
 func (g *Base) InitConsensus(ctx context.Context) error {
 	g.ConsensusMode = consensus.Joiner
 
-	// todo: use uniproto here
-	// datagramTransport, err := g.TransportFactory.CreateDatagramTransport(g.datagramHandler)
-	// if err != nil {
-	// 	return throw.W(err, "failed to create datagramTransport")
-	// }
-	// g.datagramTransport = datagramTransport
 	g.transportCrypt = adapters.NewTransportCryptographyFactory(g.CryptographyScheme)
-	//
-	// // transport start should be here because of TestComponents tests, couldn't localNodeAsCandidate with 0 port
-	// err = g.datagramTransport.Start(ctx)
-	// if err != nil {
-	// 	return throw.W(err, "failed to start datagram transport")
-	// }
-	//
 	err := g.localNodeAsCandidate()
 	if err != nil {
 		return throw.W(err, "failed to localNodeAsCandidate")
@@ -264,9 +249,6 @@ func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {
 	nodeCount := int64(pu.Online.GetIndexedCount())
 	inslogger.FromContext(ctx).Debugf("[ AddCommittedBeat ] Population size: %d", nodeCount)
 	stats.Record(ctx, network.ActiveNodes.M(nodeCount))
-
-	// nodes := g.NodeKeeper.GetNodeSnapshot(pu.PulseNumber).GetOnlineNodes()
-	// inslogger.FromContext(ctx).Debugf("OnPulseFromConsensus: %d : epoch %d : nodes %d", pu.PulseNumber, pu.PulseEpoch, len(nodes))
 }
 
 // UpdateState called then Consensus is done
@@ -383,11 +365,11 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 		return g.HostNetwork.BuildResponse(ctx, request, &rms.BootstrapResponse{Code: rms.BootstrapResponseCode_UpdateShortID}), nil
 	}
 
-	// err := bootstrap.ValidatePermit(data.Permit, g.CertificateManager.GetCertificate(), g.CryptographyService)
-	// if err != nil {
-	// 	inslogger.FromContext(ctx).Warnf("Rejected bootstrap request from node %s: %s", request.GetSender(), err.Error())
-	// 	return g.HostNetwork.BuildResponse(ctx, request, &rms.BootstrapResponse{Code: rms.BootstrapResponseCode_Reject}), nil
-	// }
+	err := bootstrap.ValidatePermit(data.Permit, g.CertificateManager.GetCertificate(), g.CryptographyService)
+	if err != nil {
+		inslogger.FromContext(ctx).Warnf("Rejected bootstrap request from node %s: %s", request.GetSenderHost().String(), err.Error())
+		return g.HostNetwork.BuildResponse(ctx, request, &rms.BootstrapResponse{Code: rms.BootstrapResponseCode_Reject}), nil
+	}
 
 	type candidate struct {
 		profiles.StaticProfile
@@ -396,9 +378,9 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 
 	profile := adapters.Candidate(data.CandidateProfile).StaticProfile(g.KeyProcessor)
 
-	err := g.ConsensusController.AddJoinCandidate(candidate{profile, profile.GetExtension()})
+	err = g.ConsensusController.AddJoinCandidate(candidate{profile, profile.GetExtension()})
 	if err != nil {
-		inslogger.FromContext(ctx).Warnf("Retry Failed to AddJoinCandidate  %s: %s", request.GetSender(), err.Error())
+		inslogger.FromContext(ctx).Warnf("Retry Failed to AddJoinCandidate  %s: %s", request.GetSenderHost().String(), err.Error())
 		return g.HostNetwork.BuildResponse(ctx, request, &rms.BootstrapResponse{Code: rms.BootstrapResponseCode_Retry}), nil
 	}
 
@@ -455,10 +437,10 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		nodes = na.GetPopulation().GetProfiles()
 	}
 
-	var reconnectHost *legacyhost.Host
+	var reconnectHost nwapi.Address
 	if g.isJoinAssistant && len(nodes) > 1 && nodes != nil /* != is to fix annoying GoLand hint */ {
 		randNode := nodes[rand.Intn(len(nodes))]
-		reconnectHost, err = legacyhost.NewHostNS(nodeinfo.NodeAddr(randNode), nodeinfo.NodeRef(randNode), randNode.GetNodeID())
+		reconnectHost = nwapi.NewHostPort(nodeinfo.NodeAddr(randNode), false)
 
 		discoveryCount := len(network.FindDiscoveriesInNodeList(nodes, g.CertificateManager.GetCertificate()))
 		if discoveryCount == 0 {
@@ -468,15 +450,8 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		}
 	} else {
 		// workaround bootstrap to the local node
-		reconnectHost, err = legacyhost.NewHostNS(g.localStatic.GetDefaultEndpoint().GetIPAddress().String(),
-			g.localStatic.GetExtension().GetReference(), g.localStatic.GetStaticNodeID())
+		reconnectHost = nwapi.NewHostPort(g.localStatic.GetDefaultEndpoint().GetNameAddress().String(), false)
 		discoveryCount = 1
-	}
-
-	if err != nil {
-		err = throw.W(err, "failed to get reconnectHost")
-		inslogger.FromContext(ctx).Warn("AuthorizeRequest: ", err)
-		return nil, err
 	}
 
 	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(adapters.ECDSAPublicKeyOfProfile(g.localStatic))
@@ -487,7 +462,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	}
 
 	permit, err := bootstrap.CreatePermit(g.NodeKeeper.GetLocalNodeReference(),
-		reconnectHost, pubKey,
+		&reconnectHost, pubKey,
 		g.CryptographyService,
 	)
 	if err != nil {

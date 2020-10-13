@@ -18,6 +18,7 @@ type ConsensusPacket struct {
 func (p *ConsensusPacket) PreparePacket() (uniproto.PacketTemplate, uint, uniproto.PayloadSerializerFunc) {
 	pt := uniproto.PacketTemplate{}
 	pt.Header.SetRelayRestricted(true)
+	pt.Header.SetProtocolType(uniproto.ProtocolTypePulsar)
 	pt.PulseNumber = pulse.MinTimePulse
 	return pt, uint(len(p.Payload)), p.SerializePayload
 }

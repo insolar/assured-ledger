@@ -30,6 +30,10 @@ func (g *DiscoveryBootstrap) Run(ctx context.Context, p pulse.Data) {
 		return
 	}
 
+	if !permit.Payload.ReconnectTo.CanConnect() {
+		panic("invalid ReconnectTo")
+	}
+
 	resp, err := g.BootstrapRequester.Bootstrap(ctx, permit, *g.localCandidate)
 	if err != nil {
 		logger.Warn("Failed to bootstrap: ", err.Error())
