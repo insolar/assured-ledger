@@ -21,7 +21,7 @@ import (
 func newPacket() *rms.Packet {
 	sender := nwapi.NewHost("127.0.0.1:31337")
 	receiver := nwapi.NewHost("127.0.0.2:31338")
-	return packet.NewPacket(&sender, &receiver, types.Authorize, 123)
+	return packet.NewPacket(sender, receiver, types.Authorize, 123)
 }
 
 func TestNewPacketHandler(t *testing.T) {
