@@ -6,6 +6,7 @@
 package uniproto
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -112,7 +113,7 @@ func (p Parser) verifyPacket(packet *Packet, headerFn VerifyHeaderFunc, isDatagr
 
 	if err := func() (err error) {
 		if !p.GetMode().IsProtocolAllowed(h.GetProtocolType()) {
-			return throw.Violation("protocol is disabled")
+			return throw.Violation(fmt.Sprintf("protocol %s is disabled", h.GetProtocolType().String()))
 		}
 
 		protocolDesc := &p.Protocols[h.GetProtocolType()]
