@@ -38,11 +38,11 @@ func TestAPICallRef_BadInput(t *testing.T) {
 
 func TestUnpackAPICallRef_BadInput(t *testing.T) {
 	_, _, _, err := UnpackAPICallRef(reference.Empty())
-	require.Error(t, err, ErrIllegalRefValue)
+	require.Contains(t, err.Error(), ErrIllegalRefValue.Error())
 
 	localRef := reference.NewLocal(pulse.MinTimePulse+pulse.Number(1), 0, reference.LocalHash{})
 	_, _, _, err = UnpackAPICallRef(reference.NewSelf(localRef))
-	require.Error(t, err, ErrIllegalRefValue)
+	require.Contains(t, err.Error(), ErrIllegalRefValue.Error())
 }
 
 func TestTypeDefAPICall_RefFrom(t *testing.T) {
@@ -56,5 +56,5 @@ func TestTypeDefAPICall_RefFrom(t *testing.T) {
 
 	// bad input
 	_, err = tDefAPICall.RefFrom(reference.Empty().GetBase(), reference.Empty().GetLocal())
-	require.Error(t, err, ErrIllegalRefValue)
+	require.Contains(t, err.Error(), ErrIllegalRefValue.Error())
 }
