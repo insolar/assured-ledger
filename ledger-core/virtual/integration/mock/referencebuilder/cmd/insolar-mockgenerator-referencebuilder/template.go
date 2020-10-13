@@ -143,7 +143,7 @@ const (
 			}
 		
 			var resultRef reference.Global
-			switch record := rec.Get().(type) {
+			switch record := rec.Get().(interface{}).(type) {
 		{{- range $pos, $msg := .Messages }}
 			case *rms.{{ $msg }}:
 				msg := rec.Get().(*rms.{{ $msg }})
