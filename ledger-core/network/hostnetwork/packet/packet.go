@@ -12,8 +12,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -55,7 +55,7 @@ func DeserializePacket(logger log.Logger, conn io.Reader) (*ReceivedPacket, uint
 	return receivedPacket, length, nil
 }
 
-func NewPacket(sender, receiver *legacyhost.Host, packetType types.PacketType, id uint64) *rms.Packet {
+func NewPacket(sender, receiver nwapi.Address, packetType types.PacketType, id uint64) *rms.Packet {
 	return &rms.Packet{
 		// Polymorph field should be non-default so we have first byte 0x80 in serialized representation
 		Polymorph: 1,

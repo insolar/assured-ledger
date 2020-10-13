@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
@@ -30,21 +30,19 @@ func createCryptographyService(t *testing.T) cryptography.Service {
 }
 
 func TestCreateAndVerifyPermit(t *testing.T) {
-	origin, err := legacyhost.NewHostN("127.0.0.1:123", gen.UniqueGlobalRef())
-	assert.NoError(t, err)
-	redirect, err := legacyhost.NewHostN("127.0.0.1:321", gen.UniqueGlobalRef())
-	assert.NoError(t, err)
-
+	origin := nwapi.NewHost("127.0.0.1:123")
+	redirect := nwapi.NewHost("127.0.0.1:321")
+	originID := gen.UniqueGlobalRef()
 	cryptographyService := createCryptographyService(t)
 
-	permit, err := CreatePermit(origin.NodeID, redirect, []byte{}, cryptographyService)
+	permit, err := CreatePermit(originID, &redirect, []byte{}, cryptographyService)
 	assert.NoError(t, err)
 	assert.NotNil(t, permit)
 
 	cert := testutils.NewCertificateMock(t)
 	cert.GetDiscoveryNodesMock.Set(func() (r []nodeinfo.DiscoveryNode) {
 		pk, _ := cryptographyService.GetPublicKey()
-		node := mandates.NewBootstrapNode(pk, "", origin.Address.String(), origin.NodeID.String(), member.PrimaryRoleVirtual.String())
+		node := mandates.NewBootstrapNode(pk, "", origin.HostString(), originID.String(), member.PrimaryRoleVirtual.String())
 		return []nodeinfo.DiscoveryNode{node}
 	})
 

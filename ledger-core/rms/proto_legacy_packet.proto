@@ -3,7 +3,6 @@ syntax = "proto3";
 package rms;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-import "proto_legacy.proto";
 import "proto_legacy_profile.proto";
 import "rms.proto";
 
@@ -15,8 +14,8 @@ option (gogoproto.protosizer_all) = true;
 message Packet {
     int32 polymorph = 16;
 
-    bytes Sender = 20 [(gogoproto.customtype) = "LegacyHost"];
-    bytes Receiver = 21 [(gogoproto.customtype) = "LegacyHost"];
+    bytes Sender = 20 [(gogoproto.customtype) = "LegacyHost", (gogoproto.nullable) = false];
+    bytes Receiver = 21 [(gogoproto.customtype) = "LegacyHost", (gogoproto.nullable) = false];
     uint64 RequestID = 22;
     string TraceID = 23;
     bytes TraceSpanData = 24;
@@ -33,7 +32,6 @@ message Packet {
 message Request {
     oneof Request {
         RPCRequest RPC = 2;
-        PulseRequest Pulse = 3;
         BootstrapRequest Bootstrap = 4;
         AuthorizeRequest Authorize = 5;
         SignCertRequest SignCert = 6;
@@ -58,10 +56,6 @@ message Response {
 message RPCRequest {
     string Method = 1;
     bytes Data = 2;
-}
-
-message PulseRequest {
-    rms.PulseProto Pulse = 1;
 }
 
 message UpdateScheduleRequest {
@@ -143,7 +137,6 @@ message AuthorizeResponse {
     string Error = 3;
     Permit Permit = 4;
     uint32 DiscoveryCount = 5;
-//    uint32 PulseNumber = 6 [(gogoproto.casttype) = "PulseNumber", (gogoproto.nullable) = false];
 }
 
 message SignCertResponse {

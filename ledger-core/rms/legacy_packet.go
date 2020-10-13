@@ -9,19 +9,16 @@ import (
 	"strconv"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
-type LegacyHost = legacyhost.Host
+type LegacyHost = nwapi.Address
 
 func (p *Packet) SetRequest(request interface{}) {
 	var r isRequest_Request
 	switch t := request.(type) {
 	case *RPCRequest:
 		r = &Request_RPC{t}
-	case *PulseRequest:
-		r = &Request_Pulse{t}
 	case *BootstrapRequest:
 		r = &Request_Bootstrap{t}
 	case *AuthorizeRequest:
@@ -68,11 +65,7 @@ func (p *Packet) GetType() types.PacketType {
 	return types.PacketType(p.Type)
 }
 
-func (p *Packet) GetSender() reference.Global {
-	return p.Sender.NodeID
-}
-
-func (p *Packet) GetSenderHost() *legacyhost.Host {
+func (p *Packet) GetSenderHost() nwapi.Address {
 	return p.Sender
 }
 
@@ -98,4 +91,3 @@ func (p *Packet) DebugString() string {
 		`IsResponse:` + strconv.FormatBool(p.IsResponse()) + `,` +
 		`}`
 }
-

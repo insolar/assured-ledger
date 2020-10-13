@@ -16,7 +16,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
@@ -35,7 +37,7 @@ type Report struct {
 type OnConsensusFinished func(ctx context.Context, report Report)
 
 type BootstrapResult struct {
-	Host *legacyhost.Host
+	Host *nwapi.Address
 	// FirstPulseTime    time.Time
 	ReconnectRequired bool
 	NetworkSize       int
@@ -67,8 +69,7 @@ type HostNetwork interface {
 
 // Packet is a packet that is transported via network by HostNetwork.
 type Packet interface {
-	GetSender() reference.Global
-	GetSenderHost() *legacyhost.Host
+	GetSenderHost() nwapi.Address
 	GetType() types.PacketType
 	GetRequest() *rms.Request
 	GetResponse() *rms.Response
