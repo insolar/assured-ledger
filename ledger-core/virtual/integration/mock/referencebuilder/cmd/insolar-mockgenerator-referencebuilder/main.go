@@ -60,13 +60,26 @@ func parseHandlers() ([]string, error) {
 
 	var records []string
 	for name, object := range fileInfo.Scope.Objects {
-		if name != "RecordExample" && name != "MemoryRecap" && object.Kind == ast.Typ {
+		if name != "RecordExample" && object.Kind == ast.Typ {
 			decl, ok := object.Decl.(*ast.TypeSpec)
 			if !ok {
 				panic(throw.IllegalState())
 			}
-			_, isStruct := decl.Type.(*ast.StructType)
-			if isStruct {
+
+			structDecl, isStruct := decl.Type.(*ast.StructType)
+			if !isStruct {
+				continue
+			}
+
+			var isRecord bool
+			for _, elem := range structDecl.Fields.List {
+				if strings.Contains(elem.Tag.Value, "RecordBody") {
+					isRecord = true
+					break
+				}
+			}
+
+			if isRecord {
 				records = append(records, name)
 			}
 		}
