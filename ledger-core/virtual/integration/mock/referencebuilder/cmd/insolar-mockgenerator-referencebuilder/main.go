@@ -16,6 +16,7 @@ import (
 	"go/token"
 	"os"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 	"text/template"
@@ -60,21 +61,62 @@ func parseHandlers() ([]string, error) {
 
 	var records []string
 	for name, object := range fileInfo.Scope.Objects {
-		if name != "RecordExample" && name != "MemoryRecap" && object.Kind == ast.Typ {
-			decl, ok := object.Decl.(*ast.TypeSpec)
-			if !ok {
-				panic(throw.IllegalState())
-			}
-			_, isStruct := decl.Type.(*ast.StructType)
-			if isStruct {
-				records = append(records, name)
-			}
+		if object.Kind != ast.Typ {
+			continue
 		}
+		if ok := checkName(name); !ok {
+			continue
+		}
+
+		decl, ok := object.Decl.(*ast.TypeSpec)
+		if !ok {
+			panic(throw.IllegalState())
+		}
+
+		structDecl, isStruct := decl.Type.(*ast.StructType)
+		if !isStruct {
+			continue
+		}
+
+		if ok := checkFields(structDecl.Fields.List); !ok {
+			continue
+		}
+
+		records = append(records, name)
 	}
 
 	sort.Slice(records, func(i, j int) bool { return strings.Compare(records[i], records[j]) < 0 })
 
 	return records, nil
+}
+
+func checkName(name string) bool {
+	if name == "RecordExample" {
+		return false
+	}
+	if strings.HasPrefix(name, "RCtl") {
+		return false
+	}
+	match, err := regexp.MatchString("R[A-Z]*", name)
+	if err != nil {
+		panic(throw.W(err, "regexp math failed"))
+	}
+	if !match {
+		return false
+	}
+	return true
+}
+
+func checkFields(fields []*ast.Field) bool {
+	for _, elem := range fields {
+		tagInfo := elem.Tag.Value
+		correctPrefix := strings.HasPrefix(tagInfo, "`protobuf:\"bytes,19,opt,name=")
+		embedded := strings.Contains(tagInfo, "embedded=")
+		if correctPrefix && embedded {
+			return true
+		}
+	}
+	return false
 }
 
 type GeneratorData struct {
