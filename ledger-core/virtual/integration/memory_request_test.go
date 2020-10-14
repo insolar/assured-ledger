@@ -233,12 +233,23 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, s.server.Journal.WaitAllAsyncCallsDone())
 	}
 	{ // send delegation request finished with new state
+		objectRef           := s.server.RandomGlobalWithPulse()
+		deactivateRequest := utils.GenerateVCallRequestMethod(s.server)
+		deactivateRequest.Callee.Set(objectRef)
+		deactivateRequest.CallSiteMethod = "Destroy"
+		deactivateRequest.CallOutgoing.Set(outgoing)
+		stateRef := s.server.RandomRecordOf(objectRef)
+
+		prevStateRef := s.server.RandomRecordOf(objectRef)
+		pendingTranscript := utils.BuildIncomingTranscript(*deactivateRequest, prevStateRef, stateRef)
+
 		pl := rms.VDelegatedRequestFinished{
 			CallType:     rms.CallTypeMethod,
 			Callee:       rms.NewReference(s.object),
 			CallOutgoing: rms.NewReference(outgoing),
 			CallIncoming: rms.NewReference(incoming),
 			CallFlags:    flags,
+			PendingTranscript: pendingTranscript,
 			LatestState: &rms.ObjectState{
 				Reference: rms.NewReference(s.server.RandomRecordOf(s.object)),
 				Class:     rms.NewReference(s.class),

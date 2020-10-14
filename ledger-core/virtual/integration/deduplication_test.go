@@ -675,12 +675,24 @@ func (s *deduplicateMethodUsingPrevVETest) confirmPending(
 func (s *deduplicateMethodUsingPrevVETest) finishPending(
 	ctx context.Context,
 ) {
+	objectRef := s.server.RandomGlobalWithPulse()
+	deactivateRequest := utils.GenerateVCallRequestMethod(s.server)
+	deactivateRequest.Callee.Set(objectRef)
+	deactivateRequest.CallSiteMethod = "Destroy"
+	outgoing := s.server.BuildRandomOutgoingWithPulse()
+	deactivateRequest.CallOutgoing.Set(outgoing)
+
+	prevStateRef := s.server.RandomRecordOf(objectRef)
+	stateRef := s.server.RandomRecordOf(objectRef)
+	pendingTranscript := utils.BuildIncomingTranscript(*deactivateRequest, prevStateRef, stateRef)
+
 	pl := rms.VDelegatedRequestFinished{
 		Callee:       rms.NewReference(s.getObject()),
 		CallOutgoing: rms.NewReference(s.pendingOutgoing),
 		CallIncoming: rms.NewReference(s.pendingIncoming),
 		CallType:     rms.CallTypeMethod,
 		CallFlags:    rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
+		PendingTranscript: pendingTranscript,
 	}
 	s.addPayloadAndWaitIdle(ctx, &pl)
 }
