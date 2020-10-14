@@ -15,8 +15,8 @@ type RequestResult struct {
 	RawResult          []byte           // every
 	RawObjectReference reference.Global // every
 
-	ObjectImage     reference.Global // amend + activate
-	Memory          []byte           // amend + activate
+	ObjectImage reference.Global // amend + activate
+	Memory      []byte           // amend + activate
 }
 
 func New(result []byte, objectRef reference.Global) *RequestResult {
@@ -53,14 +53,12 @@ func (s *RequestResult) SetActivate(image reference.Global, memory []byte) {
 func (s *RequestResult) SetAmend(object descriptor.Object, memory []byte) {
 	s.SideEffectType = SideEffectAmend
 	s.Memory = memory
-	class, _ := object.Class()
-	s.ObjectImage = class
+	s.ObjectImage = object.Class()
 }
 
 func (s *RequestResult) SetDeactivate(object descriptor.Object) {
 	s.SideEffectType = SideEffectDeactivate
-	class, _ := object.Class()
-	s.ObjectImage = class
+	s.ObjectImage = object.Class()
 }
 
 func (s RequestResult) Type() Type {

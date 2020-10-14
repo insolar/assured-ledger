@@ -25,7 +25,7 @@ func CreatePermit(authorityNodeRef reference.Holder, reconnectHost *nwapi.Addres
 	payload := rms.PermitPayload{
 		AuthorityNodeRef: rms.NewReference(authorityNodeRef),
 		ExpireTimestamp:  time.Now().Unix() + permitTTL,
-		ReconnectTo:      reconnectHost,
+		ReconnectTo:      *reconnectHost,
 		JoinerPublicKey:  joinerPublicKey,
 	}
 

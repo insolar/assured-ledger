@@ -11,7 +11,6 @@ import (
 	"net/http"
 
 	"github.com/spf13/cobra"
-	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 
 	"github.com/insolar/component-manager"
@@ -55,7 +54,6 @@ func parseInputParams() inputParams {
 func main() {
 	params := parseInputParams()
 
-	jww.SetStdoutThreshold(jww.LevelDebug)
 	vp := viper.New()
 	pCfg := configuration.NewPulsarConfiguration()
 	if len(params.configPath) != 0 {

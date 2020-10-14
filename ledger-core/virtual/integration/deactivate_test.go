@@ -58,54 +58,31 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				class            = server.RandomGlobalWithPulse()
 				objectGlobal     = server.RandomGlobalWithPulse()
-				pulseNumberFirst = server.GetPulse().PulseNumber
-
-				validatedStateRef = server.RandomLocalWithPulse()
-				dirtyStateRef     = validatedStateRef
-
 				validatedState = []byte("initial state")
 				dirtyState     = validatedState
 			)
+			if !test.stateIsEqual {
+				dirtyState = []byte("dirty state")
+			}
+
+			builder := server.StateReportBuilder().Object(objectGlobal)
 
 			server.IncrementPulseAndWaitIdle(ctx)
 
 			// Send VStateReport
 			{
-				if !test.stateIsEqual {
-					dirtyState = []byte("dirty state")
-					dirtyStateRef = server.RandomLocalWithPulse()
-				}
-
-				content := &rms.VStateReport_ProvidedContentBody{
-					LatestDirtyState: &rms.ObjectState{
-						Reference:   rms.NewReferenceLocal(dirtyStateRef),
-						Class:       rms.NewReference(class),
-						State:       rms.NewBytes(dirtyState),
-						Deactivated: test.dirtyIsDeactivated,
-					},
-					LatestValidatedState: &rms.ObjectState{
-						Reference: rms.NewReferenceLocal(validatedStateRef),
-						Class:     rms.NewReference(class),
-						State:     rms.NewBytes(validatedState),
-					},
-				}
-
-				pl := &rms.VStateReport{
-					Status:          rms.StateStatusReady,
-					Object:          rms.NewReference(objectGlobal),
-					AsOf:            pulseNumberFirst,
-					ProvidedContent: content,
-				}
-
 				if test.entirelyDeactivated {
-					pl.ProvidedContent = nil
-					pl.Status = rms.StateStatusInactive
+					builder = builder.Inactive()
+				} else {
+					builder = builder.Ready().ValidatedMemory(validatedState).DirtyMemory(dirtyState)
+					if test.dirtyIsDeactivated {
+						builder = builder.DirtyInactive()
+					}
 				}
 
 				wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-				server.SendPayload(ctx, pl)
+				server.SendPayload(ctx, builder.ReportPtr())
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
 			}
 
@@ -146,7 +123,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 				)
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 			// typedChecker mock
 			{
@@ -279,7 +256,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 				prevPulse = server.GetPulse().PulseNumber
 			)
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 				assert.Equal(t, object, res.Callee.GetValue())
 				contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
@@ -343,34 +320,19 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 			var (
 				class        = server.RandomGlobalWithPulse()
 				objectGlobal = server.RandomGlobalWithPulse()
-				prevPulse    = server.GetPulse().PulseNumber
 			)
 
 			// Create object
 			{
+				report := server.StateReportBuilder().Object(objectGlobal).Ready().Class(class).Report()
 				server.IncrementPulse(ctx)
 
-				report := &rms.VStateReport{
-					Status: rms.StateStatusReady,
-					Object: rms.NewReference(objectGlobal),
-					AsOf:   prevPulse,
-					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-						LatestDirtyState: &rms.ObjectState{
-							Class: rms.NewReference(class),
-							State: rms.NewBytes([]byte("initial state")),
-						},
-						LatestValidatedState: &rms.ObjectState{
-							Class: rms.NewReference(class),
-							State: rms.NewBytes([]byte("initial state")),
-						},
-					},
-				}
 				wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-				server.SendPayload(ctx, report)
+				server.SendPayload(ctx, &report)
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			outgoing := server.BuildRandomOutgoingWithPulse()
 
 			// Add VCallResult check
@@ -489,7 +451,7 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 		)
 	}
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	{
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 			assert.Equal(t, objectRef, res.Callee.GetValue())
@@ -506,10 +468,10 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 			require.NotNil(t, report.ProvidedContent)
 			require.NotNil(t, report.ProvidedContent.LatestDirtyState)
 			assert.False(t, report.ProvidedContent.LatestDirtyState.Deactivated)
-			assert.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestDirtyState.State.GetBytes())
+			assert.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestDirtyState.Memory.GetBytes())
 			require.NotNil(t, report.ProvidedContent.LatestValidatedState)
 			assert.False(t, report.ProvidedContent.LatestValidatedState.Deactivated)
-			assert.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestValidatedState.State.GetBytes())
+			assert.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestValidatedState.Memory.GetBytes())
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
@@ -528,26 +490,14 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
 			require.NotNil(t, finished.LatestState)
 			assert.True(t, finished.LatestState.Deactivated)
-			assert.Nil(t, finished.LatestState.State.GetBytes())
+			assert.Nil(t, finished.LatestState.Memory.GetBytes())
 			return false
 		})
 	}
 	{
-		report := rms.VStateReport{
-			Status: rms.StateStatusReady,
-			AsOf:   p1,
-			Object: rms.NewReference(objectRef),
-			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &rms.ObjectState{
-					Class: rms.NewReference(class),
-					State: rms.NewBytes([]byte(origDirtyMem)),
-				},
-				LatestValidatedState: &rms.ObjectState{
-					Class: rms.NewReference(class),
-					State: rms.NewBytes([]byte(origValidatedMem)),
-				},
-			},
-		}
+		report := utils.NewStateReportBuilder().Pulse(p1).Object(objectRef).Ready().
+			Class(class).DirtyMemory([]byte(origDirtyMem)).ValidatedMemory([]byte(origValidatedMem)).Report()
+
 		wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 		server.SendPayload(ctx, &report)
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
@@ -633,7 +583,7 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 		runnerMock.AddExecutionClassify(outgoingSomeMethod, deactivateIsolation, nil)
 	}
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	// Add check
 	{
@@ -702,14 +652,18 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 	server.Init(ctx)
 
 	var (
-		class              = server.RandomGlobalWithPulse()
-		outgoing           = server.BuildRandomOutgoingWithPulse()
-		objectRef          = reference.NewSelf(outgoing.GetLocal())
 		outgoingDeactivate = server.BuildRandomOutgoingWithPulse()
 		isolation          = contract.MethodIsolation{
 			Interference: isolation.CallTolerable,
 			State:        isolation.CallDirty,
 		}
+
+		// Constructor
+		constructorWrapper = utils.GenerateVCallRequestConstructor(server)
+		outgoing           = constructorWrapper.GetOutgoing()
+		objectRef          = constructorWrapper.GetObject()
+		constructorRequest = constructorWrapper.Get()
+		class              = constructorRequest.Callee.GetValue()
 	)
 
 	// mock
@@ -738,7 +692,7 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 		runnerMock.AddExecutionClassify(outgoing, isolation, nil)
 	}
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	// Add check
 	{
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
@@ -754,19 +708,13 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 		})
 	}
 
-	// Constructor
-	constructRequest := utils.GenerateVCallRequestConstructor(server)
-	constructRequest.Callee.Set(objectRef)
-	constructRequest.CallSiteMethod = "Destroy"
-	constructRequest.CallOutgoing.Set(outgoing)
-
 	// Deactivation
 	deactivateRequest := utils.GenerateVCallRequestMethod(server)
 	deactivateRequest.Callee.Set(objectRef)
 	deactivateRequest.CallSiteMethod = "Destroy"
 	deactivateRequest.CallOutgoing.Set(outgoingDeactivate)
 
-	requests := []*rms.VCallRequest{constructRequest, deactivateRequest, constructRequest, deactivateRequest}
+	requests := []*rms.VCallRequest{&constructorRequest, deactivateRequest, &constructorRequest, deactivateRequest}
 	for _, r := range requests {
 		await := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 		server.SendPayload(ctx, r)
@@ -811,20 +759,15 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 
 			// Create object
 			{
+				report := server.StateReportBuilder().Object(objectGlobal).Inactive().Report()
 				server.IncrementPulse(ctx)
 
-				report := &rms.VStateReport{
-					Status:          rms.StateStatusInactive,
-					Object:          rms.NewReference(objectGlobal),
-					AsOf:            prevPulse,
-					ProvidedContent: nil,
-				}
 				wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-				server.SendPayload(ctx, report)
+				server.SendPayload(ctx, &report)
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			// Add checker mock
 			{
 				typedChecker.VFindCallRequest.Set(func(request *rms.VFindCallRequest) bool {
@@ -921,7 +864,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 					Interference: isolation.CallTolerable,
 					State:        isolation.CallDirty,
 				}
-				stateRef = server.RandomGlobalWithPulse()
+				stateRef = server.RandomRecordOf(objectRef)
 				outgoing = server.BuildRandomOutgoingWithPulse()
 				incoming = reference.NewRecordOf(objectRef, outgoing.GetLocal())
 			)
@@ -945,7 +888,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 				}
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 				assert.Equal(t, objectRef, res.Callee.GetValue())
 				assert.Equal(t, checkOutgoing, res.CallOutgoing.GetValue())
@@ -985,14 +928,14 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 					LatestDirtyState:            rms.NewReference(stateRef),
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(stateRef.GetLocal()),
+							Reference: rms.NewReference(stateRef),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes([]byte(origMem)),
+							Memory:    rms.NewBytes([]byte(origMem)),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(stateRef.GetLocal()),
+							Reference: rms.NewReference(stateRef),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes([]byte(origMem)),
+							Memory:    rms.NewBytes([]byte(origMem)),
 						},
 					},
 				}
@@ -1021,7 +964,8 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 					CallIncoming: rms.NewReference(incoming),
 					CallFlags:    rms.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
 					LatestState: &rms.ObjectState{
-						State:       rms.NewBytes(nil),
+						Reference:   rms.NewReference(stateRef),
+						Memory:      rms.NewBytes(nil),
 						Deactivated: true,
 					},
 				}

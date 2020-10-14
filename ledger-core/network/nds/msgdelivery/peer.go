@@ -154,7 +154,10 @@ func (p *DeliveryPeer) sendState(packet StatePacket) {
 	template, dataSize, writeFn := packet.PreparePacket()
 	_, template.PulseNumber = p.ctl.getPulseCycle()
 
-	p._setPacketForSend(&template)
+	if err := p._setPacketForSend(&template); err != nil {
+		p.ctl.reportError(err)
+		return
+	}
 	if err := p.peer.SendPreparedPacket(p.ctl.stateOutType, &template.Packet, dataSize, writeFn, nil); err != nil {
 		p.ctl.reportError(err)
 	}
@@ -165,7 +168,6 @@ func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
 		ParcelID:     msg.id.ShortID(),
 		ReturnID:     msg.returnID,
 		RepeatedSend: isRepeated,
-		ParcelType:   nwapi.CompletePayload,
 	}
 
 	if !p.applyParcelExpiry(msg, &packet) {
@@ -175,15 +177,18 @@ func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
 
 	switch {
 	case isBody:
+		packet.ParcelType = nwapi.CompletePayload
 		packet.Data = msg.shipment.Body
 		p._sendParcel(p.ctl.parcelOutType, packet, msg.canSendBody)
 		return
 	case msg.shipment.Body == nil:
+		packet.ParcelType = nwapi.HeadOnlyPayload
 		packet.Data = msg.shipment.Head
 	case msg.shipment.Head == nil:
+		packet.ParcelType = nwapi.CompletePayload
 		packet.Data = msg.shipment.Body
 	default:
-		packet.ParcelType = nwapi.HeadOnlyPayload
+		packet.ParcelType = nwapi.PartialPayload
 		packet.Data = msg.shipment.Head
 		packet.BodyScale = uint8(bits.Len(msg.shipment.Body.ByteSize()))
 		packet.TTLCycles = msg.shipment.TTL
@@ -239,17 +244,29 @@ func (p *DeliveryPeer) _sendParcel(tp uniproto.OutType, parcel ParcelPacket, che
 	}
 
 	template, dataSize, writeFn := parcel.PreparePacket()
-	p._setPacketForSend(&template)
+
+	if err := p._setPacketForSend(&template); err != nil {
+		p.ctl.reportError(err)
+		return
+	}
 	if err := p.peer.SendPreparedPacket(tp, &template.Packet, dataSize, writeFn, checkFn); err != nil {
 		p.ctl.reportError(err)
 	}
 }
 
-func (p *DeliveryPeer) _setPacketForSend(template *uniproto.PacketTemplate) {
-	template.Header.SourceID = uint32(p.ctl.getLocalID())
+func (p *DeliveryPeer) _setPacketForSend(template *uniproto.PacketTemplate) error {
+	id := p.ctl.getLocalID()
+
+	if id.IsAbsent() {
+		return throw.New("Local id is absent, probably network stopping")
+	}
+
+	template.Header.SourceID = uint32(id)
 	template.Header.ReceiverID = uint32(p.peerID)
 	template.Header.TargetID = uint32(p.peerID)
 	template.Header.SetRelayRestricted(true)
+
+	return nil
 }
 
 func (p *DeliveryPeer) markFlush() (isValid, hasUpdates bool) {

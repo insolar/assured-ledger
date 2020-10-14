@@ -7,12 +7,14 @@ package launchnet
 
 import (
 	"context"
+	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
+	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/pulsewatcher"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/server"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -20,11 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-var (
-	numVirtual        = 5
-	numLightMaterials = 0
-	numHeavyMaterials = 0
-)
+type cloudOption func(runner *CloudRunner)
 
 type PulsarMode uint8
 
@@ -33,17 +31,49 @@ const (
 	ManualPulsar
 )
 
-func prepareConfigProvider() (*server.CloudConfigurationProvider, error) {
-	pulseEnv := os.Getenv("PULSARD_PULSAR_PULSETIME")
-	var pulseTime int
-	var err error
-	if len(pulseEnv) != 0 {
-		pulseTime, err = strconv.Atoi(pulseEnv)
-		if err != nil {
-			return nil, throw.W(err, "Can't convert env var")
-		}
+func WithNumVirtual(num int) func(runner *CloudRunner) {
+	return func(runner *CloudRunner) {
+		runner.numVirtual = num
 	}
+}
 
+func WithNumLightMaterials(num int) func(runner *CloudRunner) {
+	return func(runner *CloudRunner) {
+		runner.numLightMaterials = num
+	}
+}
+
+func WithNumHeavyMaterials(num int) func(runner *CloudRunner) {
+	return func(runner *CloudRunner) {
+		runner.numHeavyMaterials = num
+	}
+}
+
+func WithDefaultLogLevel(level log.Level) func(runner *CloudRunner) {
+	return func(runner *CloudRunner) {
+		runner.defaultLogLevel = level
+	}
+}
+
+func WithPulsarMode(mode PulsarMode) func(runner *CloudRunner) {
+	return func(runner *CloudRunner) {
+		runner.pulsarMode = mode
+	}
+}
+
+func PrepareCloudRunner(options ...cloudOption) *CloudRunner {
+	cr := CloudRunner{
+		defaultLogLevel: log.DebugLevel,
+		pulsarMode:      getPulseModeFromEnv(),
+	}
+	for _, o := range options {
+		o(&cr)
+	}
+	cr.PrepareConfig()
+	return &cr
+}
+
+func prepareConfigProvider(numVirtual, numLightMaterials, numHeavyMaterials int, defaultLogLevel log.Level) *server.CloudConfigurationProvider {
 	cloudSettings := CloudSettings{
 		Virtual: numVirtual,
 		Light:   numLightMaterials,
@@ -52,11 +82,10 @@ func prepareConfigProvider() (*server.CloudConfigurationProvider, error) {
 			TestWalletAPIPortStart int
 			AdminPort              int
 		}{TestWalletAPIPortStart: 32302, AdminPort: 19002},
+		Log: struct{ Level string }{Level: defaultLogLevel.String()},
 	}
 
-	if pulseTime != 0 {
-		cloudSettings.Pulsar = struct{ PulseTime int }{PulseTime: pulseTime}
-	}
+	cloudSettings.Pulsar = struct{ PulseTime int }{PulseTime: GetPulseTime()}
 
 	appConfigs, cloudConfig, certFactory, keyFactory := PrepareCloudConfiguration(cloudSettings)
 
@@ -70,26 +99,24 @@ func prepareConfigProvider() (*server.CloudConfigurationProvider, error) {
 		GetAppConfigs: func() []configuration.Configuration {
 			return appConfigs
 		},
-	}, nil
-}
-
-type CloudRunner struct {
-	ConfProvider *server.CloudConfigurationProvider
-}
-
-func (cr CloudRunner) SetNumVirtuals(n int) {
-	numVirtual = n
-}
-
-func (cr *CloudRunner) PrepareConfig() {
-	var err error
-	cr.ConfProvider, err = prepareConfigProvider()
-	if err != nil {
-		panic(throw.W(err, "Can't prepare config provider"))
 	}
 }
 
-func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider) server.Server {
+type CloudRunner struct {
+	numVirtual, numLightMaterials, numHeavyMaterials int
+
+	pulsarMode PulsarMode
+
+	defaultLogLevel log.Level
+
+	ConfProvider *server.CloudConfigurationProvider
+}
+
+func (cr *CloudRunner) PrepareConfig() {
+	cr.ConfProvider = prepareConfigProvider(cr.numVirtual, cr.numLightMaterials, cr.numHeavyMaterials, cr.defaultLogLevel)
+}
+
+func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider) *insapp.Server {
 	controller := cloud.NewController()
 	s := server.NewControlledMultiServer(controller, confProvider)
 	go func() {
@@ -114,12 +141,25 @@ func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider)
 	return s
 }
 
+//nolint:goconst
+func getPulseModeFromEnv() PulsarMode {
+	pulsarOneshot := os.Getenv("PULSARD_ONESHOT")
+	switch pulsarOneshot {
+	case "TRUE":
+		return ManualPulsar
+	case "FALSE", "":
+		return RegularPulsar
+	default:
+		panic(throw.IllegalValue())
+	}
+}
+
 func (cr CloudRunner) SetupCloud() (func(), error) {
-	return cr.SetupCloudCustom(RegularPulsar)
+	return cr.SetupCloudCustom(cr.pulsarMode)
 }
 
 func (cr CloudRunner) SetupCloudCustom(pulsarMode PulsarMode) (func(), error) {
-	var s server.Server
+	var s *insapp.Server
 	if pulsarMode == ManualPulsar {
 		s = prepareCloudForOneShotMode(cr.ConfProvider)
 	} else {
@@ -128,8 +168,6 @@ func (cr CloudRunner) SetupCloudCustom(pulsarMode PulsarMode) (func(), error) {
 	go func() {
 		s.Serve()
 	}()
-
-	cancelFunc := s.(*insapp.Server).Stop
 
 	var nodes []nodeConfig
 	for _, appCfg := range cr.ConfProvider.GetAppConfigs() {
@@ -142,7 +180,28 @@ func (cr CloudRunner) SetupCloudCustom(pulsarMode PulsarMode) (func(), error) {
 	SetVerbose(false)
 	err := waitForNetworkState(appConfig{Nodes: nodes}, network.CompleteNetworkState)
 	if err != nil {
-		return cancelFunc, throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
+		return s.Stop, throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
 	}
-	return cancelFunc, nil
+	return s.Stop, nil
+}
+
+func (cr *CloudRunner) Run(cb func([]string) int) int {
+	teardown, err := cr.SetupCloud()
+	defer teardown()
+	if err != nil {
+		fmt.Println("error while setup, skip tests: ", err)
+		return 1
+	}
+
+	apiAddresses := make([]string, 0, len(cr.ConfProvider.GetAppConfigs()))
+	for _, el := range cr.ConfProvider.GetAppConfigs() {
+		apiAddresses = append(apiAddresses, el.TestWalletAPI.Address)
+	}
+
+	code := cb(apiAddresses)
+
+	if code != 0 {
+		pulsewatcher.OneShot(apiAddresses)
+	}
+	return code
 }

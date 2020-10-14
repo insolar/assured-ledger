@@ -33,4 +33,4 @@ mergeable:
           changes_requested: true
           message: 'Merge is blocked, changes requested.'
         limit:
-          teams: ['insolar/dev-core']
+          teams: ['insolar/dev-core', 'insolar/devops']

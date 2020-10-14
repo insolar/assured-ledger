@@ -26,7 +26,6 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 
 	var (
 		prevPulse = server.GetPulse()
-		class     = server.RandomGlobalWithPulse()
 		object    = server.RandomGlobalWithPulse()
 	)
 
@@ -36,27 +35,16 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 		Balance: 1234567,
 	})
 
-	content := &rms.VStateReport_ProvidedContentBody{
-		LatestDirtyState: &rms.ObjectState{
-			Class: rms.NewReference(class),
-			State: rms.NewBytes(walletMemory),
-		},
-	}
-
-	report := &rms.VStateReport{
-		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          rms.StateStatusReady,
-		Object:          rms.NewReference(object),
-		ProvidedContent: content,
-	}
+	report := utils.NewStateReportBuilder().
+		Pulse(prevPulse.GetPulseNumber()).Ready().Object(object).Memory(walletMemory).Report()
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-	server.SendPayload(ctx, report)
+	server.SendPayload(ctx, &report)
 	testutils.WaitSignalsTimed(b, 10*time.Second, wait)
 
 	resultSignal := make(synckit.ClosableSignalChannel, 1)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, b, server)
 	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		resultSignal <- struct{}{}
 		return false
@@ -87,7 +75,6 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 
 	var (
 		prevPulse = server.GetPulse()
-		class     = server.RandomGlobalWithPulse()
 		object    = server.RandomGlobalWithPulse()
 	)
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -96,27 +83,16 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 		Balance: 1234567,
 	})
 
-	content := &rms.VStateReport_ProvidedContentBody{
-		LatestDirtyState: &rms.ObjectState{
-			Class: rms.NewReference(class),
-			State: rms.NewBytes(walletMemory),
-		},
-	}
-
-	report := &rms.VStateReport{
-		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          rms.StateStatusReady,
-		Object:          rms.NewReference(object),
-		ProvidedContent: content,
-	}
+	report := utils.NewStateReportBuilder().
+		Pulse(prevPulse.GetPulseNumber()).Ready().Object(object).Memory(walletMemory).Report()
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-	server.SendPayload(ctx, report)
+	server.SendPayload(ctx, &report)
 	testutils.WaitSignalsTimed(b, 10*time.Second, wait)
 
 	resultSignal := make(synckit.ClosableSignalChannel, 1)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, b, server)
 	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		resultSignal <- struct{}{}
 		return false
@@ -146,16 +122,11 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 
 	resultSignal := make(synckit.ClosableSignalChannel, 1)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, b, server)
 	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		resultSignal <- struct{}{}
 		return false
 	})
-
-	pl := *utils.GenerateVCallRequestConstructor(server)
-	pl.Callee.Set(server.RandomGlobalWithPulse())
-	pl.CallSiteMethod = "New"
-	pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
 
 	b.ReportAllocs()
 	b.StopTimer()
@@ -166,11 +137,12 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 		insconveyor.DisableLogStepInfoMarshaller = true
 		b.StopTimer()
 		for i := 0; i < b.N; i++ {
-			pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
-			msg := server.WrapPayload(&pl).Finalize()
+			plWrapper := utils.GenerateVCallRequestConstructor(server)
+			plWrapper.SetClass(testwalletProxy.ClassReference)
+			pl := plWrapper.Get()
 
 			b.StartTimer()
-			server.SendMessage(ctx, msg)
+			server.SendPayload(ctx, &pl)
 			testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
 			b.StopTimer()
 		}
@@ -181,11 +153,12 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 		insconveyor.DisableLogStepInfoMarshaller = false
 		b.StopTimer()
 		for i := 0; i < b.N; i++ {
-			pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
-			msg := server.WrapPayload(&pl).Finalize()
+			plWrapper := utils.GenerateVCallRequestConstructor(server)
+			plWrapper.SetClass(testwalletProxy.ClassReference)
+			pl := plWrapper.Get()
 
 			b.StartTimer()
-			server.SendMessage(ctx, msg)
+			server.SendPayload(ctx, &pl)
 			testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
 			b.StopTimer()
 		}
@@ -198,9 +171,12 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
 
+	srv := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, b, server)
+	srv.VCallRequest.SetResend(true)
+	srv.VCallResult.SetResend(true)
+
 	var (
 		prevPulse = server.GetPulse()
-		class     = testwalletProxy.GetClass()
 		object    = server.RandomGlobalWithPulse()
 	)
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -209,25 +185,16 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 		Balance: 1234567,
 	})
 
-	content := &rms.VStateReport_ProvidedContentBody{
-		LatestDirtyState: &rms.ObjectState{
-			Class: rms.NewReference(class),
-			State: rms.NewBytes(walletMemory),
-		},
-	}
-
-	report := &rms.VStateReport{
-		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          rms.StateStatusReady,
-		Object:          rms.NewReference(object),
-		ProvidedContent: content,
-	}
+	report := utils.NewStateReportBuilder().
+		Pulse(prevPulse.GetPulseNumber()).Ready().Object(object).
+		Class(testwalletProxy.GetClass()).Memory(walletMemory).Report()
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-	server.SendPayload(ctx, report)
+	server.SendPayload(ctx, &report)
 	testutils.WaitSignalsTimed(b, 10*time.Second, wait)
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		code, _ := server.CallAPIGetBalance(ctx, object)
 		require.Equal(b, 200, code)
@@ -239,9 +206,12 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
 
+	srv := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, b, server)
+	srv.VCallRequest.SetResend(true)
+	srv.VCallResult.SetResend(true)
+
 	var (
 		prevPulse = server.GetPulse()
-		class     = testwalletProxy.GetClass()
 		object    = server.RandomGlobalWithPulse()
 	)
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -250,25 +220,16 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 		Balance: 1234567,
 	})
 
-	content := &rms.VStateReport_ProvidedContentBody{
-		LatestDirtyState: &rms.ObjectState{
-			Class: rms.NewReference(class),
-			State: rms.NewBytes(walletMemory),
-		},
-	}
-
-	report := &rms.VStateReport{
-		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          rms.StateStatusReady,
-		Object:          rms.NewReference(object),
-		ProvidedContent: content,
-	}
+	report := utils.NewStateReportBuilder().
+		Pulse(prevPulse.GetPulseNumber()).Ready().Object(object).
+		Class(testwalletProxy.GetClass()).Memory(walletMemory).Report()
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-	server.SendPayload(ctx, report)
+	server.SendPayload(ctx, &report)
 	testutils.WaitSignalsTimed(b, 10*time.Second, wait)
 
 	b.ResetTimer()
+
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			code, _ := server.CallAPIGetBalance(ctx, object)

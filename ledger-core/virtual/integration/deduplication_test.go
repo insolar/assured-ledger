@@ -103,7 +103,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 				})
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 			{ // Checks
 				typedChecker.VCallResult.SetResend(false)
@@ -220,7 +220,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 				})
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			// Checks
 			{
 				var firstResult *rms.VCallResult
@@ -548,7 +548,7 @@ func (s *deduplicateMethodUsingPrevVETest) initServer(t *testing.T) context.Cont
 
 	server.Init(ctx)
 
-	s.typedChecker = s.server.PublisherMock.SetTypedChecker(ctx, s.mc, server)
+	s.typedChecker = s.server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, s.mc, server)
 
 	return ctx
 }
@@ -695,26 +695,12 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 		assert.Equal(t, s.getP1(), req.AsOf)
 		assert.Equal(t, s.getObject(), req.Object.GetValue())
 
-		report := rms.VStateReport{
-			AsOf:   s.getP1(),
-			Status: rms.StateStatusReady,
-			Object: rms.NewReference(s.getObject()),
-
-			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(s.getP1())),
-					Class:     rms.NewReference(s.getClass()),
-					State:     rms.NewBytes([]byte("object memory")),
-				},
-			},
-		}
-
+		builder := utils.NewStateReportBuilder().Pulse(s.getP1()).Object(s.getObject()).Ready()
 		if testInfo.pending {
-			report.UnorderedPendingCount = 1
-			report.UnorderedPendingEarliestPulse = s.getP1()
+			builder = builder.UnorderedPendings(1)
 		}
 
-		s.server.SendPayload(ctx, &report)
+		s.server.SendPayload(ctx, builder.ReportPtr())
 
 		return false // no resend msg
 	}).ExpectedCount(1)

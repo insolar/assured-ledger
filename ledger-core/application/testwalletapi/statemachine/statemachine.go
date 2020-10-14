@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -23,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 )
 
@@ -44,9 +46,11 @@ type SMTestAPICall struct {
 	messageSentTimes atomickit.Uint32
 
 	// injected arguments
-	pulseSlot     *conveyor.PulseSlot
-	messageSender messageSenderAdapter.MessageSender
-	memoryCache   memoryCacheAdapter.MemoryCache
+	pulseSlot        *conveyor.PulseSlot
+	messageSender    messageSenderAdapter.MessageSender
+	memoryCache      memoryCacheAdapter.MemoryCache
+	referenceBuilder lmn.RecordReferenceBuilderService
+	nodeReference    reference.Global
 }
 
 /* -------- Declaration ------------- */
@@ -63,6 +67,9 @@ func (*dSMTestAPICall) InjectDependencies(sm smachine.StateMachine, _ smachine.S
 	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.memoryCache)
+	injector.MustInject(&s.referenceBuilder)
+
+	injector.MustInjectByID(insapp.LocalNodeRefInjectionID, &s.nodeReference)
 }
 
 func (dSMTestAPICall) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -77,19 +84,28 @@ func (s *SMTestAPICall) GetStateMachineDeclaration() smachine.StateMachineDeclar
 }
 
 func (s *SMTestAPICall) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	var (
+		pulse      = s.pulseSlot.PulseNumber()
+		localPart  = gen.UniqueLocalRefWithPulse(pulse)
+		callReason = reference.NewRecordOf(s.nodeReference, localPart)
+	)
+	s.requestPayload.CallReason = rms.NewReference(callReason)
+
 	return ctx.Jump(s.stepSend)
 }
 
 func (s *SMTestAPICall) stepSend(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.requestPayload.Caller.Set(APICaller)
-	outLocal := gen.UniqueLocalRefWithPulse(s.pulseSlot.CurrentPulseNumber())
-	s.requestPayload.CallOutgoing.Set(reference.NewRecordOf(APICaller, outLocal))
+
+	// probably APICaller is not the best that may be here
+	outLocal := lmn.GetOutgoingAnticipatedReference(s.referenceBuilder, &s.requestPayload, APICaller, s.pulseSlot.CurrentPulseNumber())
+	s.requestPayload.CallOutgoing.Set(outLocal)
 
 	switch s.requestPayload.CallType {
 	case rms.CallTypeMethod:
 		s.object = s.requestPayload.Callee.GetValue()
 	case rms.CallTypeConstructor:
-		s.object = reference.NewSelf(outLocal)
+		s.object = lmn.GetLifelineAnticipatedReference(s.referenceBuilder, &s.requestPayload, s.pulseSlot.CurrentPulseNumber())
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -130,7 +146,7 @@ func (s *SMTestAPICall) stepProcessResult(ctx smachine.ExecutionContext) smachin
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	ctx.SetDefaultTerminationResult(s.responsePayload)
+	ctx.SetTerminationResult(s.responsePayload)
 	return ctx.Stop()
 }
 
@@ -153,7 +169,7 @@ func (s *SMTestAPICall) sendRequest(ctx smachine.ExecutionContext) {
 	payloadData := s.requestPayload
 
 	if s.messageSentTimes.Load() > 0 {
-		payloadData.CallRequestFlags.WithRepeatedCall(rms.RepeatedCall)
+		payloadData.CallRequestFlags = payloadData.CallRequestFlags.WithRepeatedCall(rms.RepeatedCall)
 	}
 
 	if s.object.GetBase().Equal(builtinTestAPIEchoRef.GetBase()) {

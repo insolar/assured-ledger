@@ -23,6 +23,4 @@ type NodeNetwork interface {
 	GetNodeSnapshot(pulse.Number) NodeSnapshot
 	// GetAnyLatestNodeSnapshot returns the latest set of nodes. Will return nil when nothing was added yet.
 	FindAnyLatestNodeSnapshot() NodeSnapshot
-//	FindLatestNodeSnapshot() NodeSnapshot
 }
-

@@ -27,6 +27,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/pulsewatcher"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
@@ -69,6 +70,27 @@ func SetCloudFileLogging(v bool) {
 	cloudFileLogging = v
 }
 
+type OneShotMode int
+
+func (o OneShotMode) ToValue() string {
+	switch o {
+	case OneShotUndefined:
+		panic(throw.IllegalState())
+	case OneShotTrue:
+		return "TRUE"
+	case OneShotFalse:
+		return "FALSE"
+	default:
+		panic(throw.IllegalValue())
+	}
+}
+
+const (
+	OneShotUndefined OneShotMode = iota
+	OneShotTrue
+	OneShotFalse
+)
+
 // rootPath returns project root folder
 func rootPath() string {
 	rootOnce.Do(func() {
@@ -82,11 +104,11 @@ func rootPath() string {
 }
 
 func CustomRunWithPulsar(numVirtual, numLight, numHeavy int, cb func([]string) int) int {
-	return customRun(false, numVirtual, numLight, numHeavy, cb)
+	return customRun(OneShotFalse, numVirtual, numLight, numHeavy, cb)
 }
 
 func CustomRunWithoutPulsar(numVirtual, numLight, numHeavy int, cb func([]string) int) int {
-	return customRun(true, numVirtual, numLight, numHeavy, cb)
+	return customRun(OneShotTrue, numVirtual, numLight, numHeavy, cb)
 }
 
 func GetPulseTimeEnv() string {
@@ -104,16 +126,16 @@ func GetPulseTime() int {
 	return defaultPulseTime
 }
 
-func customRun(pulsarOneShot bool, numVirtual, numLight, numHeavy int, cb func([]string) int) int {
+func customRun(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int, cb func([]string) int) int {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
 	apiAddresses, teardown, err := newNetSetup(pulsarOneShot, numVirtual, numLight, numHeavy)
-	defer teardown()
 	if err != nil {
 		fmt.Println("error while setup, skip tests: ", err)
 		return 1
 	}
-
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt)
+	defer teardown()
 
 	go func() {
 		sig := <-c
@@ -123,17 +145,10 @@ func customRun(pulsarOneShot bool, numVirtual, numLight, numHeavy int, cb func([
 		os.Exit(2)
 	}()
 
-	pulseWatcher, config := pulseWatcherPath()
-
 	code := cb(apiAddresses)
 
 	if code != 0 {
-		out, err := exec.Command(pulseWatcher, "-c", config, "-s").CombinedOutput()
-		if err != nil {
-			fmt.Println("PulseWatcher execution error: ", err)
-			return 1
-		}
-		fmt.Println(string(out))
+		pulsewatcher.OneShot(apiAddresses)
 	}
 	return code
 }
@@ -187,10 +202,6 @@ func GetDiscoveryNodesCount() (int, error) {
 }
 
 func GetNodesCount() (int, error) {
-	if isCloudMode() {
-		return numVirtual + numLightMaterials + numHeavyMaterials, nil
-	}
-
 	type nodesConf struct {
 		DiscoverNodes []interface{} `yaml:"discovery_nodes"`
 		Nodes         []interface{} `yaml:"nodes"`
@@ -280,13 +291,31 @@ func waitForNetworkState(cfg appConfig, state network.State) error {
 	return nil
 }
 
-func runPulsar(oneShot bool) error {
+func runPulsar(oneShot OneShotMode) error {
 	pulsarCmd := exec.Command("sh", "-c", "./bin/pulsard --config .artifacts/launchnet/pulsar.yaml")
-	pulsarOneShotStr := "FALSE"
-	if oneShot {
-		pulsarOneShotStr = "TRUE"
+
+parentSwitch:
+	switch oneShot {
+	case OneShotUndefined:
+		pulsarOneshot := os.Getenv("PULSARD_ONESHOT")
+
+		switch pulsarOneshot {
+		case "FALSE":
+			oneShot = OneShotFalse
+		case "TRUE":
+			oneShot = OneShotTrue
+		default:
+			break parentSwitch
+		}
+
+		fallthrough
+	case OneShotTrue, OneShotFalse:
+		pulsarCmd.Env = append(pulsarCmd.Env, fmt.Sprintf("PULSARD_ONESHOT=%s", oneShot.ToValue()))
+
+	default:
+		panic(throw.IllegalValue())
 	}
-	pulsarCmd.Env = append(pulsarCmd.Env, fmt.Sprintf("PULSARD_ONESHOT=%s", pulsarOneShotStr))
+
 	pulsarCmd.Env = append(pulsarCmd.Env, fmt.Sprintf("%s=%d", pulseTimeEnv, GetPulseTime()))
 
 	if err := pulsarCmd.Start(); err != nil {
@@ -299,7 +328,7 @@ func runPulsar(oneShot bool) error {
 	return nil
 }
 
-func waitForNet(cfg appConfig, oneShot bool) error {
+func waitForNet(cfg appConfig, oneShot OneShotMode) error {
 	err := waitForNetworkState(cfg, network.WaitPulsar)
 	if err != nil {
 		return throw.W(err, "Can't wait for NetworkState "+network.WaitPulsar.String())
@@ -318,7 +347,7 @@ func waitForNet(cfg appConfig, oneShot bool) error {
 	return nil
 }
 
-func startCustomNet(pulsarOneShot bool, numVirtual, numLight, numHeavy int) (*exec.Cmd, []string, error) {
+func startCustomNet(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int) (*exec.Cmd, []string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, nil, throw.W(err, "failed to get working directory")
@@ -377,12 +406,7 @@ func startNet() (*exec.Cmd, error) {
 		_ = os.Chdir(cwd)
 	}()
 
-	args := "-pwdg"
-	if isCloudMode() {
-		args += "m"
-	}
-
-	cmd := exec.Command("./scripts/insolard/launchnet.sh", args)
+	cmd := exec.Command("./scripts/insolard/launchnet.sh", "-pwdg")
 	err = waitForLaunch(cmd)
 	if err != nil {
 		return cmd, throw.W(err, "[ startNet ] couldn't waitForLaunch more")
@@ -393,7 +417,7 @@ func startNet() (*exec.Cmd, error) {
 		return cmd, throw.W(err, "[ startNet ] couldn't read nodes config")
 	}
 
-	err = waitForNet(appCfg, false)
+	err = waitForNet(appCfg, OneShotUndefined)
 	if err != nil {
 		return cmd, throw.W(err, "[ startNet ] couldn't waitForNet more")
 	}
@@ -493,7 +517,9 @@ func waitForLaunch(cmd *exec.Cmd) error {
 	}
 
 	cmdCompleted := make(chan error, 1)
-	go func() { cmdCompleted <- cmd.Wait() }()
+	go func() {
+		cmdCompleted <- cmd.Wait()
+	}()
 	select {
 	case err := <-cmdCompleted:
 		cmdCompleted <- nil
@@ -511,7 +537,7 @@ func RunOnlyWithLaunchnet(t *testing.T) {
 	}
 }
 
-func newNetSetup(pulsarOneShot bool, numVirtual, numLight, numHeavy int) (apiAddresses []string, cancelFunc func(), err error) {
+func newNetSetup(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int) (apiAddresses []string, cancelFunc func(), err error) {
 	cmd, apiAddresses, err := startCustomNet(pulsarOneShot, numVirtual, numLight, numHeavy)
 	cancelFunc = func() {}
 	if cmd != nil {

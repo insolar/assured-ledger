@@ -124,7 +124,7 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 				pulse         = server.GetPulse().PulseNumber
 			)
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 			server.IncrementPulseAndWaitIdle(ctx)
 
@@ -316,7 +316,7 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 			}
 
 			// checks
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			{
 				typedChecker.VCallRequest.Set(func(request *rms.VCallRequest) bool {
 					assertVCallRequest(t, objectA, objectB, request, test.flagsA)
@@ -393,7 +393,7 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 			server.ReplaceRunner(runnerMock)
 			server.Init(ctx)
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 			var (
 				prevPulse     = server.GetPulse().PulseNumber
@@ -529,7 +529,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 			server.ReplaceRunner(runnerMock)
 			server.Init(ctx)
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 			var (
 				prevPulse     = server.GetPulse().PulseNumber
@@ -541,14 +541,15 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 			Method_PrepareObject(ctx, server, rms.StateStatusReady, objectBGlobal, prevPulse)
 
 			var (
+				plWrapper     = utils.GenerateVCallRequestConstructor(server)
+				pl            = plWrapper.Get()
+				classA        = pl.Callee.GetValue()
+				outgoingA     = plWrapper.GetOutgoing()
+				objectAGlobal = plWrapper.GetObject()
+				incomingA     = plWrapper.GetIncoming()
+
 				callFlags = tolerableFlags()
-
-				classA        = server.RandomGlobalWithPulse()
-				outgoingA     = server.BuildRandomOutgoingWithPulse()
-				objectAGlobal = reference.NewSelf(outgoingA.GetLocal())
-				incomingA     = reference.NewRecordOf(objectAGlobal, outgoingA.GetLocal())
-
-				classB = server.RandomGlobalWithPulse()
+				classB    = server.RandomGlobalWithPulse()
 			)
 			// add ExecutionMocks to runnerMock
 			{
@@ -626,10 +627,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 				})
 			}
 
-			pl := utils.GenerateVCallRequestConstructor(server)
-			pl.Callee.Set(classA)
-			pl.CallOutgoing.Set(outgoingA)
-			server.SendPayload(ctx, pl)
+			server.SendPayload(ctx, &pl)
 
 			// wait for all calls and SMs
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -662,7 +660,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	var (
 		object     = server.RandomGlobalWithPulse()

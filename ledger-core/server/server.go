@@ -18,7 +18,7 @@ type Server interface {
 	Serve()
 }
 
-func NewNode(cfg configuration.Configuration) Server {
+func NewNode(cfg configuration.Configuration) *insapp.Server {
 	return insapp.New(cfg, appFactory)
 }
 
@@ -35,7 +35,7 @@ func NewControlledMultiServer(controller cloud.Controller, configProvider insapp
 	)
 }
 
-func NewMultiServer(configProvider *CloudConfigurationProvider) Server {
+func NewMultiServer(configProvider *CloudConfigurationProvider) *insapp.Server {
 	controller := cloud.NewController()
 	if configProvider.GetAppConfigs == nil {
 		panic("GetAppConfigs cannot be nil")
@@ -54,7 +54,7 @@ func NewMultiServer(configProvider *CloudConfigurationProvider) Server {
 	)
 }
 
-func NewMultiServerWithConsensus(configProvider *CloudConfigurationProvider) Server { // nolint:interfacer
+func NewMultiServerWithConsensus(configProvider *CloudConfigurationProvider) *insapp.Server {
 	if configProvider.GetAppConfigs == nil {
 		panic("GetAppConfigs cannot be nil")
 	}
@@ -77,7 +77,7 @@ func NewMultiServerWithConsensus(configProvider *CloudConfigurationProvider) Ser
 	)
 }
 
-func NewHeadlessNetworkNodeServer(cfg configuration.Configuration) Server {
+func NewHeadlessNetworkNodeServer(cfg configuration.Configuration) *insapp.Server {
 	return insapp.New(cfg, nil, &headless.AppComponent{})
 }
 

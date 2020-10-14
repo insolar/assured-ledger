@@ -18,8 +18,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
@@ -35,7 +35,6 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	var (
 		mc          = minimock.NewController(t)
 		testBalance = uint32(500)
-		prevPulse   = server.GetPulse().PulseNumber
 		objectRef   = server.RandomGlobalWithPulse()
 		sender      = server.JetCoordinatorMock.Me()
 
@@ -43,7 +42,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 		incoming = reference.NewRecordOf(objectRef, outgoing.GetLocal())
 	)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VDelegatedCallResponse.Set(func(pl *rms.VDelegatedCallResponse) bool {
 		require.NotEmpty(t, pl.ResponseDelegationSpec)
 		assert.Equal(t, objectRef, pl.ResponseDelegationSpec.Callee.GetValue())
@@ -52,31 +51,17 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 		return false // no resend msg
 	})
 
-	server.IncrementPulseAndWaitIdle(ctx)
-
 	{
-		// send VStateReport: save wallet
-		stateID := gen.UniqueLocalRefWithPulse(prevPulse)
-		rawWalletState := makeRawWalletState(testBalance)
-		payloadMeta := &rms.VStateReport{
-			Status:                        rms.StateStatusReady,
-			Object:                        rms.NewReference(objectRef),
-			AsOf:                          prevPulse,
-			UnorderedPendingCount:         1,
-			UnorderedPendingEarliestPulse: prevPulse,
-			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(stateID),
-					Class:     rms.NewReference(testwalletProxy.GetClass()),
-					State:     rms.NewBytes(rawWalletState),
-				},
-			},
-		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, payloadMeta).SetSender(sender).Finalize()
-		server.SendMessage(ctx, msg)
-	}
+		report := server.StateReportBuilder().Object(objectRef).Ready().
+			Memory(makeRawWalletState(testBalance)).Class(testwalletProxy.GetClass()).
+			UnorderedPendings(1).Report()
 
-	server.WaitActiveThenIdleConveyor()
+		server.IncrementPulse(ctx)
+
+		waitReport := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+		server.SendPayload(ctx, &report)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, waitReport)
+	}
 
 	{
 		// send VDelegatedCall

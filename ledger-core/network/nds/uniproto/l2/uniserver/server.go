@@ -196,13 +196,17 @@ func (p *UnifiedServer) StartNoListen() {
 }
 
 func (p *UnifiedServer) StartListen() {
+	if err := p.TryStartListen(); err != nil {
+		panic(err)
+	}
+}
+
+func (p *UnifiedServer) TryStartListen() error {
 	if !p.ptf.HasTransports() {
 		p.StartNoListen()
 	}
 
-	if err := p.ptf.Listen(); err != nil {
-		panic(err)
-	}
+	return p.ptf.Listen()
 }
 
 func (p *UnifiedServer) PeerManager() *PeerManager {
@@ -257,7 +261,9 @@ func (p *UnifiedServer) receiveSessionless(local, remote nwapi.Address, b []byte
 func (p *UnifiedServer) connectSessionfulListen(local, remote nwapi.Address, conn io.ReadWriteCloser, w l1.OneWayTransport, err error) bool {
 	if !p.ptf.listen.IsActive() {
 		// can't accept incoming connections until listen initializer is finished
-		_ = conn.Close()
+		if conn != nil {
+			_ = conn.Close()
+		}
 		return true
 	}
 	return p.connectSessionful(local, remote, conn, w, err)

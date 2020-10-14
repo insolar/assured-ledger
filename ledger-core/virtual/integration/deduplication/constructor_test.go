@@ -43,7 +43,7 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		return false
 	})
@@ -54,7 +54,8 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 		synchronizeExecution.Synchronize()
 	}
 
-	pl := utils.GenerateVCallRequestConstructor(server)
+	plWrapper := utils.GenerateVCallRequestConstructor(server)
+	pl := plWrapper.Get()
 
 	{
 		requestResult := requestresult.New([]byte("123"), server.RandomGlobalWithPulse())
@@ -72,7 +73,7 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 
 	{
 		// send first call request
-		server.SendPayload(ctx, pl)
+		server.SendPayload(ctx, &pl)
 	}
 
 	// await first SMExecute go to step execute (in this point machine is still not publish result to table in SMObject)
@@ -80,7 +81,7 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 
 	{
 		// send second call request
-		server.SendPayload(ctx, pl)
+		server.SendPayload(ctx, &pl)
 	}
 
 	// second SMExecute should stop in deduplication algorithm and she should not send result because she started during execution first machine
@@ -112,12 +113,13 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		return false
 	})
 
-	pl := utils.GenerateVCallRequestConstructor(server)
+	plWrapper := utils.GenerateVCallRequestConstructor(server)
+	pl := plWrapper.Get()
 
 	{
 		requestResult := requestresult.New([]byte("123"), server.RandomGlobalWithPulse())
@@ -135,7 +137,7 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 
 	{
 		// send first call request
-		server.SendPayload(ctx, pl)
+		server.SendPayload(ctx, &pl)
 	}
 
 	// await first SMExecute go completed work (after complete SMExecute publish result to table in SMObject)
@@ -143,7 +145,7 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 
 	{
 		// send second call request
-		server.SendPayload(ctx, pl)
+		server.SendPayload(ctx, &pl)
 	}
 
 	// second SMExecute should send result again because she started after first machine complete
@@ -222,15 +224,23 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 		server = test.Server
 
 		isolation     = contract.ConstructorIsolation()
-		class         = server.RandomGlobalWithPulse()
-		previousPulse = test.Server.GetPulse().PulseNumber
-		outgoing      = test.Server.BuildRandomOutgoingWithPulse()
-		object        = reference.NewSelf(outgoing.GetLocal())
-		executeDone   = test.Server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+		previousPulse = server.GetPulseNumber()
 		foundError    = synckit.ClosedChannel()
 	)
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	plWrapper := utils.GenerateVCallRequestConstructorForPulse(server, previousPulse)
+
+	var (
+		pl       = plWrapper.Get()
+		class    = pl.Callee.GetValue()
+		outgoing = plWrapper.GetOutgoing()
+		object   = plWrapper.GetObject()
+	)
+
 	if test.ExecuteShouldHaveError != "" {
-		foundError = test.Server.Journal.Wait(func(event debuglogger.UpdateEvent) bool {
+		foundError = server.Journal.Wait(func(event debuglogger.UpdateEvent) bool {
 			if event.Data.Error != nil {
 				stack := throw.DeepestStackTraceOf(event.Data.Error)
 				if stack == nil {
@@ -248,6 +258,16 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 		test.VState.OrderedPendingEarliestPulse = previousPulse
 	}
 	test.VState.AsOf = previousPulse
+	if test.VState.ProvidedContent != nil {
+		if test.VState.ProvidedContent.LatestDirtyState != nil {
+			test.VState.ProvidedContent.LatestDirtyState.Reference =
+				rms.NewReference(server.RandomRecordOfWithGivenPulse(object, previousPulse))
+		}
+		if test.VState.ProvidedContent.LatestValidatedState != nil {
+			test.VState.ProvidedContent.LatestValidatedState.Reference =
+				rms.NewReference(server.RandomRecordOfWithGivenPulse(object, previousPulse))
+		}
+	}
 
 	// populate needed VFindCallResponse fields
 	if test.VFindCall != nil {
@@ -262,7 +282,7 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	// populate needed VDelegatedCallResponse fields
 	if test.VDelegatedCall != nil {
 		if test.VDelegatedCallBadReference {
-			test.VDelegatedCall.CallOutgoing.Set(test.Server.RandomGlobalWithPulse())
+			test.VDelegatedCall.CallOutgoing.Set(server.RandomGlobalWithPrevPulse())
 		} else {
 			test.VDelegatedCall.CallOutgoing.Set(outgoing)
 		}
@@ -279,14 +299,15 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 			CallOutgoing: rms.NewReference(outgoing),
 			CallIncoming: rms.NewReference(reference.NewRecordOf(class, outgoing.GetLocal())),
 			LatestState: &rms.ObjectState{
-				Class: rms.NewReference(class),
-				State: rms.NewBytes(ExecutionResultFromPreviousNode),
+				Reference: rms.NewReference(server.RandomRecordOf(object)),
+				Class:     rms.NewReference(class),
+				Memory:    rms.NewBytes(ExecutionResultFromPreviousNode),
 			},
 		}
 	}
 
 	if test.ExecutionExpected {
-		requestResult := requestresult.New(ExecutionResultFromExecutor, server.RandomGlobalWithPulse())
+		requestResult := requestresult.New(ExecutionResultFromExecutor, server.RandomGlobalWithPrevPulse())
 		requestResult.SetActivate(class, []byte(""))
 
 		executionMock := test.Runner.AddExecutionMock(outgoing)
@@ -329,8 +350,6 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 		})
 	}
 
-	test.Server.IncrementPulseAndWaitIdle(test.Context)
-
 	if test.vStateSendBefore {
 		VStateReportDone := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 		server.SendPayload(ctx, &test.VState)
@@ -346,14 +365,10 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	}
 
 	{
-		pl := utils.GenerateVCallRequestConstructor(server)
-		pl.Callee.Set(class)
-		pl.CallOutgoing.Set(outgoing)
+		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-		server.SendPayload(ctx, pl)
-	}
+		server.SendPayload(ctx, &pl)
 
-	{
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone(), foundError)
 	}
@@ -542,7 +557,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 			Status:              rms.StateStatusReady,
 			OrderedPendingCount: 0,
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &rms.ObjectState{State: rms.NewBytes([]byte("123"))},
+				LatestDirtyState: &rms.ObjectState{Memory: rms.NewBytes([]byte("123"))},
 			},
 		}
 
@@ -602,7 +617,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 			Status:              rms.StateStatusReady,
 			OrderedPendingCount: 1,
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &rms.ObjectState{State: rms.NewBytes([]byte("123"))},
+				LatestDirtyState: &rms.ObjectState{Memory: rms.NewBytes([]byte("123"))},
 			},
 		}
 

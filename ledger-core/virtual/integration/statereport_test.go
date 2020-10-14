@@ -14,33 +14,12 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
-
-func makeVStateReportWithState(
-	objectRef reference.Global,
-	stateStatus rms.VStateReport_StateStatus,
-	state *rms.ObjectState,
-	asOf rms.PulseNumber,
-) *rms.VStateReport {
-	res := rms.VStateReport{
-		Status: stateStatus,
-		Object: rms.NewReference(objectRef),
-		AsOf:   asOf,
-	}
-	if state != nil {
-		res.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
-			LatestDirtyState: state,
-		}
-	}
-	return &res
-
-}
 
 func makeRawWalletState(balance uint32) []byte {
 	return insolar.MustSerialize(testwallet.Wallet{
@@ -70,48 +49,34 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 
 			var (
 				initState    = []byte("init state")
-				initRef      = server.RandomLocalWithPulse()
 				prevPulse    = server.GetPulse().PulseNumber
 				objectGlobal = server.RandomGlobalWithPulse()
+				initRef      = server.RandomRecordOf(objectGlobal)
 				class        = server.RandomGlobalWithPulse()
 			)
 
 			// send first VStateReport
 			{
+				report := server.StateReportBuilder().Object(objectGlobal).Ready().
+					StateRef(initRef).Memory(initState).Report()
+
 				server.IncrementPulse(ctx)
 
-				pl := &rms.VStateReport{
-					Status: rms.StateStatusReady,
-					Object: rms.NewReference(objectGlobal),
-					AsOf:   prevPulse,
-					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(initRef),
-							Class:     rms.NewReference(class),
-							State:     rms.NewBytes(initState),
-						},
-						LatestValidatedState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(initRef),
-							Class:     rms.NewReference(class),
-							State:     rms.NewBytes(initState),
-						},
-					},
-				}
 				waitReport := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-				server.SendPayload(ctx, pl)
+				server.SendPayload(ctx, &report)
 				commontestutils.WaitSignalsTimed(t, 10*time.Second, waitReport)
 			}
 
 			// add checker
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			{
 				typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 					assert.NotNil(t, report.ProvidedContent)
 					assert.Equal(t, rms.StateStatusReady, report.Status)
-					assert.Equal(t, initRef, report.ProvidedContent.LatestDirtyState.Reference.GetValueWithoutBase())
-					assert.Equal(t, initRef, report.ProvidedContent.LatestValidatedState.Reference.GetValueWithoutBase())
-					assert.Equal(t, initState, report.ProvidedContent.LatestDirtyState.State.GetBytes())
-					assert.Equal(t, initState, report.ProvidedContent.LatestValidatedState.State.GetBytes())
+					assert.Equal(t, initRef, report.ProvidedContent.LatestDirtyState.Reference.GetValue())
+					assert.Equal(t, initRef, report.ProvidedContent.LatestValidatedState.Reference.GetValue())
+					assert.Equal(t, initState, report.ProvidedContent.LatestDirtyState.Memory.GetBytes())
+					assert.Equal(t, initState, report.ProvidedContent.LatestValidatedState.Memory.GetBytes())
 					return false
 				})
 			}
@@ -126,9 +91,9 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 				if testCase.status == rms.StateStatusReady {
 					pl.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(server.RandomLocalWithPulse()),
+							Reference: rms.NewReference(server.RandomRecordOfWithGivenPulse(objectGlobal, prevPulse)),
 							Class:     rms.NewReference(class),
-							State:     rms.NewBytes([]byte("new state")),
+							Memory:    rms.NewBytes([]byte("new state")),
 						},
 					}
 				}

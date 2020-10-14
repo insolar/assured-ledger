@@ -20,6 +20,90 @@ import (
 
 // ============================================================================
 
+type LRegisterRequestDefinition struct {
+	touched       bool
+	count         atomickit.Int
+	countBefore   atomickit.Int
+	expectedCount int
+	handler       LRegisterRequestHandler
+}
+type LRegisterRequestHandler func(*rms.LRegisterRequest) bool
+type PubLRegisterRequestMock struct{ parent *Typed }
+
+func (p PubLRegisterRequestMock) ExpectedCount(count int) PubLRegisterRequestMock {
+	p.parent.Handlers.LRegisterRequest.touched = true
+	p.parent.Handlers.LRegisterRequest.expectedCount = count
+	return p
+}
+
+func (p PubLRegisterRequestMock) Set(handler LRegisterRequestHandler) PubLRegisterRequestMock {
+	p.parent.Handlers.LRegisterRequest.touched = true
+	p.parent.Handlers.LRegisterRequest.handler = handler
+	return p
+}
+
+func (p PubLRegisterRequestMock) SetResend(resend bool) PubLRegisterRequestMock {
+	p.parent.Handlers.LRegisterRequest.touched = true
+	p.parent.Handlers.LRegisterRequest.handler = func(*rms.LRegisterRequest) bool { return resend }
+	return p
+}
+
+func (p PubLRegisterRequestMock) Count() int {
+	return p.parent.Handlers.LRegisterRequest.count.Load()
+}
+
+func (p PubLRegisterRequestMock) CountBefore() int {
+	return p.parent.Handlers.LRegisterRequest.countBefore.Load()
+}
+
+func (p PubLRegisterRequestMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.LRegisterRequest.count, count)
+}
+
+// ============================================================================
+
+type LRegisterResponseDefinition struct {
+	touched       bool
+	count         atomickit.Int
+	countBefore   atomickit.Int
+	expectedCount int
+	handler       LRegisterResponseHandler
+}
+type LRegisterResponseHandler func(*rms.LRegisterResponse) bool
+type PubLRegisterResponseMock struct{ parent *Typed }
+
+func (p PubLRegisterResponseMock) ExpectedCount(count int) PubLRegisterResponseMock {
+	p.parent.Handlers.LRegisterResponse.touched = true
+	p.parent.Handlers.LRegisterResponse.expectedCount = count
+	return p
+}
+
+func (p PubLRegisterResponseMock) Set(handler LRegisterResponseHandler) PubLRegisterResponseMock {
+	p.parent.Handlers.LRegisterResponse.touched = true
+	p.parent.Handlers.LRegisterResponse.handler = handler
+	return p
+}
+
+func (p PubLRegisterResponseMock) SetResend(resend bool) PubLRegisterResponseMock {
+	p.parent.Handlers.LRegisterResponse.touched = true
+	p.parent.Handlers.LRegisterResponse.handler = func(*rms.LRegisterResponse) bool { return resend }
+	return p
+}
+
+func (p PubLRegisterResponseMock) Count() int {
+	return p.parent.Handlers.LRegisterResponse.count.Load()
+}
+
+func (p PubLRegisterResponseMock) CountBefore() int {
+	return p.parent.Handlers.LRegisterResponse.countBefore.Load()
+}
+
+func (p PubLRegisterResponseMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.LRegisterResponse.count, count)
+}
+
+// ============================================================================
+
 type VCachedMemoryRequestDefinition struct {
 	touched       bool
 	count         atomickit.Int
@@ -567,6 +651,8 @@ func (p PubVStateRequestMock) Wait(ctx context.Context, count int) synckit.Signa
 // ============================================================================
 
 type TypedHandlers struct {
+	LRegisterRequest          LRegisterRequestDefinition
+	LRegisterResponse         LRegisterResponseDefinition
 	VCachedMemoryRequest      VCachedMemoryRequestDefinition
 	VCachedMemoryResponse     VCachedMemoryResponseDefinition
 	VCallRequest              VCallRequestDefinition
@@ -595,6 +681,8 @@ type Typed struct {
 
 	Handlers TypedHandlers
 
+	LRegisterRequest          PubLRegisterRequestMock
+	LRegisterResponse         PubLRegisterResponseMock
 	VCachedMemoryRequest      PubVCachedMemoryRequestMock
 	VCachedMemoryResponse     PubVCachedMemoryResponseMock
 	VCallRequest              PubVCallRequestMock
@@ -619,6 +707,8 @@ func NewTyped(ctx context.Context, t minimock.Tester, sender Sender) *Typed {
 		resend:        sender.SendMessage,
 
 		Handlers: TypedHandlers{
+			LRegisterRequest:          LRegisterRequestDefinition{expectedCount: -1},
+			LRegisterResponse:         LRegisterResponseDefinition{expectedCount: -1},
 			VCachedMemoryRequest:      VCachedMemoryRequestDefinition{expectedCount: -1},
 			VCachedMemoryResponse:     VCachedMemoryResponseDefinition{expectedCount: -1},
 			VCallRequest:              VCallRequestDefinition{expectedCount: -1},
@@ -635,6 +725,8 @@ func NewTyped(ctx context.Context, t minimock.Tester, sender Sender) *Typed {
 		},
 	}
 
+	checker.LRegisterRequest = PubLRegisterRequestMock{parent: checker}
+	checker.LRegisterResponse = PubLRegisterResponseMock{parent: checker}
 	checker.VCachedMemoryRequest = PubVCachedMemoryRequestMock{parent: checker}
 	checker.VCachedMemoryResponse = PubVCachedMemoryResponseMock{parent: checker}
 	checker.VCallRequest = PubVCallRequestMock{parent: checker}
@@ -675,6 +767,62 @@ func (p *Typed) checkMessage(ctx context.Context, msg *message.Message) {
 	var resend bool
 
 	switch payload := meta.Payload.Get().(type) {
+	case *rms.LRegisterRequest:
+		hdlStruct := &p.Handlers.LRegisterRequest
+
+		resend = p.defaultResend
+
+		oldCount := hdlStruct.countBefore.Add(1)
+
+		if hdlStruct.handler != nil {
+			done := make(synckit.ClosableSignalChannel)
+
+			go func() {
+				defer func() { _ = synckit.SafeClose(done) }()
+
+				resend = hdlStruct.handler(payload)
+			}()
+
+			select {
+			case <-done:
+			case <-time.After(p.timeout):
+				p.t.Error("timeout: failed to check message LRegisterRequest (position: %s)", oldCount)
+			}
+		} else if !p.defaultResend && !hdlStruct.touched {
+			p.t.Fatalf("unexpected %T payload", payload)
+			return
+		}
+
+		hdlStruct.count.Add(1)
+
+	case *rms.LRegisterResponse:
+		hdlStruct := &p.Handlers.LRegisterResponse
+
+		resend = p.defaultResend
+
+		oldCount := hdlStruct.countBefore.Add(1)
+
+		if hdlStruct.handler != nil {
+			done := make(synckit.ClosableSignalChannel)
+
+			go func() {
+				defer func() { _ = synckit.SafeClose(done) }()
+
+				resend = hdlStruct.handler(payload)
+			}()
+
+			select {
+			case <-done:
+			case <-time.After(p.timeout):
+				p.t.Error("timeout: failed to check message LRegisterResponse (position: %s)", oldCount)
+			}
+		} else if !p.defaultResend && !hdlStruct.touched {
+			p.t.Fatalf("unexpected %T payload", payload)
+			return
+		}
+
+		hdlStruct.count.Add(1)
+
 	case *rms.VCachedMemoryRequest:
 		hdlStruct := &p.Handlers.VCachedMemoryRequest
 
@@ -1057,6 +1205,42 @@ func (p *Typed) SetDefaultResend(flag bool) *Typed {
 func (p *Typed) minimockDone() bool {
 	ok := true
 
+	{
+		fn := func() bool {
+			hdl := &p.Handlers.LRegisterRequest
+
+			switch {
+			case hdl.expectedCount < 0:
+				return true
+			case p.defaultResend:
+				return true
+			case hdl.expectedCount == 0:
+				return true
+			}
+
+			return hdl.count.Load() == hdl.expectedCount
+		}
+
+		ok = ok && fn()
+	}
+	{
+		fn := func() bool {
+			hdl := &p.Handlers.LRegisterResponse
+
+			switch {
+			case hdl.expectedCount < 0:
+				return true
+			case p.defaultResend:
+				return true
+			case hdl.expectedCount == 0:
+				return true
+			}
+
+			return hdl.count.Load() == hdl.expectedCount
+		}
+
+		ok = ok && fn()
+	}
 	{
 		fn := func() bool {
 			hdl := &p.Handlers.VCachedMemoryRequest

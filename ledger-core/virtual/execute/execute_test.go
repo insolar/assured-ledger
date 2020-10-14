@@ -12,7 +12,6 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
@@ -42,8 +41,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	virtualtestutils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
@@ -86,33 +87,37 @@ func TestSMExecute_Init(t *testing.T) {
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
-		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		caller          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		callee          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		smGlobalRef     = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		smObject        = object.NewStateMachineObject(smGlobalRef)
-		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+		pd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot    = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		caller       = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
+		callee       = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
+		callOutgoing = reference.NewRecordOf(caller, gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		meRef        = gen.UniqueGlobalRef()
 
 		callFlags = rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
+
+		request = &rms.VCallRequest{
+			CallType:       rms.CallTypeConstructor,
+			CallFlags:      callFlags,
+			CallSiteMethod: "New",
+			Caller:         rms.NewReference(caller),
+			Callee:         rms.NewReference(callee),
+			CallOutgoing:   rms.NewReference(callOutgoing),
+			Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
+		}
+
+		// smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
+		objectRef        = virtualtestutils.GetObjectReference(request, meRef)
+		smObject         = object.NewStateMachineObject(objectRef)
+		sharedStateData  = smachine.NewUnboundSharedData(&smObject.SharedState)
+		smObjectAccessor = object.SharedStateAccessor{SharedDataLink: sharedStateData}
+		smExecute        = SMExecute{
+			Payload:           request,
+			pulseSlot:         &pulseSlot,
+			objectSharedState: smObjectAccessor,
+			referenceBuilder:  virtualtestutils.GetReferenceBuilder(meRef),
+		}
 	)
-
-	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-	request := &rms.VCallRequest{
-		CallType:       rms.CallTypeConstructor,
-		CallFlags:      callFlags,
-		CallSiteMethod: "New",
-		Caller:         rms.NewReference(caller),
-		Callee:         rms.NewReference(callee),
-		CallOutgoing:   rms.NewReference(smGlobalRef),
-		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
-	}
-
-	smExecute := SMExecute{
-		Payload:           request,
-		pulseSlot:         &pulseSlot,
-		objectSharedState: smObjectAccessor,
-	}
 
 	initializedSMExecute := expectedInitState(ctx, smExecute)
 
@@ -120,10 +125,14 @@ func TestSMExecute_Init(t *testing.T) {
 		initCtx := smachine.NewInitializationContextMock(mc).
 			GetContextMock.Return(ctx).
 			SetDefaultMigrationMock.Set(testutils.AssertMigration(t, smExecute.migrationDefault)).
+			ShareMock.Return(smachine.SharedDataLink{}).
 			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepCheckRequest))
 
 		smExecute.Init(initCtx)
 	}
+
+	initializedSMExecute.execution.Object = reference.Global{}
+	smExecute.execution.Object = reference.Global{}
 
 	assert.Equal(t, initializedSMExecute, smExecute)
 
@@ -137,33 +146,42 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
-		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		caller          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		callee          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		smGlobalRef     = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		smObject        = object.NewStateMachineObject(smGlobalRef)
-		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+		pd        = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		caller    = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
+		callee    = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 
 		callFlags = rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
+
+		request = &rms.VCallRequest{
+			CallType:       rms.CallTypeConstructor,
+			CallFlags:      callFlags,
+			Caller:         rms.NewReference(caller),
+			Callee:         rms.NewReference(callee),
+			CallSiteMethod: "New",
+			CallOutgoing:   rms.NewReference(gen.UniqueGlobalRefWithPulse(pd.PulseNumber)),
+			Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
+		}
+
+		meRef           = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
+		objectRef       = virtualtestutils.GetObjectReference(request, meRef)
+		smObject        = object.NewStateMachineObject(objectRef)
+		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+		desc            = descriptor.NewObject(
+			objectRef,
+			gen.UniqueLocalRefWithPulse(pd.PulseNumber),
+			reference.Global{},
+			[]byte("dummy"),
+			false,
+		)
+		smObjectAccessor = object.SharedStateAccessor{SharedDataLink: sharedStateData}
+		smExecute        = SMExecute{
+			Payload:           request,
+			pulseSlot:         &pulseSlot,
+			objectSharedState: smObjectAccessor,
+		}
 	)
-
-	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-	request := &rms.VCallRequest{
-		CallType:       rms.CallTypeConstructor,
-		CallFlags:      callFlags,
-		Caller:         rms.NewReference(caller),
-		Callee:         rms.NewReference(callee),
-		CallSiteMethod: "New",
-		CallOutgoing:   rms.NewReference(smGlobalRef),
-		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
-	}
-
-	smExecute := SMExecute{
-		Payload:           request,
-		pulseSlot:         &pulseSlot,
-		objectSharedState: smObjectAccessor,
-	}
+	smObject.SetDescriptorDirty(desc)
 
 	smExecute = expectedInitState(ctx, smExecute)
 
@@ -795,20 +813,6 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 
 	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 
-	var vStateReportRecv = make(chan struct{})
-	slotMachine.PrepareMockedMessageSender(mc)
-	slotMachine.MessageSender.SendRole.SetCheckMessage(func(msg rmsreg.GoGoSerializable) {
-		res, ok := msg.(*rms.VStateReport)
-		require.True(t, ok)
-		assert.Equal(t, rms.StateStatusMissing, res.Status)
-		assert.Equal(t, reference.NewSelf(outgoing.GetLocal()), res.Object.GetValue())
-		assert.Equal(t, int32(0), res.OrderedPendingCount)
-		assert.Equal(t, int32(0), res.UnorderedPendingCount)
-		assert.Empty(t, res.LatestDirtyState)
-		assert.Empty(t, res.LatestValidatedState)
-		close(vStateReportRecv)
-	})
-
 	smExecute := SMExecute{
 		Payload: &rms.VCallRequest{
 			CallType:     rms.CallTypeConstructor,
@@ -823,7 +827,40 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 			Sender: rms.NewReference(caller),
 		},
 	}
+	meRef := gen.UniqueGlobalRef()
+	objectRef := virtualtestutils.GetObjectReference(smExecute.Payload, meRef)
+
 	slotMachine.Start()
+
+	var vStateReportRecv = make(chan struct{})
+
+	slotMachine.PrepareMockedMessageSender(mc)
+	slotMachine.MessageSender.SendRole.SetCheckMessage(func(msg rmsreg.GoGoSerializable) {
+		switch res := msg.(type) {
+		case *rms.VStateReport:
+			assert.Equal(t, rms.StateStatusMissing, res.Status)
+			assert.Equal(t, objectRef, res.Object.GetValue())
+			assert.Equal(t, int32(0), res.OrderedPendingCount)
+			assert.Equal(t, int32(0), res.UnorderedPendingCount)
+			assert.Empty(t, res.LatestDirtyState)
+			assert.Empty(t, res.LatestValidatedState)
+			close(vStateReportRecv)
+		case *rms.LRegisterRequest:
+			key := lmn.ResultAwaitKey{
+				AnticipatedRef: res.AnticipatedRef,
+				RequiredFlag:   rms.RegistrationFlags_Fast,
+			}
+
+			_, bargeIn := slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(key)
+			bargeIn.CallWithParam(&rms.LRegisterResponse{
+				Flags:              rms.RegistrationFlags_Fast,
+				AnticipatedRef:     res.AnticipatedRef,
+				RegistrarSignature: rms.NewBytes([]byte("dummy")),
+			})
+		default:
+			t.Fatal("unreachable")
+		}
+	})
 
 	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
 	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepStartRequestProcessing))
@@ -926,7 +963,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 	assert.Equal(t, int32(0), report.OrderedPendingCount)
 	assert.Equal(t, int32(0), report.UnorderedPendingCount)
 	state := obj.BuildLatestDirtyState()
-	assert.Equal(t, []byte(stateMemory), state.State.GetBytes())
+	assert.Equal(t, []byte(stateMemory), state.Memory.GetBytes())
 	assert.False(t, state.Deactivated)
 
 	mc.Finish()

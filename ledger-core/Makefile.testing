@@ -25,26 +25,25 @@ test_with_coverage: ## run unit and slow tests with generation of coverage file
 
 .PHONY: test_func
 test_func: ## run functest FUNCTEST_COUNT times
-	pkill -9 insolard || echo "No insolard running" # dirty hack to terminate all insolard processes
 	PULSARD_ONESHOT=$(PULSARD_ONESHOT) \
 	PULSARD_PULSAR_PULSETIME=$(PULSARD_PULSAR_PULSETIME) \
 	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest copylogtxt $(FUNCTEST_BUILD_TAGS)" ./application/functest -count=$(FUNCTEST_COUNT) -args TESTLOG_OUT=$(EXTENDED_FUNCTIONAL_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1
 
 .PHONY: test_func_cloud
 test_func_cloud: ## run functest on insolard in cloud mode
-	PULSARD_ONESHOT=FALSE CLOUD_MODE=TRUE PULSARD_PULSAR_PULSETIME=2000 FUNCTEST_COUNT=100 $(MAKE) test_func
+	PULSARD_ONESHOT=TRUE FUNCTEST_BUILD_TAGS=cloud PULSARD_PULSAR_PULSETIME=2000 FUNCTEST_COUNT=100 $(MAKE) test_func
 
 .PHONY: test_func_cloud_race
 test_func_cloud_race: ## run functest on insolard in cloud mode with race
-	TEST_ARGS='-timeout 1200s -race -failfast' PULSARD_ONESHOT=FALSE CLOUD_MODE=TRUE PULSARD_PULSAR_PULSETIME=2000 FUNCTEST_COUNT=20 $(MAKE) test_func
+	FUNCTEST_BUILD_TAGS=cloud TEST_ARGS='-timeout 1200s -race -failfast' PULSARD_ONESHOT=TRUE CLOUD_MODE=TRUE PULSARD_PULSAR_PULSETIME=2000 FUNCTEST_COUNT=20 $(MAKE) test_func
 
 .PHONY: test_func_cloud_with_consensus
 test_func_cloud_with_consensus: ## run functest on insolard in cloud mode
-	FUNCTEST_BUILD_TAGS=cloud_with_consensus PULSARD_ONESHOT=FALSE CLOUD_MODE=TRUE PULSARD_PULSAR_PULSETIME=3000 FUNCTEST_COUNT=50 $(MAKE) test_func
+	FUNCTEST_BUILD_TAGS=cloud_with_consensus PULSARD_ONESHOT=TRUE CLOUD_MODE=TRUE PULSARD_PULSAR_PULSETIME=3000 FUNCTEST_COUNT=50 $(MAKE) test_func
 
 .PHONY: test_func_slow
 test_func_slow: # Run functests as long as practical to catch unexpected behavior during pulse change
-	FUNCTEST_COUNT=100 PULSARD_ONESHOT=FALSE PULSARD_PULSAR_PULSETIME=5000 TEST_ARGS='-timeout 1200s -failfast' $(MAKE) test_func
+	FUNCTEST_COUNT=100 PULSARD_ONESHOT=TRUE PULSARD_PULSAR_PULSETIME=5000 TEST_ARGS='-timeout 1200s -failfast' $(MAKE) test_func
 
 .PNONY: test_func_race
 test_func_race: ## run functest 10 times with -race flag

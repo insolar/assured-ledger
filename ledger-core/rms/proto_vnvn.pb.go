@@ -26,52 +26,6 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-type CallType int32
-
-const (
-	CallTypeInvalid     CallType = 0
-	CallTypeInboundAPI  CallType = 1
-	CallTypeOutboundAPI CallType = 2
-	CallTypeMethod      CallType = 3
-	CallTypeConstructor CallType = 4
-	CallTypeNotify      CallType = 5
-	CallTypeSAGA        CallType = 6
-	CallTypeParallel    CallType = 7
-	CallTypeSchedule    CallType = 8
-)
-
-var CallType_name = map[int32]string{
-	0: "CallTypeInvalid",
-	1: "CallTypeInboundAPI",
-	2: "CallTypeOutboundAPI",
-	3: "CallTypeMethod",
-	4: "CallTypeConstructor",
-	5: "CallTypeNotify",
-	6: "CallTypeSAGA",
-	7: "CallTypeParallel",
-	8: "CallTypeSchedule",
-}
-
-var CallType_value = map[string]int32{
-	"CallTypeInvalid":     0,
-	"CallTypeInboundAPI":  1,
-	"CallTypeOutboundAPI": 2,
-	"CallTypeMethod":      3,
-	"CallTypeConstructor": 4,
-	"CallTypeNotify":      5,
-	"CallTypeSAGA":        6,
-	"CallTypeParallel":    7,
-	"CallTypeSchedule":    8,
-}
-
-func (x CallType) String() string {
-	return proto.EnumName(CallType_name, int32(x))
-}
-
-func (CallType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_fc353dc03c844eae, []int{0}
-}
-
 type VStateReport_StateStatus int32
 
 const (
@@ -134,30 +88,30 @@ func (x VFindCallResponse_CallState) String() string {
 }
 
 func (VFindCallResponse_CallState) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_fc353dc03c844eae, []int{13, 0}
+	return fileDescriptor_fc353dc03c844eae, []int{12, 0}
 }
 
 type VCachedMemoryResponse_Status int32
 
 const (
-	CachedMemoryStateUnknown  VCachedMemoryResponse_Status = 0
-	CachedMemoryStateFound    VCachedMemoryResponse_Status = 1
-	CachedMemoryStateRedirect VCachedMemoryResponse_Status = 2
-	CachedMemoryStateMissing  VCachedMemoryResponse_Status = 3
+	CachedMemoryStateInvalid VCachedMemoryResponse_Status = 0
+	CachedMemoryStateFound   VCachedMemoryResponse_Status = 1
+	CachedMemoryStateUnknown VCachedMemoryResponse_Status = 2
+	CachedMemoryStateMissing VCachedMemoryResponse_Status = 3
 )
 
 var VCachedMemoryResponse_Status_name = map[int32]string{
-	0: "CachedMemoryStateUnknown",
+	0: "CachedMemoryStateInvalid",
 	1: "CachedMemoryStateFound",
-	2: "CachedMemoryStateRedirect",
+	2: "CachedMemoryStateUnknown",
 	3: "CachedMemoryStateMissing",
 }
 
 var VCachedMemoryResponse_Status_value = map[string]int32{
-	"CachedMemoryStateUnknown":  0,
-	"CachedMemoryStateFound":    1,
-	"CachedMemoryStateRedirect": 2,
-	"CachedMemoryStateMissing":  3,
+	"CachedMemoryStateInvalid": 0,
+	"CachedMemoryStateFound":   1,
+	"CachedMemoryStateUnknown": 2,
+	"CachedMemoryStateMissing": 3,
 }
 
 func (x VCachedMemoryResponse_Status) String() string {
@@ -165,7 +119,7 @@ func (x VCachedMemoryResponse_Status) String() string {
 }
 
 func (VCachedMemoryResponse_Status) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_fc353dc03c844eae, []int{15, 0}
+	return fileDescriptor_fc353dc03c844eae, []int{14, 0}
 }
 
 type Meta struct {
@@ -1074,11 +1028,10 @@ func (m *VStateReport_ProvidedContentBody) GetUnorderedQueue() []Reference {
 }
 
 type ObjectState struct {
-	Reference     Reference `protobuf:"bytes,20,opt,name=Reference,proto3" json:"Reference"`
-	Class         Reference `protobuf:"bytes,22,opt,name=Class,proto3" json:"Class"`
-	State         Binary    `protobuf:"bytes,23,opt,name=State,proto3" json:"State"`
-	PreviousState Binary    `protobuf:"bytes,24,opt,name=PreviousState,proto3" json:"PreviousState"`
-	Deactivated   bool      `protobuf:"varint,25,opt,name=Deactivated,proto3" json:"Deactivated"`
+	Reference   Reference `protobuf:"bytes,20,opt,name=Reference,proto3" json:"Reference"`
+	Class       Reference `protobuf:"bytes,22,opt,name=Class,proto3" json:"Class"`
+	Memory      Binary    `protobuf:"bytes,23,opt,name=Memory,proto3" json:"Memory"`
+	Deactivated bool      `protobuf:"varint,25,opt,name=Deactivated,proto3" json:"Deactivated"`
 }
 
 func (m *ObjectState) Reset()         { *m = ObjectState{} }
@@ -1124,16 +1077,9 @@ func (m *ObjectState) GetClass() Reference {
 	return Reference{}
 }
 
-func (m *ObjectState) GetState() Binary {
+func (m *ObjectState) GetMemory() Binary {
 	if m != nil {
-		return m.State
-	}
-	return Binary{}
-}
-
-func (m *ObjectState) GetPreviousState() Binary {
-	if m != nil {
-		return m.PreviousState
+		return m.Memory
 	}
 	return Binary{}
 }
@@ -1146,14 +1092,15 @@ func (m *ObjectState) GetDeactivated() bool {
 }
 
 type VDelegatedRequestFinished struct {
-	CallType       CallType            `protobuf:"varint,20,opt,name=CallType,proto3,enum=rms.CallType" json:"CallType"`
-	CallFlags      CallFlags           `protobuf:"varint,21,opt,name=CallFlags,proto3,casttype=CallFlags" json:"CallFlags"`
-	Callee         Reference           `protobuf:"bytes,22,opt,name=Callee,proto3" json:"Callee"`
-	ResultFlags    uint32              `protobuf:"varint,23,opt,name=ResultFlags,proto3" json:"ResultFlags"`
-	CallOutgoing   Reference           `protobuf:"bytes,24,opt,name=CallOutgoing,proto3" json:"CallOutgoing"`
-	CallIncoming   Reference           `protobuf:"bytes,25,opt,name=CallIncoming,proto3" json:"CallIncoming"`
-	DelegationSpec CallDelegationToken `protobuf:"bytes,26,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	LatestState    *ObjectState        `protobuf:"bytes,29,opt,name=LatestState,proto3" json:"LatestState,omitempty"`
+	CallType          CallType            `protobuf:"varint,20,opt,name=CallType,proto3,enum=rms.CallType" json:"CallType"`
+	CallFlags         CallFlags           `protobuf:"varint,21,opt,name=CallFlags,proto3,casttype=CallFlags" json:"CallFlags"`
+	Callee            Reference           `protobuf:"bytes,22,opt,name=Callee,proto3" json:"Callee"`
+	ResultFlags       uint32              `protobuf:"varint,23,opt,name=ResultFlags,proto3" json:"ResultFlags"`
+	CallOutgoing      Reference           `protobuf:"bytes,24,opt,name=CallOutgoing,proto3" json:"CallOutgoing"`
+	CallIncoming      Reference           `protobuf:"bytes,25,opt,name=CallIncoming,proto3" json:"CallIncoming"`
+	DelegationSpec    CallDelegationToken `protobuf:"bytes,26,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
+	LatestState       *ObjectState        `protobuf:"bytes,29,opt,name=LatestState,proto3" json:"LatestState,omitempty"`
+	PendingTranscript Transcript          `protobuf:"bytes,30,opt,name=PendingTranscript,proto3" json:"PendingTranscript"`
 }
 
 func (m *VDelegatedRequestFinished) Reset()         { *m = VDelegatedRequestFinished{} }
@@ -1239,6 +1186,13 @@ func (m *VDelegatedRequestFinished) GetLatestState() *ObjectState {
 		return m.LatestState
 	}
 	return nil
+}
+
+func (m *VDelegatedRequestFinished) GetPendingTranscript() Transcript {
+	if m != nil {
+		return m.PendingTranscript
+	}
+	return Transcript{}
 }
 
 type VDelegatedCallRequest struct {
@@ -1369,102 +1323,6 @@ func (m *VDelegatedCallResponse) GetResponseDelegationSpec() CallDelegationToken
 	return CallDelegationToken{}
 }
 
-type CallDelegationToken struct {
-	TokenTypeAndFlags CallDelegationTokenType `protobuf:"varint,20,opt,name=TokenTypeAndFlags,proto3,casttype=CallDelegationTokenType" json:"TokenTypeAndFlags"`
-	Approver          Reference               `protobuf:"bytes,21,opt,name=Approver,proto3" json:"Approver"`
-	DelegateTo        Reference               `protobuf:"bytes,22,opt,name=DelegateTo,proto3" json:"DelegateTo"`
-	PulseNumber       PulseNumber             `protobuf:"varint,23,opt,name=PulseNumber,proto3,casttype=PulseNumber" json:"PulseNumber"`
-	Callee            Reference               `protobuf:"bytes,24,opt,name=Callee,proto3" json:"Callee"`
-	Caller            Reference               `protobuf:"bytes,25,opt,name=Caller,proto3" json:"Caller"`
-	Outgoing          Reference               `protobuf:"bytes,26,opt,name=Outgoing,proto3" json:"Outgoing"`
-	ApproverSignature Binary                  `protobuf:"bytes,27,opt,name=ApproverSignature,proto3" json:"ApproverSignature"`
-}
-
-func (m *CallDelegationToken) Reset()         { *m = CallDelegationToken{} }
-func (m *CallDelegationToken) String() string { return proto.CompactTextString(m) }
-func (*CallDelegationToken) ProtoMessage()    {}
-func (*CallDelegationToken) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fc353dc03c844eae, []int{11}
-}
-func (m *CallDelegationToken) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *CallDelegationToken) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *CallDelegationToken) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CallDelegationToken.Merge(m, src)
-}
-func (m *CallDelegationToken) XXX_Size() int {
-	return m.ProtoSize()
-}
-func (m *CallDelegationToken) XXX_DiscardUnknown() {
-	xxx_messageInfo_CallDelegationToken.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_CallDelegationToken proto.InternalMessageInfo
-
-func (m *CallDelegationToken) GetTokenTypeAndFlags() CallDelegationTokenType {
-	if m != nil {
-		return m.TokenTypeAndFlags
-	}
-	return 0
-}
-
-func (m *CallDelegationToken) GetApprover() Reference {
-	if m != nil {
-		return m.Approver
-	}
-	return Reference{}
-}
-
-func (m *CallDelegationToken) GetDelegateTo() Reference {
-	if m != nil {
-		return m.DelegateTo
-	}
-	return Reference{}
-}
-
-func (m *CallDelegationToken) GetPulseNumber() PulseNumber {
-	if m != nil {
-		return m.PulseNumber
-	}
-	return 0
-}
-
-func (m *CallDelegationToken) GetCallee() Reference {
-	if m != nil {
-		return m.Callee
-	}
-	return Reference{}
-}
-
-func (m *CallDelegationToken) GetCaller() Reference {
-	if m != nil {
-		return m.Caller
-	}
-	return Reference{}
-}
-
-func (m *CallDelegationToken) GetOutgoing() Reference {
-	if m != nil {
-		return m.Outgoing
-	}
-	return Reference{}
-}
-
-func (m *CallDelegationToken) GetApproverSignature() Binary {
-	if m != nil {
-		return m.ApproverSignature
-	}
-	return Binary{}
-}
-
 type VFindCallRequest struct {
 	LookAt   PulseNumber `protobuf:"varint,20,opt,name=LookAt,proto3,casttype=PulseNumber" json:"LookAt"`
 	Callee   Reference   `protobuf:"bytes,21,opt,name=Callee,proto3" json:"Callee"`
@@ -1475,7 +1333,7 @@ func (m *VFindCallRequest) Reset()         { *m = VFindCallRequest{} }
 func (m *VFindCallRequest) String() string { return proto.CompactTextString(m) }
 func (*VFindCallRequest) ProtoMessage()    {}
 func (*VFindCallRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fc353dc03c844eae, []int{12}
+	return fileDescriptor_fc353dc03c844eae, []int{11}
 }
 func (m *VFindCallRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1533,7 +1391,7 @@ func (m *VFindCallResponse) Reset()         { *m = VFindCallResponse{} }
 func (m *VFindCallResponse) String() string { return proto.CompactTextString(m) }
 func (*VFindCallResponse) ProtoMessage()    {}
 func (*VFindCallResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fc353dc03c844eae, []int{13}
+	return fileDescriptor_fc353dc03c844eae, []int{12}
 }
 func (m *VFindCallResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1594,15 +1452,15 @@ func (m *VFindCallResponse) GetCallResult() *VCallResult {
 }
 
 type VCachedMemoryRequest struct {
-	Object  Reference `protobuf:"bytes,21,opt,name=Object,proto3" json:"Object"`
-	StateID Reference `protobuf:"bytes,50,opt,name=StateID,proto3" json:"StateID"`
+	Object Reference `protobuf:"bytes,21,opt,name=Object,proto3" json:"Object"`
+	State  Reference `protobuf:"bytes,22,opt,name=State,proto3" json:"State"`
 }
 
 func (m *VCachedMemoryRequest) Reset()         { *m = VCachedMemoryRequest{} }
 func (m *VCachedMemoryRequest) String() string { return proto.CompactTextString(m) }
 func (*VCachedMemoryRequest) ProtoMessage()    {}
 func (*VCachedMemoryRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fc353dc03c844eae, []int{14}
+	return fileDescriptor_fc353dc03c844eae, []int{13}
 }
 func (m *VCachedMemoryRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1634,28 +1492,23 @@ func (m *VCachedMemoryRequest) GetObject() Reference {
 	return Reference{}
 }
 
-func (m *VCachedMemoryRequest) GetStateID() Reference {
+func (m *VCachedMemoryRequest) GetState() Reference {
 	if m != nil {
-		return m.StateID
+		return m.State
 	}
 	return Reference{}
 }
 
 type VCachedMemoryResponse struct {
-	Object      Reference                    `protobuf:"bytes,21,opt,name=Object,proto3" json:"Object"`
-	StateID     Reference                    `protobuf:"bytes,50,opt,name=StateID,proto3" json:"StateID"`
-	CallStatus  VCachedMemoryResponse_Status `protobuf:"varint,51,opt,name=CallStatus,proto3,enum=rms.VCachedMemoryResponse_Status" json:"CallStatus"`
-	Node        Reference                    `protobuf:"bytes,52,opt,name=Node,proto3" json:"Node"`
-	PrevStateID Reference                    `protobuf:"bytes,53,opt,name=PrevStateID,proto3" json:"PrevStateID"`
-	Inactive    bool                         `protobuf:"varint,25,opt,name=Inactive,proto3" json:"Inactive"`
-	Memory      Binary                       `protobuf:"bytes,54,opt,name=Memory,proto3" json:"Memory"`
+	CallStatus VCachedMemoryResponse_Status `protobuf:"varint,21,opt,name=CallStatus,proto3,enum=rms.VCachedMemoryResponse_Status" json:"CallStatus"`
+	State      ObjectState                  `protobuf:"bytes,22,opt,name=State,proto3" json:"State"`
 }
 
 func (m *VCachedMemoryResponse) Reset()         { *m = VCachedMemoryResponse{} }
 func (m *VCachedMemoryResponse) String() string { return proto.CompactTextString(m) }
 func (*VCachedMemoryResponse) ProtoMessage()    {}
 func (*VCachedMemoryResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fc353dc03c844eae, []int{15}
+	return fileDescriptor_fc353dc03c844eae, []int{14}
 }
 func (m *VCachedMemoryResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1680,62 +1533,296 @@ func (m *VCachedMemoryResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_VCachedMemoryResponse proto.InternalMessageInfo
 
-func (m *VCachedMemoryResponse) GetObject() Reference {
-	if m != nil {
-		return m.Object
-	}
-	return Reference{}
-}
-
-func (m *VCachedMemoryResponse) GetStateID() Reference {
-	if m != nil {
-		return m.StateID
-	}
-	return Reference{}
-}
-
 func (m *VCachedMemoryResponse) GetCallStatus() VCachedMemoryResponse_Status {
 	if m != nil {
 		return m.CallStatus
 	}
-	return CachedMemoryStateUnknown
+	return CachedMemoryStateInvalid
 }
 
-func (m *VCachedMemoryResponse) GetNode() Reference {
+func (m *VCachedMemoryResponse) GetState() ObjectState {
 	if m != nil {
-		return m.Node
+		return m.State
+	}
+	return ObjectState{}
+}
+
+type Transcript struct {
+	// stub
+	Entries []Any `protobuf:"bytes,1800,rep,name=Entries,proto3" json:"Entries"`
+}
+
+func (m *Transcript) Reset()         { *m = Transcript{} }
+func (m *Transcript) String() string { return proto.CompactTextString(m) }
+func (*Transcript) ProtoMessage()    {}
+func (*Transcript) Descriptor() ([]byte, []int) {
+	return fileDescriptor_fc353dc03c844eae, []int{15}
+}
+func (m *Transcript) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Transcript) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *Transcript) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Transcript.Merge(m, src)
+}
+func (m *Transcript) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *Transcript) XXX_DiscardUnknown() {
+	xxx_messageInfo_Transcript.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Transcript proto.InternalMessageInfo
+
+func (m *Transcript) GetEntries() []Any {
+	if m != nil {
+		return m.Entries
+	}
+	return nil
+}
+
+type Transcript_TranscriptEntryIncomingRequest struct {
+	ObjectMemory Reference    `protobuf:"bytes,1800,opt,name=ObjectMemory,proto3" json:"ObjectMemory"`
+	Incoming     Reference    `protobuf:"bytes,1801,opt,name=Incoming,proto3" json:"Incoming"`
+	Request      VCallRequest `protobuf:"bytes,1802,opt,name=Request,proto3" json:"Request"`
+}
+
+func (m *Transcript_TranscriptEntryIncomingRequest) Reset() {
+	*m = Transcript_TranscriptEntryIncomingRequest{}
+}
+func (m *Transcript_TranscriptEntryIncomingRequest) String() string {
+	return proto.CompactTextString(m)
+}
+func (*Transcript_TranscriptEntryIncomingRequest) ProtoMessage() {}
+func (*Transcript_TranscriptEntryIncomingRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_fc353dc03c844eae, []int{15, 0}
+}
+func (m *Transcript_TranscriptEntryIncomingRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Transcript_TranscriptEntryIncomingRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *Transcript_TranscriptEntryIncomingRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Transcript_TranscriptEntryIncomingRequest.Merge(m, src)
+}
+func (m *Transcript_TranscriptEntryIncomingRequest) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *Transcript_TranscriptEntryIncomingRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_Transcript_TranscriptEntryIncomingRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Transcript_TranscriptEntryIncomingRequest proto.InternalMessageInfo
+
+func (m *Transcript_TranscriptEntryIncomingRequest) GetObjectMemory() Reference {
+	if m != nil {
+		return m.ObjectMemory
 	}
 	return Reference{}
 }
 
-func (m *VCachedMemoryResponse) GetPrevStateID() Reference {
+func (m *Transcript_TranscriptEntryIncomingRequest) GetIncoming() Reference {
 	if m != nil {
-		return m.PrevStateID
+		return m.Incoming
 	}
 	return Reference{}
 }
 
-func (m *VCachedMemoryResponse) GetInactive() bool {
+func (m *Transcript_TranscriptEntryIncomingRequest) GetRequest() VCallRequest {
 	if m != nil {
-		return m.Inactive
+		return m.Request
 	}
-	return false
+	return VCallRequest{}
 }
 
-func (m *VCachedMemoryResponse) GetMemory() Binary {
-	if m != nil {
-		return m.Memory
+type Transcript_TranscriptEntryOutgoingRequest struct {
+	Request Reference `protobuf:"bytes,1800,opt,name=Request,proto3" json:"Request"`
+	Reason  Reference `protobuf:"bytes,1801,opt,name=Reason,proto3" json:"Reason"`
+}
+
+func (m *Transcript_TranscriptEntryOutgoingRequest) Reset() {
+	*m = Transcript_TranscriptEntryOutgoingRequest{}
+}
+func (m *Transcript_TranscriptEntryOutgoingRequest) String() string {
+	return proto.CompactTextString(m)
+}
+func (*Transcript_TranscriptEntryOutgoingRequest) ProtoMessage() {}
+func (*Transcript_TranscriptEntryOutgoingRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_fc353dc03c844eae, []int{15, 1}
+}
+func (m *Transcript_TranscriptEntryOutgoingRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Transcript_TranscriptEntryOutgoingRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
 	}
-	return Binary{}
+	return b[:n], nil
+}
+func (m *Transcript_TranscriptEntryOutgoingRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Transcript_TranscriptEntryOutgoingRequest.Merge(m, src)
+}
+func (m *Transcript_TranscriptEntryOutgoingRequest) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *Transcript_TranscriptEntryOutgoingRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_Transcript_TranscriptEntryOutgoingRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Transcript_TranscriptEntryOutgoingRequest proto.InternalMessageInfo
+
+func (m *Transcript_TranscriptEntryOutgoingRequest) GetRequest() Reference {
+	if m != nil {
+		return m.Request
+	}
+	return Reference{}
+}
+
+func (m *Transcript_TranscriptEntryOutgoingRequest) GetReason() Reference {
+	if m != nil {
+		return m.Reason
+	}
+	return Reference{}
+}
+
+type Transcript_TranscriptEntryOutgoingResult struct {
+	OutgoingResult Reference   `protobuf:"bytes,1800,opt,name=OutgoingResult,proto3" json:"OutgoingResult"`
+	CallResult     VCallResult `protobuf:"bytes,1801,opt,name=CallResult,proto3" json:"CallResult"`
+	Reason         Reference   `protobuf:"bytes,1802,opt,name=Reason,proto3" json:"Reason"`
+}
+
+func (m *Transcript_TranscriptEntryOutgoingResult) Reset() {
+	*m = Transcript_TranscriptEntryOutgoingResult{}
+}
+func (m *Transcript_TranscriptEntryOutgoingResult) String() string { return proto.CompactTextString(m) }
+func (*Transcript_TranscriptEntryOutgoingResult) ProtoMessage()    {}
+func (*Transcript_TranscriptEntryOutgoingResult) Descriptor() ([]byte, []int) {
+	return fileDescriptor_fc353dc03c844eae, []int{15, 2}
+}
+func (m *Transcript_TranscriptEntryOutgoingResult) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Transcript_TranscriptEntryOutgoingResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *Transcript_TranscriptEntryOutgoingResult) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Transcript_TranscriptEntryOutgoingResult.Merge(m, src)
+}
+func (m *Transcript_TranscriptEntryOutgoingResult) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *Transcript_TranscriptEntryOutgoingResult) XXX_DiscardUnknown() {
+	xxx_messageInfo_Transcript_TranscriptEntryOutgoingResult.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Transcript_TranscriptEntryOutgoingResult proto.InternalMessageInfo
+
+func (m *Transcript_TranscriptEntryOutgoingResult) GetOutgoingResult() Reference {
+	if m != nil {
+		return m.OutgoingResult
+	}
+	return Reference{}
+}
+
+func (m *Transcript_TranscriptEntryOutgoingResult) GetCallResult() VCallResult {
+	if m != nil {
+		return m.CallResult
+	}
+	return VCallResult{}
+}
+
+func (m *Transcript_TranscriptEntryOutgoingResult) GetReason() Reference {
+	if m != nil {
+		return m.Reason
+	}
+	return Reference{}
+}
+
+type Transcript_TranscriptEntryIncomingResult struct {
+	IncomingResult Reference `protobuf:"bytes,1800,opt,name=IncomingResult,proto3" json:"IncomingResult"`
+	ObjectState    Reference `protobuf:"bytes,1801,opt,name=ObjectState,proto3" json:"ObjectState"`
+	Reason         Reference `protobuf:"bytes,1802,opt,name=Reason,proto3" json:"Reason"`
+}
+
+func (m *Transcript_TranscriptEntryIncomingResult) Reset() {
+	*m = Transcript_TranscriptEntryIncomingResult{}
+}
+func (m *Transcript_TranscriptEntryIncomingResult) String() string { return proto.CompactTextString(m) }
+func (*Transcript_TranscriptEntryIncomingResult) ProtoMessage()    {}
+func (*Transcript_TranscriptEntryIncomingResult) Descriptor() ([]byte, []int) {
+	return fileDescriptor_fc353dc03c844eae, []int{15, 3}
+}
+func (m *Transcript_TranscriptEntryIncomingResult) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Transcript_TranscriptEntryIncomingResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *Transcript_TranscriptEntryIncomingResult) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Transcript_TranscriptEntryIncomingResult.Merge(m, src)
+}
+func (m *Transcript_TranscriptEntryIncomingResult) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *Transcript_TranscriptEntryIncomingResult) XXX_DiscardUnknown() {
+	xxx_messageInfo_Transcript_TranscriptEntryIncomingResult.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Transcript_TranscriptEntryIncomingResult proto.InternalMessageInfo
+
+func (m *Transcript_TranscriptEntryIncomingResult) GetIncomingResult() Reference {
+	if m != nil {
+		return m.IncomingResult
+	}
+	return Reference{}
+}
+
+func (m *Transcript_TranscriptEntryIncomingResult) GetObjectState() Reference {
+	if m != nil {
+		return m.ObjectState
+	}
+	return Reference{}
+}
+
+func (m *Transcript_TranscriptEntryIncomingResult) GetReason() Reference {
+	if m != nil {
+		return m.Reason
+	}
+	return Reference{}
 }
 
 type VObjectTranscriptReport struct {
 	// FIXME: this is here just to make generator silent
 	Any                `protobuf:"bytes,19,opt,name=Record,proto3,embedded=Record" json:"Record"`
-	AsOf               PulseNumber                          `protobuf:"varint,1800,opt,name=AsOf,proto3,casttype=PulseNumber" json:"AsOf"`
-	Object             Reference                            `protobuf:"bytes,1801,opt,name=Object,proto3" json:"Object"`
-	PendingTranscripts []VObjectTranscriptReport_Transcript `protobuf:"bytes,1803,rep,name=PendingTranscripts,proto3" json:"PendingTranscripts"`
-	ObjectTranscript   VObjectTranscriptReport_Transcript   `protobuf:"bytes,1804,opt,name=ObjectTranscript,proto3" json:"ObjectTranscript"`
+	AsOf               PulseNumber  `protobuf:"varint,1800,opt,name=AsOf,proto3,casttype=PulseNumber" json:"AsOf"`
+	Object             Reference    `protobuf:"bytes,1801,opt,name=Object,proto3" json:"Object"`
+	PendingTranscripts []Transcript `protobuf:"bytes,1802,rep,name=PendingTranscripts,proto3" json:"PendingTranscripts"`
+	ObjectTranscript   Transcript   `protobuf:"bytes,1803,opt,name=ObjectTranscript,proto3" json:"ObjectTranscript"`
 }
 
 func (m *VObjectTranscriptReport) Reset()         { *m = VObjectTranscriptReport{} }
@@ -1781,267 +1868,18 @@ func (m *VObjectTranscriptReport) GetObject() Reference {
 	return Reference{}
 }
 
-func (m *VObjectTranscriptReport) GetPendingTranscripts() []VObjectTranscriptReport_Transcript {
+func (m *VObjectTranscriptReport) GetPendingTranscripts() []Transcript {
 	if m != nil {
 		return m.PendingTranscripts
 	}
 	return nil
 }
 
-func (m *VObjectTranscriptReport) GetObjectTranscript() VObjectTranscriptReport_Transcript {
+func (m *VObjectTranscriptReport) GetObjectTranscript() Transcript {
 	if m != nil {
 		return m.ObjectTranscript
 	}
-	return VObjectTranscriptReport_Transcript{}
-}
-
-type VObjectTranscriptReport_TranscriptEntryIncomingRequest struct {
-	ObjectMemory Reference `protobuf:"bytes,1800,opt,name=ObjectMemory,proto3" json:"ObjectMemory"`
-	Incoming     Reference `protobuf:"bytes,1801,opt,name=Incoming,proto3" json:"Incoming"`
-	Request      []byte    `protobuf:"bytes,1802,opt,name=Request,proto3" json:"Request"`
-}
-
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) Reset() {
-	*m = VObjectTranscriptReport_TranscriptEntryIncomingRequest{}
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) String() string {
-	return proto.CompactTextString(m)
-}
-func (*VObjectTranscriptReport_TranscriptEntryIncomingRequest) ProtoMessage() {}
-func (*VObjectTranscriptReport_TranscriptEntryIncomingRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fc353dc03c844eae, []int{16, 0}
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryIncomingRequest.Merge(m, src)
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) XXX_Size() int {
-	return m.ProtoSize()
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryIncomingRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryIncomingRequest proto.InternalMessageInfo
-
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) GetObjectMemory() Reference {
-	if m != nil {
-		return m.ObjectMemory
-	}
-	return Reference{}
-}
-
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) GetIncoming() Reference {
-	if m != nil {
-		return m.Incoming
-	}
-	return Reference{}
-}
-
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) GetRequest() []byte {
-	if m != nil {
-		return m.Request
-	}
-	return nil
-}
-
-type VObjectTranscriptReport_TranscriptEntryOutgoingRequest struct {
-	Outgoing Reference `protobuf:"bytes,1800,opt,name=Outgoing,proto3" json:"Outgoing"`
-}
-
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) Reset() {
-	*m = VObjectTranscriptReport_TranscriptEntryOutgoingRequest{}
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) String() string {
-	return proto.CompactTextString(m)
-}
-func (*VObjectTranscriptReport_TranscriptEntryOutgoingRequest) ProtoMessage() {}
-func (*VObjectTranscriptReport_TranscriptEntryOutgoingRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fc353dc03c844eae, []int{16, 1}
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryOutgoingRequest.Merge(m, src)
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) XXX_Size() int {
-	return m.ProtoSize()
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryOutgoingRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryOutgoingRequest proto.InternalMessageInfo
-
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) GetOutgoing() Reference {
-	if m != nil {
-		return m.Outgoing
-	}
-	return Reference{}
-}
-
-type VObjectTranscriptReport_TranscriptEntryOutgoingResult struct {
-	OutgoingResult Reference `protobuf:"bytes,1800,opt,name=OutgoingResult,proto3" json:"OutgoingResult"`
-	CallResult     []byte    `protobuf:"bytes,1801,opt,name=CallResult,proto3" json:"CallResult"`
-}
-
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) Reset() {
-	*m = VObjectTranscriptReport_TranscriptEntryOutgoingResult{}
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) String() string {
-	return proto.CompactTextString(m)
-}
-func (*VObjectTranscriptReport_TranscriptEntryOutgoingResult) ProtoMessage() {}
-func (*VObjectTranscriptReport_TranscriptEntryOutgoingResult) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fc353dc03c844eae, []int{16, 2}
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryOutgoingResult.Merge(m, src)
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) XXX_Size() int {
-	return m.ProtoSize()
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) XXX_DiscardUnknown() {
-	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryOutgoingResult.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryOutgoingResult proto.InternalMessageInfo
-
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) GetOutgoingResult() Reference {
-	if m != nil {
-		return m.OutgoingResult
-	}
-	return Reference{}
-}
-
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) GetCallResult() []byte {
-	if m != nil {
-		return m.CallResult
-	}
-	return nil
-}
-
-type VObjectTranscriptReport_TranscriptEntryIncomingResult struct {
-	IncomingResult Reference `protobuf:"bytes,1800,opt,name=IncomingResult,proto3" json:"IncomingResult"`
-	ObjectState    Reference `protobuf:"bytes,1801,opt,name=ObjectState,proto3" json:"ObjectState"`
-}
-
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) Reset() {
-	*m = VObjectTranscriptReport_TranscriptEntryIncomingResult{}
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) String() string {
-	return proto.CompactTextString(m)
-}
-func (*VObjectTranscriptReport_TranscriptEntryIncomingResult) ProtoMessage() {}
-func (*VObjectTranscriptReport_TranscriptEntryIncomingResult) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fc353dc03c844eae, []int{16, 3}
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryIncomingResult.Merge(m, src)
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) XXX_Size() int {
-	return m.ProtoSize()
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) XXX_DiscardUnknown() {
-	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryIncomingResult.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryIncomingResult proto.InternalMessageInfo
-
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) GetIncomingResult() Reference {
-	if m != nil {
-		return m.IncomingResult
-	}
-	return Reference{}
-}
-
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) GetObjectState() Reference {
-	if m != nil {
-		return m.ObjectState
-	}
-	return Reference{}
-}
-
-type VObjectTranscriptReport_Transcript struct {
-	// stub
-	Entries []Any `protobuf:"bytes,1800,rep,name=Entries,proto3" json:"Entries"`
-}
-
-func (m *VObjectTranscriptReport_Transcript) Reset()         { *m = VObjectTranscriptReport_Transcript{} }
-func (m *VObjectTranscriptReport_Transcript) String() string { return proto.CompactTextString(m) }
-func (*VObjectTranscriptReport_Transcript) ProtoMessage()    {}
-func (*VObjectTranscriptReport_Transcript) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fc353dc03c844eae, []int{16, 4}
-}
-func (m *VObjectTranscriptReport_Transcript) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *VObjectTranscriptReport_Transcript) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *VObjectTranscriptReport_Transcript) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_VObjectTranscriptReport_Transcript.Merge(m, src)
-}
-func (m *VObjectTranscriptReport_Transcript) XXX_Size() int {
-	return m.ProtoSize()
-}
-func (m *VObjectTranscriptReport_Transcript) XXX_DiscardUnknown() {
-	xxx_messageInfo_VObjectTranscriptReport_Transcript.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_VObjectTranscriptReport_Transcript proto.InternalMessageInfo
-
-func (m *VObjectTranscriptReport_Transcript) GetEntries() []Any {
-	if m != nil {
-		return m.Entries
-	}
-	return nil
+	return Transcript{}
 }
 
 type VObjectValidationReport struct {
@@ -2101,7 +1939,6 @@ func (m *VObjectValidationReport) GetValidated() Reference {
 }
 
 func init() {
-	proto.RegisterEnum("rms.CallType", CallType_name, CallType_value)
 	proto.RegisterEnum("rms.VStateReport_StateStatus", VStateReport_StateStatus_name, VStateReport_StateStatus_value)
 	proto.RegisterEnum("rms.VFindCallResponse_CallState", VFindCallResponse_CallState_name, VFindCallResponse_CallState_value)
 	proto.RegisterEnum("rms.VCachedMemoryResponse_Status", VCachedMemoryResponse_Status_name, VCachedMemoryResponse_Status_value)
@@ -2118,191 +1955,175 @@ func init() {
 	proto.RegisterType((*VDelegatedRequestFinished)(nil), "rms.VDelegatedRequestFinished")
 	proto.RegisterType((*VDelegatedCallRequest)(nil), "rms.VDelegatedCallRequest")
 	proto.RegisterType((*VDelegatedCallResponse)(nil), "rms.VDelegatedCallResponse")
-	proto.RegisterType((*CallDelegationToken)(nil), "rms.CallDelegationToken")
 	proto.RegisterType((*VFindCallRequest)(nil), "rms.VFindCallRequest")
 	proto.RegisterType((*VFindCallResponse)(nil), "rms.VFindCallResponse")
 	proto.RegisterType((*VCachedMemoryRequest)(nil), "rms.VCachedMemoryRequest")
 	proto.RegisterType((*VCachedMemoryResponse)(nil), "rms.VCachedMemoryResponse")
+	proto.RegisterType((*Transcript)(nil), "rms.Transcript")
+	proto.RegisterType((*Transcript_TranscriptEntryIncomingRequest)(nil), "rms.Transcript.TranscriptEntryIncomingRequest")
+	proto.RegisterType((*Transcript_TranscriptEntryOutgoingRequest)(nil), "rms.Transcript.TranscriptEntryOutgoingRequest")
+	proto.RegisterType((*Transcript_TranscriptEntryOutgoingResult)(nil), "rms.Transcript.TranscriptEntryOutgoingResult")
+	proto.RegisterType((*Transcript_TranscriptEntryIncomingResult)(nil), "rms.Transcript.TranscriptEntryIncomingResult")
 	proto.RegisterType((*VObjectTranscriptReport)(nil), "rms.VObjectTranscriptReport")
-	proto.RegisterType((*VObjectTranscriptReport_TranscriptEntryIncomingRequest)(nil), "rms.VObjectTranscriptReport.TranscriptEntryIncomingRequest")
-	proto.RegisterType((*VObjectTranscriptReport_TranscriptEntryOutgoingRequest)(nil), "rms.VObjectTranscriptReport.TranscriptEntryOutgoingRequest")
-	proto.RegisterType((*VObjectTranscriptReport_TranscriptEntryOutgoingResult)(nil), "rms.VObjectTranscriptReport.TranscriptEntryOutgoingResult")
-	proto.RegisterType((*VObjectTranscriptReport_TranscriptEntryIncomingResult)(nil), "rms.VObjectTranscriptReport.TranscriptEntryIncomingResult")
-	proto.RegisterType((*VObjectTranscriptReport_Transcript)(nil), "rms.VObjectTranscriptReport.Transcript")
 	proto.RegisterType((*VObjectValidationReport)(nil), "rms.VObjectValidationReport")
 }
 
 func init() { proto.RegisterFile("proto_vnvn.proto", fileDescriptor_fc353dc03c844eae) }
 
 var fileDescriptor_fc353dc03c844eae = []byte{
-	// 2663 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe4, 0x5a, 0x5d, 0x6c, 0x1c, 0x57,
-	0xf5, 0xf7, 0x78, 0x6d, 0xef, 0xe6, 0xd8, 0x5e, 0x4f, 0xae, 0xed, 0xf5, 0x78, 0x13, 0xef, 0x3a,
-	0xdb, 0x7f, 0x5a, 0xa7, 0x6d, 0xec, 0xd4, 0x49, 0x93, 0xfc, 0xdd, 0x36, 0x74, 0xfd, 0x91, 0xc4,
-	0x21, 0x8e, 0xcd, 0xda, 0xb1, 0x0c, 0x0f, 0x54, 0xe3, 0x9d, 0x9b, 0xcd, 0x90, 0xf5, 0xcc, 0x72,
-	0x67, 0xc6, 0xcd, 0xc2, 0x03, 0x08, 0x09, 0x94, 0x06, 0x1e, 0x0a, 0x48, 0x28, 0xc9, 0x53, 0x10,
-	0x12, 0x44, 0xbc, 0x01, 0x4f, 0x08, 0x24, 0xfa, 0x98, 0x37, 0x22, 0x9e, 0x8c, 0x84, 0x02, 0x4d,
-	0x84, 0x54, 0x68, 0x55, 0x85, 0x42, 0x5b, 0x14, 0x89, 0x0f, 0xdd, 0x7b, 0xe7, 0x6b, 0x67, 0x67,
-	0x26, 0x6b, 0xa7, 0xe9, 0x0b, 0x4f, 0x3b, 0xf7, 0xdc, 0xdf, 0x39, 0xf7, 0xdc, 0x73, 0xcf, 0x39,
-	0xf7, 0xdc, 0x7b, 0x17, 0xc4, 0x1a, 0xd1, 0x4d, 0xfd, 0xb5, 0x4d, 0x6d, 0x53, 0x1b, 0x67, 0x9f,
-	0x28, 0x41, 0x36, 0x8c, 0xec, 0xc1, 0x8a, 0x6a, 0x5e, 0xb4, 0xd6, 0xc7, 0xcb, 0xfa, 0xc6, 0x44,
-	0x45, 0xaf, 0xe8, 0x13, 0xac, 0x6f, 0xdd, 0xba, 0xc0, 0x5a, 0xac, 0xc1, 0xbe, 0x38, 0x4f, 0xf6,
-	0x55, 0x1f, 0x5c, 0xd5, 0x0c, 0xbd, 0x2a, 0x93, 0x09, 0xd9, 0x30, 0x2c, 0x82, 0x95, 0x83, 0x55,
-	0xac, 0x54, 0x30, 0x99, 0xe0, 0x3f, 0x07, 0xcb, 0x3a, 0xc1, 0x14, 0xc2, 0x45, 0xa8, 0x9a, 0x61,
-	0x4b, 0xd8, 0x45, 0x36, 0x9c, 0xcf, 0x7e, 0xae, 0x12, 0xc1, 0x65, 0x9d, 0x28, 0x36, 0xb1, 0xf0,
-	0x67, 0x01, 0x3a, 0x16, 0xb0, 0x29, 0xa3, 0x31, 0x48, 0x2e, 0xc9, 0xf5, 0xaa, 0x2e, 0x2b, 0xd2,
-	0xc0, 0xa8, 0x30, 0xd6, 0x3d, 0x99, 0x1a, 0xa7, 0xac, 0x45, 0xad, 0x3e, 0xdd, 0x71, 0xfb, 0x6e,
-	0xbe, 0xad, 0xe4, 0x74, 0xa3, 0xe7, 0xa1, 0x6b, 0x19, 0x6b, 0x0a, 0x26, 0xd2, 0x20, 0x03, 0xa6,
-	0x19, 0xb0, 0x84, 0x2f, 0x60, 0x82, 0xb5, 0x32, 0xb6, 0xe1, 0x36, 0x06, 0x1d, 0x82, 0x54, 0x09,
-	0x97, 0xb1, 0xba, 0x89, 0x89, 0x94, 0x89, 0xc1, 0xbb, 0x28, 0x74, 0x00, 0x3a, 0x97, 0xac, 0xaa,
-	0x81, 0xa5, 0xa1, 0x51, 0x61, 0xac, 0x77, 0xba, 0x9f, 0x76, 0x3f, 0xbc, 0x9b, 0xef, 0x66, 0xc4,
-	0x73, 0xd6, 0xc6, 0x3a, 0x26, 0x25, 0x8e, 0x40, 0xfb, 0xa0, 0x7d, 0x7e, 0x56, 0x92, 0x98, 0xd8,
-	0x6e, 0x26, 0x76, 0x5a, 0xd5, 0x64, 0xe2, 0xa8, 0xdc, 0x3e, 0x3f, 0x3b, 0xd5, 0xf9, 0xd6, 0x56,
-	0xfe, 0x9d, 0x64, 0xe1, 0xd7, 0xed, 0x90, 0x5e, 0xc0, 0x86, 0x21, 0x57, 0xf0, 0xdc, 0x65, 0x79,
-	0xa3, 0x56, 0xc5, 0xa8, 0x08, 0x5d, 0x25, 0x66, 0x0b, 0xa9, 0x9f, 0x09, 0x40, 0xb6, 0x5e, 0x94,
-	0x64, 0x63, 0xa6, 0x07, 0xa9, 0x9c, 0x3b, 0x77, 0xf3, 0xc2, 0xc3, 0x1f, 0x8c, 0xee, 0x5a, 0x30,
-	0x2a, 0xbc, 0xb7, 0x64, 0x33, 0xa2, 0x7d, 0x90, 0x5a, 0x30, 0x2a, 0x4b, 0x32, 0x91, 0x37, 0xa4,
-	0x2b, 0xe9, 0x51, 0x61, 0xac, 0xc3, 0x99, 0x8d, 0x43, 0xb6, 0x21, 0xd3, 0x75, 0x13, 0x1b, 0xd2,
-	0x1b, 0x14, 0xd2, 0xe3, 0x83, 0x30, 0x72, 0xf6, 0x0d, 0x01, 0x3a, 0x4e, 0x63, 0xb9, 0x25, 0x71,
-	0x4f, 0x41, 0x62, 0xd9, 0x24, 0xd2, 0x58, 0xd4, 0x94, 0x69, 0xef, 0xd4, 0xe1, 0x2b, 0x37, 0xf3,
-	0x6d, 0xb7, 0x6e, 0xe6, 0x85, 0x07, 0x3f, 0xcc, 0xb7, 0xdd, 0xda, 0xca, 0x0b, 0x6f, 0x6d, 0xe5,
-	0x3f, 0xfa, 0xfe, 0xbb, 0x7f, 0x48, 0xfc, 0x6e, 0x2b, 0xdf, 0xb9, 0xaa, 0x1a, 0xaa, 0xf9, 0xc1,
-	0x56, 0xde, 0x31, 0x07, 0x6b, 0xeb, 0xe4, 0x4c, 0x47, 0x4a, 0x10, 0x07, 0xa6, 0x52, 0x0e, 0x94,
-	0xb5, 0xfb, 0xcf, 0x74, 0xa6, 0x06, 0xc4, 0x2b, 0xe9, 0xc2, 0xcf, 0x04, 0xe8, 0x6b, 0x34, 0xdf,
-	0x64, 0x84, 0xfd, 0x8a, 0x5a, 0x9d, 0x53, 0xcf, 0xca, 0x5f, 0xa9, 0x7f, 0x2a, 0xf6, 0x63, 0x3a,
-	0xbf, 0xd7, 0xac, 0xf3, 0xfb, 0x00, 0x3d, 0xab, 0x33, 0x72, 0xb5, 0x5a, 0xc2, 0x5f, 0xb6, 0xb0,
-	0x61, 0xa2, 0x09, 0x48, 0xd1, 0xe6, 0x4a, 0xbd, 0x86, 0x99, 0x8f, 0xa7, 0x27, 0x7b, 0x99, 0xca,
-	0x0e, 0xd1, 0x11, 0xec, 0xb4, 0xd1, 0x04, 0xec, 0xa2, 0xdf, 0x27, 0xab, 0x72, 0xc5, 0x60, 0xce,
-	0xde, 0x3b, 0xbd, 0xdb, 0xf6, 0x46, 0xaf, 0xa3, 0xe4, 0x7d, 0x3a, 0x23, 0x14, 0x8d, 0xc5, 0x0b,
-	0xcc, 0xd9, 0x23, 0xbc, 0xd7, 0x05, 0xd1, 0x58, 0xa2, 0xdf, 0x98, 0x30, 0x67, 0x8f, 0x8c, 0x25,
-	0x8e, 0x71, 0xd1, 0xd8, 0x76, 0xf9, 0x38, 0x34, 0x46, 0x27, 0xa1, 0x9f, 0x7e, 0x2d, 0xab, 0x26,
-	0x9e, 0xc5, 0xe5, 0xaa, 0x4c, 0x64, 0x53, 0xd5, 0x35, 0x69, 0x38, 0x86, 0x35, 0x8c, 0x01, 0x3d,
-	0x0f, 0x69, 0x87, 0xbc, 0x80, 0xcd, 0x8b, 0xba, 0x22, 0x65, 0x47, 0x85, 0xb1, 0x5d, 0x36, 0x4b,
-	0xa0, 0x0f, 0x8d, 0x41, 0x0f, 0xa3, 0x50, 0x9b, 0x6b, 0x65, 0x2c, 0xed, 0x61, 0x66, 0xe0, 0xd8,
-	0x86, 0x1e, 0x74, 0x04, 0x80, 0xaf, 0x8e, 0x6c, 0xe8, 0x9a, 0xb4, 0x37, 0x46, 0x2d, 0x1f, 0x8e,
-	0xda, 0xa0, 0xa4, 0xeb, 0xe6, 0xca, 0x9a, 0x34, 0x12, 0x67, 0x03, 0x8e, 0x71, 0x2c, 0xb6, 0xb2,
-	0x26, 0xe5, 0x1e, 0x65, 0xb1, 0x95, 0x35, 0x34, 0x05, 0xbd, 0x73, 0x97, 0x6b, 0x58, 0x33, 0xf0,
-	0x0c, 0xd6, 0x4c, 0x4c, 0xa4, 0x7c, 0x0c, 0x53, 0x23, 0x14, 0xbd, 0x0c, 0xe9, 0x12, 0x36, 0x74,
-	0x8b, 0x94, 0x1d, 0xe6, 0xd1, 0x18, 0xe6, 0x00, 0x16, 0x9d, 0x84, 0xf4, 0x2c, 0xae, 0xe2, 0x0a,
-	0xb3, 0xf8, 0x72, 0x0d, 0x97, 0xa5, 0x02, 0xe3, 0x96, 0x5c, 0x07, 0xf5, 0xba, 0x57, 0xf4, 0x4b,
-	0x58, 0x73, 0xe4, 0x34, 0x72, 0xa1, 0xcf, 0xc0, 0xee, 0x25, 0xa2, 0x2b, 0x56, 0x19, 0x93, 0x65,
-	0xb5, 0xa2, 0xc9, 0xa6, 0x45, 0xb0, 0xf4, 0x7f, 0x51, 0xc9, 0xa2, 0x19, 0x8b, 0x8a, 0x80, 0x4a,
-	0xb8, 0xa2, 0x1a, 0x26, 0x91, 0x7d, 0x12, 0xf6, 0x47, 0x49, 0x08, 0x01, 0xa3, 0x35, 0x18, 0x72,
-	0xa9, 0x81, 0x49, 0x3d, 0xdd, 0xd2, 0xa4, 0xa2, 0xd8, 0xd1, 0x2c, 0x88, 0xbe, 0x78, 0xe6, 0x61,
-	0x49, 0x33, 0x61, 0xe7, 0xb4, 0x64, 0x87, 0x59, 0x53, 0x7f, 0xa9, 0x89, 0x42, 0xe3, 0xe2, 0xb3,
-	0x9a, 0xfe, 0xba, 0xc6, 0xc3, 0x64, 0x5e, 0x2b, 0xeb, 0x1b, 0xaa, 0x56, 0x91, 0x0e, 0xc4, 0xc5,
-	0x45, 0x08, 0x03, 0x3a, 0xce, 0x3d, 0x7d, 0xd1, 0x32, 0x2b, 0x3a, 0x15, 0xf0, 0x5c, 0x8c, 0x80,
-	0x06, 0x24, 0x4d, 0x13, 0x2b, 0x6b, 0x73, 0x97, 0x6b, 0x2a, 0xa9, 0x4b, 0xcf, 0xc7, 0xa4, 0x09,
-	0x07, 0x84, 0x5e, 0x82, 0xbe, 0x65, 0x5c, 0xb6, 0x88, 0x6a, 0xd6, 0x67, 0x74, 0xcd, 0xc4, 0x97,
-	0x4d, 0xe9, 0x60, 0xd4, 0x92, 0x04, 0x91, 0x34, 0x8b, 0xad, 0xac, 0x39, 0x6c, 0xe3, 0x51, 0x6c,
-	0x1e, 0x86, 0x32, 0x14, 0x49, 0xc5, 0xda, 0xc0, 0x9a, 0x69, 0x48, 0x13, 0x91, 0x0c, 0x2e, 0x86,
-	0xed, 0xb1, 0x7f, 0x49, 0x16, 0xbe, 0x99, 0x84, 0x6e, 0x3b, 0xe1, 0x1a, 0x56, 0xf5, 0x7f, 0x2e,
-	0xdf, 0x3e, 0x0d, 0xdd, 0x7c, 0xe2, 0x5c, 0xff, 0x61, 0x5f, 0xe2, 0xf3, 0x77, 0x34, 0xf9, 0x4d,
-	0xb6, 0x65, 0xbf, 0xb1, 0x39, 0x5d, 0x97, 0xdd, 0xf3, 0x28, 0x4e, 0xd7, 0x57, 0x9b, 0xf3, 0xcb,
-	0xc8, 0x8e, 0xf2, 0xcb, 0x2c, 0x20, 0xbf, 0x5c, 0x3e, 0xad, 0xd8, 0x34, 0x19, 0x82, 0x0f, 0xcf,
-	0x52, 0xa3, 0x8f, 0x9d, 0xa5, 0xf6, 0x7d, 0x42, 0x59, 0xaa, 0xf0, 0x78, 0x59, 0x2a, 0x24, 0x58,
-	0xf7, 0xb7, 0x1c, 0xac, 0x2f, 0x41, 0x5f, 0x09, 0x9b, 0x16, 0xd1, 0xbc, 0x08, 0x7c, 0x3a, 0x92,
-	0x39, 0x80, 0x64, 0x71, 0xf8, 0xd7, 0x64, 0xe1, 0x37, 0x09, 0xe8, 0x5d, 0x5d, 0x36, 0x65, 0x13,
-	0x3b, 0x95, 0xcf, 0x33, 0xd0, 0xc1, 0x62, 0x64, 0x20, 0x3a, 0x46, 0x3a, 0x9c, 0xf8, 0x58, 0x5c,
-	0xff, 0x12, 0x2e, 0x9b, 0xf1, 0xb5, 0x3d, 0xc7, 0xa0, 0xb3, 0x20, 0xda, 0x23, 0x60, 0x85, 0x4d,
-	0x40, 0x33, 0x59, 0x18, 0x76, 0x4e, 0x8f, 0xda, 0x43, 0x48, 0x7e, 0x35, 0x6c, 0x88, 0x9d, 0x97,
-	0x83, 0x9c, 0xe8, 0x14, 0x0c, 0x06, 0x69, 0x67, 0xd5, 0x0d, 0xd5, 0xb4, 0x43, 0x35, 0xc4, 0x00,
-	0xe1, 0xf8, 0x10, 0x67, 0x1f, 0xfe, 0xe4, 0x36, 0xd3, 0x3d, 0xdb, 0x70, 0xd3, 0x43, 0x21, 0xfb,
-	0xd5, 0x5e, 0x66, 0x1f, 0xce, 0xd2, 0xd4, 0xcb, 0x56, 0xf0, 0xdd, 0x64, 0xe1, 0xcd, 0x5e, 0xe8,
-	0x71, 0x56, 0xb0, 0xa6, 0x13, 0xea, 0x16, 0x5d, 0xb4, 0x69, 0x19, 0xcc, 0x95, 0xd2, 0x93, 0x23,
-	0x6c, 0x7c, 0x3f, 0x64, 0x9c, 0x7d, 0x73, 0x90, 0x7b, 0x04, 0x63, 0xad, 0x27, 0xb5, 0xfa, 0xcd,
-	0x66, 0x1e, 0xda, 0x91, 0x99, 0xa7, 0x60, 0xf0, 0xbc, 0xa6, 0x13, 0x05, 0x13, 0xac, 0x2c, 0x61,
-	0x4d, 0x51, 0xb5, 0xca, 0x8c, 0x6e, 0x69, 0x26, 0x5b, 0x35, 0xc7, 0x54, 0xe1, 0x10, 0xf4, 0x79,
-	0x18, 0x09, 0x76, 0xcc, 0xc9, 0xa4, 0xaa, 0x62, 0xc3, 0xe4, 0x67, 0xc8, 0x6c, 0xf4, 0x9c, 0xe3,
-	0x39, 0xd1, 0x51, 0xe8, 0x5f, 0x0c, 0x51, 0x6a, 0x8f, 0x4f, 0xa9, 0x30, 0x00, 0x3a, 0x0f, 0x7b,
-	0x16, 0x63, 0x14, 0xda, 0x1b, 0xad, 0x50, 0x1c, 0x1f, 0x3a, 0x01, 0x43, 0x4b, 0x04, 0xf3, 0x9c,
-	0x43, 0x41, 0x9f, 0xb3, 0xb0, 0x85, 0xb9, 0x4a, 0x23, 0x3e, 0x95, 0xa2, 0x40, 0x68, 0x19, 0xb2,
-	0x0d, 0x5d, 0x8d, 0x5a, 0xe5, 0xa2, 0xb5, 0x8a, 0x61, 0x43, 0x2f, 0x43, 0x66, 0x89, 0xa8, 0x3a,
-	0x4b, 0x60, 0x72, 0xb5, 0xea, 0xd3, 0x29, 0xef, 0xd3, 0x29, 0x02, 0x83, 0x4e, 0xc3, 0xc0, 0x59,
-	0xd9, 0xc4, 0x86, 0xb9, 0x2a, 0x57, 0x55, 0x45, 0x36, 0xb1, 0xc2, 0x7c, 0x38, 0xb6, 0x70, 0x0e,
-	0xe5, 0xa0, 0x25, 0x5d, 0x80, 0x3e, 0xa3, 0x2b, 0xce, 0x86, 0x10, 0x51, 0xd2, 0x85, 0x30, 0xa0,
-	0x57, 0x41, 0xe4, 0xe4, 0x59, 0x95, 0x98, 0x75, 0xae, 0x4d, 0x21, 0x46, 0x48, 0x13, 0x1a, 0x9d,
-	0x80, 0x3e, 0x1f, 0x8d, 0x69, 0xf1, 0x54, 0x8c, 0x80, 0x20, 0x18, 0x9d, 0x87, 0xbe, 0x25, 0xa2,
-	0x6f, 0xaa, 0x8a, 0x97, 0x51, 0x79, 0xf9, 0xbe, 0xbf, 0x39, 0xe2, 0x03, 0xc0, 0x69, 0x5d, 0xe1,
-	0xb9, 0x48, 0x28, 0x05, 0x65, 0x64, 0x7f, 0x91, 0x80, 0xfe, 0x10, 0x38, 0x3a, 0x13, 0xb1, 0x04,
-	0x3c, 0xfe, 0x45, 0x36, 0x26, 0x0f, 0x77, 0x46, 0xb7, 0xc5, 0x87, 0x2f, 0xc2, 0x74, 0x88, 0xf1,
-	0x32, 0xb1, 0x72, 0x9a, 0xcd, 0x77, 0x3a, 0x7c, 0x21, 0x87, 0x62, 0xc5, 0x44, 0x2c, 0x65, 0xd3,
-	0x42, 0x48, 0xb1, 0x52, 0x9a, 0x96, 0xe2, 0x38, 0xf4, 0xd8, 0x01, 0xc9, 0x7c, 0x56, 0x1a, 0x1e,
-	0x4d, 0x44, 0x57, 0x5b, 0x7e, 0x24, 0x3d, 0x0b, 0xba, 0xb9, 0x85, 0xf3, 0x66, 0x63, 0x78, 0x03,
-	0xd8, 0xa9, 0x94, 0x7d, 0x63, 0xd3, 0x56, 0xf8, 0x86, 0x00, 0xdd, 0xbe, 0xb4, 0x8e, 0x32, 0x80,
-	0x7c, 0xcd, 0x79, 0x6d, 0x93, 0xce, 0x58, 0x6c, 0x43, 0x03, 0x20, 0xfa, 0xe8, 0x25, 0x2c, 0x2b,
-	0x75, 0x51, 0x08, 0x50, 0xe7, 0x36, 0x6a, 0x66, 0x5d, 0x6c, 0x47, 0x43, 0xd0, 0xdf, 0x20, 0x43,
-	0x2e, 0x9b, 0xea, 0x26, 0x16, 0x13, 0x01, 0xe1, 0x0b, 0xaa, 0x61, 0xa8, 0x5a, 0x45, 0xec, 0x60,
-	0x5b, 0xd2, 0x7b, 0xc9, 0xc2, 0xc7, 0x02, 0x74, 0xfb, 0x8c, 0x86, 0x26, 0x61, 0x97, 0x3b, 0x11,
-	0xfb, 0xc6, 0x30, 0x7c, 0x7a, 0x1e, 0x0c, 0x3d, 0x0b, 0x9d, 0x33, 0x55, 0xd9, 0x30, 0x62, 0x2f,
-	0x02, 0x39, 0x04, 0x3d, 0x03, 0x9d, 0xdc, 0x85, 0x22, 0x77, 0x7f, 0xde, 0x8f, 0x8e, 0x41, 0xef,
-	0x12, 0xc1, 0x9b, 0xaa, 0x6e, 0x19, 0x9c, 0x21, 0xf2, 0x3a, 0xb0, 0x11, 0x47, 0xeb, 0xf5, 0x59,
-	0xcc, 0xa6, 0x4f, 0x9d, 0x86, 0xed, 0x36, 0x29, 0xa7, 0x5e, 0xf7, 0x75, 0x14, 0xee, 0x24, 0x60,
-	0x78, 0xd5, 0xde, 0xb3, 0xb0, 0xe2, 0x6c, 0xd7, 0xaa, 0xa6, 0x1a, 0x17, 0xb1, 0xf2, 0x29, 0x1c,
-	0x72, 0xbc, 0x53, 0x48, 0x66, 0xfb, 0xa7, 0x90, 0xa1, 0x56, 0x4f, 0x21, 0xd2, 0x8e, 0x4f, 0x21,
-	0xc3, 0x8f, 0x71, 0x0a, 0xc9, 0xee, 0xa8, 0x62, 0x38, 0x0e, 0xdd, 0x3c, 0x58, 0xf9, 0x82, 0x8f,
-	0xc4, 0xc6, 0xb5, 0x1f, 0xca, 0x9c, 0xf9, 0xfd, 0x64, 0xe1, 0x97, 0xed, 0x30, 0xe8, 0x2d, 0xa9,
-	0xff, 0x8e, 0xd0, 0x33, 0xf6, 0x40, 0x0b, 0xc6, 0xde, 0xf6, 0x5a, 0x06, 0xad, 0x9e, 0xd9, 0xb1,
-	0xd5, 0xa5, 0xc7, 0xb0, 0xfa, 0x8e, 0xca, 0x61, 0x66, 0xbb, 0x07, 0xc9, 0xc2, 0x1f, 0x05, 0xc8,
-	0x04, 0x6d, 0x67, 0xd4, 0x74, 0xcd, 0xc0, 0xdb, 0x34, 0x5e, 0x70, 0x46, 0x83, 0x2d, 0xcf, 0x68,
-	0x15, 0x32, 0xce, 0x98, 0x81, 0x99, 0x65, 0x5a, 0x9a, 0x59, 0x04, 0x37, 0x9b, 0xe1, 0xdf, 0x92,
-	0x85, 0xdf, 0x27, 0xf8, 0xcd, 0x69, 0x80, 0x19, 0x2d, 0xc0, 0x6e, 0xf6, 0x41, 0xc3, 0xb8, 0xa8,
-	0x29, 0x7c, 0xd5, 0x79, 0x51, 0x9d, 0xb7, 0x57, 0x7d, 0x28, 0x84, 0x8f, 0xc2, 0x4b, 0xcd, 0x9c,
-	0xe8, 0x10, 0xa4, 0x8a, 0xb5, 0x1a, 0xd1, 0x37, 0x1f, 0xf1, 0x92, 0xe2, 0xa2, 0xd0, 0x11, 0x00,
-	0xc7, 0xf0, 0x2b, 0x7a, 0xac, 0xef, 0xf8, 0x70, 0xe8, 0x45, 0xf0, 0xd7, 0x73, 0x71, 0xaf, 0x2a,
-	0xfe, 0xc6, 0x36, 0x2f, 0x3f, 0xbc, 0x8b, 0x95, 0xe1, 0x16, 0x2e, 0x56, 0x0e, 0x41, 0xaa, 0xa5,
-	0xeb, 0x0f, 0x17, 0x45, 0xcf, 0x62, 0x8e, 0x19, 0x5a, 0x39, 0x8b, 0x35, 0x61, 0xd9, 0xda, 0x7e,
-	0x90, 0x2c, 0xfc, 0x58, 0x00, 0x71, 0xf5, 0xa4, 0xaa, 0x35, 0x04, 0xfd, 0x73, 0xd0, 0x75, 0x56,
-	0xd7, 0x2f, 0x15, 0xcd, 0xb8, 0x23, 0x92, 0x0d, 0xf1, 0xd9, 0x65, 0xb0, 0x05, 0xbb, 0xf8, 0x67,
-	0x9a, 0x69, 0x65, 0xa6, 0x4c, 0xd1, 0xbf, 0x27, 0x0b, 0xdf, 0x4a, 0xc0, 0x6e, 0x9f, 0xa2, 0x76,
-	0x84, 0x4d, 0x40, 0x8a, 0xaa, 0x81, 0x95, 0x78, 0x5d, 0x5d, 0xd0, 0x93, 0xd6, 0x16, 0x9d, 0x70,
-	0x0f, 0xa6, 0x43, 0x6c, 0xf3, 0x1b, 0xe5, 0x65, 0x6a, 0x50, 0x71, 0x16, 0x8c, 0x5e, 0x56, 0xf6,
-	0xce, 0xa6, 0x47, 0x9d, 0x47, 0x00, 0x76, 0x91, 0xe4, 0xaf, 0xd0, 0x7c, 0x37, 0x89, 0x76, 0x26,
-	0xf7, 0x21, 0x0b, 0x32, 0xcf, 0xbc, 0x7c, 0x27, 0x1f, 0xe0, 0xe7, 0x6c, 0xd6, 0x68, 0xa8, 0x8a,
-	0x5c, 0xaa, 0x53, 0xce, 0x08, 0x0d, 0xd4, 0xf3, 0xda, 0x25, 0x4d, 0x7f, 0x5d, 0x13, 0xdb, 0x11,
-	0xb2, 0xdf, 0x38, 0x28, 0xf5, 0xa4, 0x6e, 0x69, 0x8a, 0x98, 0x60, 0x0b, 0xf1, 0x8f, 0x64, 0xe1,
-	0xab, 0x30, 0xb0, 0x3a, 0x23, 0x97, 0x2f, 0x62, 0x65, 0x01, 0x6f, 0xe8, 0xa4, 0xee, 0xdb, 0x29,
-	0xb6, 0x71, 0x58, 0x1e, 0x87, 0x24, 0x57, 0x6f, 0x56, 0x9a, 0x8c, 0x81, 0x3b, 0x20, 0x36, 0xf8,
-	0x87, 0xc9, 0xc2, 0x87, 0x09, 0x18, 0x0c, 0x8c, 0xee, 0xe5, 0xda, 0x27, 0x37, 0x3c, 0x3a, 0xc5,
-	0x97, 0xc5, 0x5e, 0xda, 0xc3, 0x6c, 0x69, 0xf7, 0x39, 0xcb, 0xd2, 0xac, 0xcd, 0x78, 0xc3, 0xbd,
-	0x83, 0x8f, 0x15, 0x8d, 0x41, 0xc7, 0x39, 0x5a, 0x7b, 0x1f, 0x89, 0x19, 0x95, 0x21, 0xd0, 0x51,
-	0xe8, 0xa6, 0xf5, 0x99, 0xa3, 0xe6, 0x8b, 0x31, 0x0c, 0x7e, 0x20, 0x1a, 0x85, 0x94, 0x53, 0xc5,
-	0x36, 0xd4, 0x70, 0x2e, 0x15, 0x1d, 0x80, 0x2e, 0xae, 0xae, 0x74, 0x34, 0x2a, 0x61, 0xd8, 0x80,
-	0xc2, 0xd7, 0x1c, 0x77, 0x46, 0x7b, 0x41, 0xf2, 0xcf, 0xb4, 0xc1, 0x5f, 0xda, 0x50, 0x16, 0x32,
-	0x4d, 0xbd, 0xdc, 0x6f, 0x04, 0x34, 0x02, 0xc3, 0x4d, 0x7d, 0x25, 0xac, 0xa8, 0x04, 0x97, 0x4d,
-	0xb1, 0x3d, 0x54, 0xb0, 0xe3, 0x9e, 0xdc, 0xe9, 0x3e, 0x4a, 0x16, 0xae, 0xa6, 0x60, 0x68, 0x95,
-	0xaf, 0xdd, 0x0a, 0x91, 0x35, 0xa3, 0x4c, 0xd4, 0x9a, 0x69, 0xdf, 0x05, 0x3d, 0x1b, 0x78, 0x77,
-	0xf5, 0x1e, 0xea, 0x53, 0xce, 0x6b, 0xab, 0xfb, 0xc0, 0x3a, 0x66, 0x5f, 0xfd, 0xb0, 0xc7, 0xd5,
-	0xd8, 0xbb, 0x9f, 0x83, 0xae, 0x3f, 0xb1, 0x57, 0xd6, 0x47, 0x39, 0xd4, 0x17, 0x01, 0xd9, 0xd7,
-	0x14, 0x9e, 0x7e, 0x86, 0xf4, 0xed, 0x34, 0x3b, 0xe7, 0x3c, 0xc3, 0x3d, 0x25, 0x5c, 0xff, 0x71,
-	0x8f, 0xe0, 0x5c, 0xcf, 0x36, 0x4b, 0x42, 0x5f, 0x00, 0x31, 0xc8, 0x2e, 0x7d, 0x87, 0x2b, 0xb6,
-	0x4d, 0xe9, 0x4d, 0x72, 0xb2, 0xbf, 0x12, 0x20, 0xe7, 0x35, 0xe7, 0x34, 0x93, 0xd4, 0xbd, 0x0b,
-	0x6a, 0x1e, 0xdc, 0xff, 0x0f, 0x3d, 0x9c, 0xcd, 0x76, 0x9c, 0x2b, 0x71, 0x36, 0x69, 0x80, 0xa2,
-	0x17, 0xa8, 0x3f, 0xda, 0x25, 0x4d, 0xac, 0x29, 0x5d, 0x18, 0xca, 0x43, 0xd2, 0x1e, 0x58, 0xba,
-	0xea, 0x7f, 0xe2, 0x76, 0xa8, 0x53, 0x60, 0x1f, 0x09, 0xff, 0x75, 0xad, 0x2b, 0xfb, 0x5a, 0x93,
-	0xf2, 0x4e, 0x32, 0x76, 0x94, 0x7f, 0xc1, 0x97, 0xc5, 0x63, 0x15, 0xf7, 0x36, 0x1d, 0x67, 0x80,
-	0x7f, 0x5f, 0xeb, 0xca, 0x7e, 0x57, 0x80, 0x91, 0xc8, 0x11, 0xd8, 0xfd, 0xfd, 0x2b, 0x90, 0x6e,
-	0xa4, 0xc4, 0x0f, 0x13, 0x00, 0xa3, 0xfd, 0x0d, 0x39, 0xbf, 0xe1, 0x51, 0xdf, 0xd7, 0xe1, 0xea,
-	0xf4, 0x9f, 0x6b, 0x5d, 0xd9, 0x1f, 0x35, 0xeb, 0x14, 0x78, 0x53, 0x78, 0x05, 0xd2, 0x81, 0x57,
-	0x89, 0x78, 0x9d, 0x02, 0xec, 0xc7, 0x1a, 0x4e, 0xb7, 0xf1, 0x0b, 0xe7, 0x47, 0xba, 0x5a, 0x7e,
-	0xfd, 0x7a, 0x57, 0xb6, 0x08, 0xe0, 0x29, 0x89, 0x0e, 0x40, 0x92, 0x2a, 0xaa, 0x62, 0x83, 0xaa,
-	0x92, 0x08, 0xfb, 0x4b, 0x8d, 0xdd, 0xef, 0x1d, 0xf9, 0x59, 0xfc, 0x7f, 0x9c, 0x6c, 0xfc, 0x23,
-	0xc3, 0x4f, 0x04, 0x37, 0x19, 0xd8, 0x77, 0x1c, 0xaa, 0xae, 0xd9, 0xc9, 0x60, 0x7b, 0xdb, 0xc0,
-	0x53, 0xd0, 0x3e, 0xaf, 0x49, 0xc7, 0xa2, 0x73, 0x41, 0xfb, 0xbc, 0x46, 0x4f, 0xf6, 0xee, 0x55,
-	0x4a, 0xec, 0x6e, 0xe1, 0xc1, 0x98, 0xda, 0xff, 0x4c, 0x3e, 0xfb, 0x5b, 0xc1, 0x3b, 0x0d, 0xa3,
-	0x7e, 0xe8, 0x73, 0xbe, 0xbd, 0x4d, 0x39, 0xc3, 0x1f, 0x90, 0x38, 0x71, 0x9d, 0x66, 0xcc, 0xe2,
-	0xd2, 0xbc, 0x28, 0xa0, 0x21, 0x5e, 0x72, 0x53, 0xfa, 0xa2, 0x65, 0xba, 0x1d, 0xee, 0xce, 0x4c,
-	0x3b, 0xf8, 0x3f, 0x0c, 0xc4, 0x84, 0x1f, 0x3c, 0xa3, 0x6b, 0x86, 0x49, 0xac, 0xb2, 0xa9, 0x13,
-	0xb1, 0xc3, 0x0f, 0x3e, 0xa7, 0x9b, 0xea, 0x85, 0xba, 0xd8, 0x89, 0x44, 0x7e, 0xcc, 0xa0, 0xb4,
-	0xe5, 0xe2, 0xa9, 0xa2, 0xd8, 0xe5, 0x94, 0x00, 0x94, 0xb2, 0x24, 0x13, 0x5a, 0xf9, 0x54, 0xc5,
-	0xa4, 0x9f, 0xba, 0x4c, 0xd3, 0xb3, 0x55, 0xc5, 0x62, 0x6a, 0xba, 0x7e, 0xfb, 0xed, 0x9c, 0x70,
-	0xe7, 0xed, 0x5c, 0xdb, 0xad, 0x7b, 0x39, 0xe1, 0xf6, 0xbd, 0x9c, 0x70, 0xe7, 0x5e, 0x4e, 0xd8,
-	0xba, 0x97, 0x13, 0xfe, 0x74, 0x2f, 0xd7, 0xf6, 0xe6, 0xfd, 0x5c, 0xdb, 0xcd, 0xfb, 0x39, 0xe1,
-	0xce, 0xfd, 0x5c, 0xdb, 0xd6, 0xfd, 0x5c, 0xdb, 0x3b, 0xd7, 0xf3, 0xc2, 0x83, 0xeb, 0x79, 0xe1,
-	0xe1, 0xf5, 0x7c, 0xd2, 0xfe, 0xb7, 0xcc, 0xd5, 0x1b, 0x79, 0xf6, 0xdf, 0x9e, 0xef, 0xdd, 0xb0,
-	0xff, 0x79, 0xf3, 0xd3, 0x1b, 0xf9, 0x7e, 0xe7, 0x3a, 0xd5, 0xc6, 0xd0, 0x21, 0x7f, 0x7e, 0x23,
-	0xf8, 0x87, 0x9c, 0xf5, 0x2e, 0xf6, 0x0f, 0xad, 0xc3, 0xff, 0x0d, 0x00, 0x00, 0xff, 0xff, 0x50,
-	0x73, 0xd5, 0x32, 0x4b, 0x26, 0x00, 0x00,
+	// 2425 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe4, 0x5a, 0x4d, 0x6c, 0x1c, 0x57,
+	0x1d, 0xdf, 0xf1, 0xc7, 0xee, 0xe6, 0x6f, 0x7b, 0xbd, 0x79, 0xfe, 0x1a, 0x6f, 0xe2, 0x5d, 0x67,
+	0x42, 0x82, 0x93, 0xc6, 0x76, 0x70, 0x51, 0x13, 0xdc, 0x36, 0xd4, 0x6b, 0x3b, 0x8d, 0x43, 0x4c,
+	0xcc, 0xda, 0xb1, 0xcc, 0x09, 0x4d, 0x76, 0x5e, 0x36, 0x43, 0x76, 0xdf, 0x98, 0x37, 0xb3, 0x4e,
+	0x96, 0x03, 0x42, 0x48, 0xa0, 0x24, 0x70, 0xa8, 0x40, 0x45, 0x4d, 0x4e, 0xe1, 0x02, 0x11, 0x37,
+	0xe0, 0x84, 0x84, 0x20, 0xc7, 0x9c, 0x50, 0xd4, 0x93, 0x0f, 0x28, 0xd0, 0x44, 0x48, 0x85, 0x56,
+	0x55, 0xf8, 0x2a, 0x10, 0x89, 0x0f, 0xcd, 0x7b, 0x6f, 0x3e, 0x76, 0x76, 0x66, 0xba, 0x76, 0xda,
+	0x5e, 0x7a, 0xda, 0x99, 0xff, 0xfb, 0xfd, 0xff, 0xef, 0xff, 0xfd, 0x3e, 0x66, 0x21, 0xbb, 0x49,
+	0x0d, 0xcb, 0xf8, 0xca, 0x16, 0xd9, 0x22, 0x53, 0xec, 0x11, 0x75, 0xd2, 0x9a, 0x99, 0x9b, 0xac,
+	0xe8, 0xd6, 0xe5, 0xfa, 0xc5, 0xa9, 0xb2, 0x51, 0x9b, 0xae, 0x18, 0x15, 0x63, 0x9a, 0x8d, 0x5d,
+	0xac, 0x5f, 0x62, 0x6f, 0xec, 0x85, 0x3d, 0x71, 0x9e, 0xdc, 0x2b, 0x3e, 0xb8, 0x4e, 0x4c, 0xa3,
+	0xaa, 0xd2, 0x69, 0xd5, 0x34, 0xeb, 0x14, 0x6b, 0x93, 0x55, 0xac, 0x55, 0x30, 0x9d, 0xe6, 0x3f,
+	0x93, 0x65, 0x83, 0x62, 0x1b, 0xc2, 0x45, 0xe8, 0xc4, 0x14, 0x12, 0xf6, 0xd0, 0x9a, 0xf3, 0x38,
+	0xc0, 0x55, 0xa2, 0xb8, 0x6c, 0x50, 0xcd, 0x21, 0x22, 0x4e, 0x2c, 0x1b, 0xb5, 0x9a, 0x21, 0x34,
+	0x55, 0xfe, 0x28, 0x41, 0xd7, 0x32, 0xb6, 0x54, 0x34, 0x01, 0xa9, 0x15, 0xb5, 0x51, 0x35, 0x54,
+	0x4d, 0x1e, 0x1c, 0x97, 0x26, 0x7a, 0x66, 0xd2, 0x53, 0xb6, 0xb8, 0x39, 0xd2, 0x28, 0x76, 0xdd,
+	0x7f, 0x58, 0x48, 0x94, 0x9c, 0x61, 0x74, 0x0c, 0x92, 0xab, 0x98, 0x68, 0x98, 0xca, 0x43, 0x0c,
+	0x98, 0x61, 0xc0, 0x12, 0xbe, 0x84, 0x29, 0x26, 0x65, 0x2c, 0xe0, 0x02, 0x83, 0x8e, 0x43, 0xba,
+	0x84, 0xcb, 0x58, 0xdf, 0xc2, 0x54, 0x1e, 0x8e, 0xc1, 0xbb, 0x28, 0x74, 0x04, 0xba, 0x57, 0xea,
+	0x55, 0x13, 0xcb, 0x23, 0xe3, 0xd2, 0x44, 0x5f, 0x71, 0xc0, 0x1e, 0x7e, 0xfa, 0xb0, 0xd0, 0xc3,
+	0x88, 0x5f, 0xac, 0xd7, 0x2e, 0x62, 0x5a, 0xe2, 0x08, 0x74, 0x00, 0x3a, 0x96, 0x16, 0x64, 0x99,
+	0x89, 0xed, 0x61, 0x62, 0x8b, 0x3a, 0x51, 0xa9, 0xa3, 0x72, 0xc7, 0xd2, 0xc2, 0x6c, 0xf7, 0xbd,
+	0xed, 0xc2, 0xdb, 0x29, 0xe5, 0x57, 0x1d, 0x90, 0x59, 0xc6, 0xa6, 0xa9, 0x56, 0xf0, 0xe2, 0x35,
+	0xb5, 0xb6, 0x59, 0xc5, 0x68, 0x0e, 0x92, 0x25, 0xe6, 0x1f, 0x79, 0x80, 0x09, 0x40, 0x42, 0x2f,
+	0x9b, 0x24, 0x30, 0xc5, 0x21, 0x5b, 0xce, 0x83, 0x87, 0x05, 0xe9, 0xe9, 0x0f, 0xc7, 0xf7, 0x2c,
+	0x9b, 0x15, 0x3e, 0x5a, 0x12, 0x8c, 0xe8, 0x00, 0xa4, 0x97, 0xcd, 0xca, 0x8a, 0x4a, 0xd5, 0x9a,
+	0x7c, 0x3d, 0x33, 0x2e, 0x4d, 0x74, 0x39, 0xd6, 0x38, 0x64, 0x01, 0x29, 0x36, 0x2c, 0x6c, 0xca,
+	0x37, 0x6c, 0x48, 0xaf, 0x0f, 0xc2, 0xc8, 0xb9, 0x1b, 0x12, 0x74, 0x9d, 0xc1, 0x6a, 0x5b, 0xe2,
+	0x0e, 0x42, 0xe7, 0xaa, 0x45, 0xe5, 0x89, 0x28, 0x93, 0xed, 0xd1, 0xd9, 0xe7, 0xaf, 0xdf, 0x29,
+	0x24, 0xee, 0xde, 0x29, 0x48, 0x4f, 0x7e, 0x54, 0x48, 0xdc, 0xdd, 0x2e, 0x48, 0xf7, 0xb6, 0x0b,
+	0xef, 0xff, 0xe0, 0x9d, 0xdf, 0x75, 0xbe, 0xb9, 0x5d, 0xe8, 0x5e, 0xd7, 0x4d, 0xdd, 0xfa, 0xeb,
+	0x76, 0xc1, 0x71, 0x07, 0x7b, 0x37, 0xe8, 0xd9, 0xae, 0xb4, 0x94, 0x1d, 0x9c, 0x4d, 0x3b, 0x50,
+	0xf6, 0x3e, 0x70, 0xb6, 0x3b, 0x3d, 0x98, 0xbd, 0x9e, 0x51, 0x7e, 0x26, 0x41, 0x7f, 0xb3, 0xfb,
+	0x66, 0x22, 0xfc, 0x37, 0x47, 0x1a, 0x9c, 0x7a, 0x4e, 0xfd, 0x7a, 0xe3, 0x63, 0xf1, 0x1f, 0xd3,
+	0xf9, 0xdd, 0x56, 0x9d, 0xdf, 0x03, 0xe8, 0x5d, 0x9f, 0x57, 0xab, 0xd5, 0x12, 0xfe, 0x5a, 0x1d,
+	0x9b, 0x16, 0x9a, 0x86, 0xb4, 0xfd, 0xba, 0xd6, 0xd8, 0xc4, 0x2c, 0xc7, 0x33, 0x33, 0x7d, 0x4c,
+	0x65, 0x87, 0xe8, 0x08, 0x76, 0xde, 0xd1, 0x34, 0xec, 0xb1, 0x9f, 0x4f, 0x57, 0xd5, 0x8a, 0xc9,
+	0x92, 0xbd, 0xaf, 0xb8, 0x57, 0x64, 0xa3, 0x37, 0x50, 0xf2, 0x1e, 0x9d, 0x19, 0xe6, 0xcc, 0xf3,
+	0x97, 0x58, 0xb2, 0x47, 0x64, 0xaf, 0x0b, 0xb2, 0x6b, 0xc9, 0x7e, 0xc6, 0x94, 0x25, 0x7b, 0x64,
+	0x2d, 0x71, 0x8c, 0x8b, 0xc6, 0x22, 0xe5, 0xe3, 0xd0, 0x18, 0x9d, 0x86, 0x01, 0xfb, 0x69, 0x55,
+	0xb7, 0xf0, 0x02, 0x2e, 0x57, 0x55, 0xaa, 0x5a, 0xba, 0x41, 0xe4, 0xd1, 0x18, 0xd6, 0x30, 0x06,
+	0x74, 0x0c, 0x32, 0x0e, 0x79, 0x19, 0x5b, 0x97, 0x0d, 0x4d, 0xce, 0x8d, 0x4b, 0x13, 0x7b, 0x04,
+	0x4b, 0x60, 0x0c, 0x4d, 0x40, 0x2f, 0xa3, 0xd8, 0x3e, 0x27, 0x65, 0x2c, 0xef, 0x63, 0x6e, 0xe0,
+	0xd8, 0xa6, 0x11, 0xf4, 0x59, 0x00, 0x1e, 0x1d, 0xd5, 0x34, 0x88, 0xbc, 0x3f, 0x46, 0x2d, 0x1f,
+	0xce, 0xf6, 0x41, 0xc9, 0x30, 0xac, 0xb5, 0x0d, 0x79, 0x2c, 0xce, 0x07, 0x1c, 0xe3, 0x78, 0x6c,
+	0x6d, 0x43, 0xce, 0x7f, 0x90, 0xc7, 0xd6, 0x36, 0xd0, 0x2c, 0xf4, 0x2d, 0x5e, 0xdb, 0xc4, 0xc4,
+	0xc4, 0xf3, 0x98, 0x58, 0x98, 0xca, 0x85, 0x18, 0xa6, 0x66, 0x28, 0x7a, 0x09, 0x32, 0x25, 0x6c,
+	0x1a, 0x75, 0x5a, 0x76, 0x98, 0xc7, 0x63, 0x98, 0x03, 0x58, 0x74, 0x1a, 0x32, 0x0b, 0xb8, 0x8a,
+	0x2b, 0xcc, 0xe3, 0xab, 0x9b, 0xb8, 0x2c, 0x2b, 0x8c, 0x5b, 0x76, 0x13, 0xd4, 0x1b, 0x5e, 0x33,
+	0xae, 0x60, 0xe2, 0xc8, 0x69, 0xe6, 0x42, 0x9f, 0x87, 0xbd, 0x2b, 0xd4, 0xd0, 0xea, 0x65, 0x4c,
+	0x57, 0xf5, 0x0a, 0x51, 0xad, 0x3a, 0xc5, 0xf2, 0xa7, 0xa2, 0x9a, 0x45, 0x2b, 0x16, 0xcd, 0x01,
+	0x2a, 0xe1, 0x8a, 0x6e, 0x5a, 0x54, 0xf5, 0x49, 0x38, 0x14, 0x25, 0x21, 0x04, 0x8c, 0x36, 0x60,
+	0xc4, 0xa5, 0x06, 0x8c, 0x3a, 0xdc, 0x96, 0x51, 0x51, 0xec, 0x68, 0x01, 0xb2, 0xbe, 0x7a, 0xe6,
+	0x65, 0x69, 0x77, 0xc2, 0xee, 0xa2, 0x2c, 0xca, 0xac, 0x65, 0xbc, 0xd4, 0x42, 0xb1, 0xeb, 0xe2,
+	0x0b, 0xc4, 0xb8, 0x4a, 0x78, 0x99, 0x2c, 0x91, 0xb2, 0x51, 0xd3, 0x49, 0x45, 0x3e, 0x12, 0x57,
+	0x17, 0x21, 0x0c, 0xe8, 0x24, 0xcf, 0xf4, 0xf3, 0x75, 0xab, 0x62, 0xd8, 0x02, 0x9e, 0x8b, 0x11,
+	0xd0, 0x84, 0xb4, 0xdb, 0xc4, 0xda, 0xc6, 0xe2, 0xb5, 0x4d, 0x9d, 0x36, 0xe4, 0x63, 0x31, 0x6d,
+	0xc2, 0x01, 0xa1, 0x17, 0xa1, 0x7f, 0x15, 0x97, 0xeb, 0x54, 0xb7, 0x1a, 0xf3, 0x06, 0xb1, 0xf0,
+	0x35, 0x4b, 0x9e, 0x8c, 0x0a, 0x49, 0x10, 0x69, 0x77, 0xb1, 0xb5, 0x0d, 0x87, 0x6d, 0x2a, 0x8a,
+	0xcd, 0xc3, 0xd8, 0x0c, 0x73, 0xb4, 0x52, 0xaf, 0x61, 0x62, 0x99, 0xf2, 0x74, 0x24, 0x83, 0x8b,
+	0x61, 0x6b, 0xec, 0x9f, 0x52, 0xca, 0xb7, 0x53, 0xd0, 0x23, 0x1a, 0xae, 0x59, 0xaf, 0x7e, 0xe2,
+	0xfa, 0xed, 0x61, 0xe8, 0xe1, 0x86, 0x73, 0xfd, 0x47, 0x7d, 0x8d, 0xcf, 0x3f, 0xd0, 0x92, 0x37,
+	0xb9, 0xb6, 0xf3, 0x46, 0x70, 0xba, 0x29, 0xbb, 0xef, 0x83, 0x38, 0xdd, 0x5c, 0x6d, 0xed, 0x2f,
+	0x63, 0xbb, 0xea, 0x2f, 0x0b, 0x80, 0xfc, 0x72, 0xb9, 0x59, 0xb1, 0x6d, 0x32, 0x04, 0x1f, 0xde,
+	0xa5, 0xc6, 0x9f, 0xb9, 0x4b, 0x1d, 0xf8, 0x90, 0xba, 0x94, 0xf2, 0x6c, 0x5d, 0x2a, 0xa4, 0x58,
+	0x0f, 0xb5, 0x5d, 0xac, 0x2f, 0x42, 0x7f, 0x09, 0x5b, 0x75, 0x4a, 0xbc, 0x0a, 0x3c, 0x1c, 0xc9,
+	0x1c, 0x40, 0xb2, 0x3a, 0xfc, 0x73, 0x4a, 0xf9, 0x4d, 0x27, 0xf4, 0xad, 0xaf, 0x5a, 0xaa, 0x85,
+	0x9d, 0x9d, 0xcf, 0xa7, 0xa1, 0x8b, 0xd5, 0xc8, 0x60, 0x74, 0x8d, 0x74, 0x39, 0xf5, 0x71, 0xfe,
+	0xe2, 0x57, 0x71, 0xd9, 0x8a, 0xdf, 0xdb, 0x73, 0x0c, 0x3a, 0x07, 0x59, 0x31, 0x03, 0xd6, 0x98,
+	0x01, 0xc4, 0x62, 0x65, 0xd8, 0x5d, 0x1c, 0x17, 0x53, 0xc8, 0x7e, 0x35, 0x04, 0x44, 0xf4, 0xe5,
+	0x20, 0x27, 0x7a, 0x15, 0x86, 0x82, 0xb4, 0x73, 0x7a, 0x4d, 0xb7, 0x44, 0xa9, 0x86, 0x38, 0x20,
+	0x1c, 0x1f, 0x92, 0xec, 0xa3, 0x1f, 0xde, 0x62, 0xba, 0x6f, 0x07, 0x69, 0x7a, 0x3c, 0x64, 0xbd,
+	0xda, 0xcf, 0xfc, 0xc3, 0x59, 0x5a, 0x46, 0x59, 0x04, 0xdf, 0x49, 0x29, 0xaf, 0xf5, 0x41, 0xaf,
+	0x13, 0xc1, 0x4d, 0x83, 0xda, 0x69, 0x91, 0xb4, 0x5f, 0xeb, 0x26, 0x4b, 0xa5, 0xcc, 0xcc, 0x18,
+	0x9b, 0xdf, 0x0f, 0x99, 0x62, 0xcf, 0x1c, 0xe4, 0x1e, 0xc1, 0xd8, 0xdb, 0x47, 0x15, 0xfd, 0x56,
+	0x37, 0x8f, 0xec, 0xca, 0xcd, 0xb3, 0x30, 0x74, 0x81, 0x18, 0x54, 0xc3, 0x14, 0x6b, 0x2b, 0x98,
+	0x68, 0x3a, 0xa9, 0xcc, 0x1b, 0x75, 0x62, 0xb1, 0xa8, 0x39, 0xae, 0x0a, 0x87, 0xa0, 0x2f, 0xc3,
+	0x58, 0x70, 0x60, 0x51, 0xa5, 0x55, 0x1d, 0x9b, 0x16, 0x3f, 0x43, 0xe6, 0xa2, 0x6d, 0x8e, 0xe7,
+	0x44, 0x2f, 0xc0, 0xc0, 0xf9, 0x10, 0xa5, 0xf6, 0xf9, 0x94, 0x0a, 0x03, 0xa0, 0x0b, 0xb0, 0xef,
+	0x7c, 0x8c, 0x42, 0xfb, 0xa3, 0x15, 0x8a, 0xe3, 0x43, 0xa7, 0x60, 0x64, 0x85, 0x62, 0xde, 0x73,
+	0x6c, 0xd0, 0x97, 0xea, 0xb8, 0x8e, 0xb9, 0x4a, 0x63, 0x3e, 0x95, 0xa2, 0x40, 0x68, 0x15, 0x72,
+	0x4d, 0x43, 0xcd, 0x5a, 0xe5, 0xa3, 0xb5, 0x8a, 0x61, 0x43, 0x2f, 0xc1, 0xf0, 0x0a, 0xd5, 0x0d,
+	0xd6, 0xc0, 0xd4, 0x6a, 0xd5, 0xa7, 0x53, 0xc1, 0xa7, 0x53, 0x04, 0x06, 0x9d, 0x81, 0xc1, 0x73,
+	0xaa, 0x85, 0x4d, 0x6b, 0x5d, 0xad, 0xea, 0x9a, 0x6a, 0x61, 0x8d, 0xe5, 0x70, 0xec, 0xc6, 0x39,
+	0x94, 0xc3, 0xde, 0xd2, 0x05, 0xe8, 0xf3, 0x86, 0xe6, 0x2c, 0x08, 0x11, 0x5b, 0xba, 0x10, 0x06,
+	0xf4, 0x0a, 0x64, 0x39, 0x79, 0x41, 0xa7, 0x56, 0x83, 0x6b, 0xa3, 0xc4, 0x08, 0x69, 0x41, 0xa3,
+	0x53, 0xd0, 0xef, 0xa3, 0x31, 0x2d, 0x0e, 0xc6, 0x08, 0x08, 0x82, 0xd1, 0x05, 0xe8, 0x5f, 0xa1,
+	0xc6, 0x96, 0xae, 0x79, 0x1d, 0x95, 0x6f, 0xdf, 0x0f, 0xb5, 0x56, 0x7c, 0x00, 0x58, 0x34, 0x34,
+	0xde, 0x8b, 0xa4, 0x52, 0x50, 0x46, 0xee, 0x17, 0x9d, 0x30, 0x10, 0x02, 0x47, 0x67, 0x23, 0x42,
+	0xc0, 0xeb, 0x3f, 0xcb, 0xe6, 0xe4, 0xe5, 0xce, 0xe8, 0x42, 0x7c, 0x78, 0x10, 0x8a, 0x21, 0xce,
+	0x1b, 0x8e, 0x95, 0xd3, 0xea, 0xbe, 0x33, 0xe1, 0x81, 0x1c, 0x89, 0x15, 0x13, 0x11, 0xca, 0x96,
+	0x40, 0xc8, 0xb1, 0x52, 0x5a, 0x42, 0x71, 0x12, 0x7a, 0x45, 0x41, 0xb2, 0x9c, 0x95, 0x47, 0xc7,
+	0x3b, 0xa3, 0x77, 0x5b, 0x7e, 0xa4, 0x7d, 0x16, 0x74, 0x7b, 0x0b, 0xe7, 0xcd, 0xc5, 0xf0, 0x06,
+	0xb0, 0xb3, 0x69, 0x71, 0x63, 0x93, 0x50, 0xbe, 0x25, 0x41, 0x8f, 0xaf, 0xad, 0xa3, 0x61, 0x40,
+	0xbe, 0xd7, 0x25, 0xb2, 0x65, 0x5b, 0x9c, 0x4d, 0xa0, 0x41, 0xc8, 0xfa, 0xe8, 0x25, 0xac, 0x6a,
+	0x8d, 0xac, 0x14, 0xa0, 0x2e, 0xd6, 0x36, 0xad, 0x46, 0xb6, 0x03, 0x8d, 0xc0, 0x40, 0x93, 0x0c,
+	0xb5, 0x6c, 0xe9, 0x5b, 0x38, 0xdb, 0x19, 0x10, 0xbe, 0xac, 0x9b, 0xa6, 0x4e, 0x2a, 0xd9, 0x2e,
+	0xb6, 0x24, 0xbd, 0x9b, 0x52, 0xee, 0x49, 0xd0, 0xe3, 0x73, 0x1a, 0x9a, 0x81, 0x3d, 0xae, 0x21,
+	0xe2, 0xc6, 0x30, 0xdc, 0x3c, 0x0f, 0x86, 0x8e, 0x42, 0xf7, 0x7c, 0x55, 0x35, 0xcd, 0xd8, 0x8b,
+	0x40, 0x0e, 0x41, 0x47, 0x20, 0xb9, 0x8c, 0x6b, 0x06, 0x6d, 0x44, 0x2f, 0xff, 0x02, 0x60, 0x6f,
+	0xbc, 0x17, 0x30, 0xb3, 0xc3, 0x8e, 0x3e, 0x5b, 0x36, 0xd2, 0xce, 0xc6, 0xdb, 0x37, 0xa0, 0xbc,
+	0xde, 0x05, 0xa3, 0xeb, 0x62, 0xf1, 0xc1, 0x9a, 0xb3, 0xee, 0xea, 0x44, 0x37, 0x2f, 0x63, 0xed,
+	0x63, 0x38, 0xad, 0x78, 0xc7, 0x89, 0xe1, 0x9d, 0x1f, 0x27, 0x46, 0xda, 0x3d, 0x4e, 0xc8, 0xbb,
+	0x3e, 0x4e, 0x8c, 0x3e, 0xc3, 0x71, 0x22, 0xb7, 0xab, 0xa5, 0xff, 0x24, 0xf4, 0xf0, 0xaa, 0xe3,
+	0xdd, 0x62, 0x2c, 0xb6, 0x40, 0xfd, 0x50, 0x34, 0x0f, 0x7b, 0xc5, 0x32, 0xb9, 0x46, 0x55, 0x62,
+	0x96, 0xa9, 0xbe, 0x69, 0x89, 0x3b, 0x9e, 0x7e, 0xc6, 0xef, 0x91, 0xdd, 0xfd, 0x59, 0x10, 0xcf,
+	0x52, 0xfb, 0xbd, 0x94, 0xf2, 0xcb, 0x0e, 0x18, 0xf2, 0xf2, 0xc2, 0x7f, 0x63, 0xe8, 0x45, 0x6c,
+	0xb0, 0x8d, 0x88, 0xed, 0x38, 0x21, 0x82, 0xa1, 0x1b, 0xde, 0x75, 0xe8, 0xe4, 0x67, 0x08, 0xdd,
+	0xae, 0x36, 0xc7, 0xcc, 0x77, 0x4f, 0x52, 0xca, 0xef, 0x25, 0x18, 0x0e, 0xfa, 0xce, 0xdc, 0x34,
+	0x88, 0x89, 0x77, 0xe8, 0xbc, 0xa0, 0x45, 0x43, 0x6d, 0x5b, 0xb4, 0x0e, 0xc3, 0xce, 0x9c, 0x01,
+	0xcb, 0x86, 0xdb, 0xb2, 0x2c, 0x82, 0x9b, 0x59, 0xf8, 0x97, 0x94, 0xf2, 0x63, 0x09, 0xb2, 0xeb,
+	0xa7, 0x75, 0xd2, 0x94, 0x18, 0xcf, 0x41, 0xf2, 0x9c, 0x61, 0x5c, 0x99, 0xb3, 0xe2, 0x36, 0xd5,
+	0x02, 0xe2, 0x73, 0xc4, 0x50, 0x1b, 0x8e, 0x38, 0x0e, 0xe9, 0xb6, 0x12, 0xc2, 0x45, 0x31, 0x45,
+	0xff, 0x96, 0x52, 0xbe, 0xd3, 0x09, 0x7b, 0x7d, 0x8a, 0x8a, 0x28, 0x4c, 0x43, 0xda, 0x56, 0x03,
+	0x6b, 0xf1, 0xba, 0xba, 0xa0, 0x8f, 0x5a, 0x5b, 0x74, 0xca, 0x3d, 0xca, 0x8c, 0xb0, 0x2e, 0x3b,
+	0xce, 0x37, 0x36, 0x41, 0xc5, 0x59, 0xc0, 0xbc, 0xf2, 0xf7, 0x4e, 0x33, 0x2f, 0x38, 0xd7, 0xc6,
+	0xec, 0xea, 0xc1, 0xbf, 0xa6, 0xfb, 0xee, 0x9e, 0x44, 0xcb, 0xf0, 0x21, 0x15, 0x95, 0x57, 0x27,
+	0x6f, 0x1f, 0x83, 0xfc, 0x64, 0xc6, 0x5e, 0x9a, 0xd6, 0x51, 0x97, 0xea, 0x2c, 0x80, 0x52, 0x13,
+	0xf5, 0x02, 0xb9, 0x42, 0x8c, 0xab, 0x24, 0xdb, 0x81, 0x90, 0xb8, 0x15, 0xb7, 0xa9, 0xa7, 0x8d,
+	0x3a, 0xd1, 0xb2, 0x9d, 0x2c, 0x10, 0x7f, 0x4f, 0x29, 0x57, 0x61, 0x70, 0x7d, 0x5e, 0x2d, 0x5f,
+	0xc6, 0x1a, 0x5f, 0xa0, 0x7c, 0xdd, 0x64, 0x07, 0xc7, 0xab, 0xa3, 0xd0, 0xed, 0xdf, 0x43, 0x45,
+	0x2c, 0x96, 0x0c, 0xc2, 0x26, 0xfe, 0x47, 0x4a, 0x79, 0xdd, 0x6e, 0x64, 0xcd, 0x33, 0x8b, 0x2c,
+	0x78, 0x95, 0x3b, 0x4d, 0x38, 0x7e, 0x88, 0x39, 0xfe, 0x80, 0xe3, 0xb4, 0x56, 0xfc, 0x54, 0xd3,
+	0x39, 0xd2, 0xc7, 0x8a, 0x8e, 0x35, 0x6b, 0x15, 0xde, 0xab, 0x1d, 0xbd, 0x94, 0x6f, 0x38, 0xb1,
+	0x46, 0xfb, 0x41, 0xf6, 0x4f, 0x14, 0x70, 0x7c, 0x0e, 0x86, 0x5b, 0x46, 0xb9, 0x53, 0xa5, 0x50,
+	0x4e, 0x2f, 0x0c, 0x61, 0xa3, 0x4e, 0xe8, 0x78, 0x40, 0xde, 0x4f, 0x29, 0xf7, 0x93, 0x00, 0x5e,
+	0xdb, 0x47, 0x47, 0x20, 0xb5, 0x48, 0x2c, 0xaa, 0x63, 0x53, 0xbe, 0x9e, 0x61, 0x1b, 0xb3, 0x96,
+	0x6f, 0x9d, 0x62, 0x3c, 0xf7, 0x5b, 0x09, 0xf2, 0x1e, 0xa7, 0x4d, 0x6d, 0x78, 0x77, 0x59, 0x3c,
+	0xaa, 0x9f, 0x83, 0x5e, 0x6e, 0xbf, 0xd8, 0xae, 0xb0, 0xef, 0x58, 0xd1, 0xfb, 0x44, 0x1f, 0x14,
+	0x7d, 0x06, 0xd2, 0x6e, 0xbf, 0xbb, 0x11, 0xc7, 0xe6, 0xc2, 0xd0, 0x0c, 0xa4, 0xc4, 0xc4, 0xf2,
+	0x4d, 0xce, 0xb1, 0xd7, 0x9f, 0xfb, 0x6c, 0xc4, 0x31, 0x42, 0xbc, 0xce, 0x82, 0xd8, 0x50, 0xfe,
+	0xe7, 0x8d, 0x64, 0xee, 0x7b, 0xad, 0x06, 0x39, 0x95, 0xe9, 0x7d, 0x26, 0x73, 0xa7, 0x88, 0xb5,
+	0xc5, 0x41, 0xa1, 0x49, 0x48, 0x8a, 0x8f, 0x38, 0xb1, 0x46, 0x08, 0x90, 0xab, 0xce, 0x7f, 0xdf,
+	0x48, 0xe6, 0xde, 0x94, 0x60, 0x2c, 0x52, 0x1d, 0x76, 0x57, 0xf8, 0x32, 0x64, 0x9a, 0x29, 0xf1,
+	0x4a, 0x05, 0xc0, 0xe8, 0x44, 0x53, 0xb7, 0x10, 0xfa, 0x85, 0xb7, 0x8b, 0x84, 0xbf, 0x5d, 0xf8,
+	0x8c, 0xba, 0xb9, 0x13, 0xa3, 0xfe, 0x17, 0x6e, 0x54, 0xe0, 0x02, 0xf4, 0x65, 0xc8, 0x04, 0xae,
+	0x50, 0xe3, 0x8d, 0x0a, 0xb0, 0x9f, 0x68, 0xda, 0x8a, 0xc7, 0x7b, 0xbd, 0x69, 0xd3, 0xbe, 0x4b,
+	0xa3, 0xbe, 0x79, 0x2b, 0xc9, 0x4a, 0xe9, 0x9f, 0x29, 0xe5, 0xd7, 0x1d, 0x30, 0xb2, 0xce, 0x45,
+	0x7a, 0x26, 0x8a, 0x4b, 0xaa, 0xa3, 0x81, 0x0f, 0xc2, 0x5e, 0x55, 0xa5, 0x9d, 0xcf, 0xc0, 0xee,
+	0x97, 0xdf, 0x09, 0x71, 0x27, 0xc5, 0xec, 0x8e, 0xbd, 0x94, 0x9a, 0x74, 0xbb, 0x66, 0x7c, 0x76,
+	0xb9, 0xb7, 0x52, 0xa8, 0x65, 0xa3, 0x67, 0xda, 0xe6, 0x76, 0x46, 0x6f, 0x0d, 0x43, 0x38, 0xec,
+	0xd3, 0x6c, 0xd0, 0x4c, 0xf9, 0xbb, 0x99, 0xb8, 0x0d, 0x66, 0x0b, 0x9e, 0xf9, 0xec, 0x5f, 0xa9,
+	0xe6, 0xaf, 0xd2, 0x3f, 0x91, 0x5c, 0x07, 0x8a, 0x03, 0xab, 0x6e, 0x10, 0xe1, 0xc0, 0x9d, 0x2d,
+	0x10, 0x07, 0xa1, 0x63, 0x89, 0xc8, 0x27, 0xa2, 0xfd, 0xd7, 0xb1, 0x44, 0xec, 0x63, 0x9a, 0x7b,
+	0x2e, 0x96, 0x67, 0xe2, 0x8e, 0x69, 0x2e, 0x8c, 0xa9, 0xfd, 0xef, 0x54, 0xb1, 0x71, 0xff, 0xad,
+	0xbc, 0xf4, 0xe0, 0xad, 0x7c, 0xe2, 0xee, 0xa3, 0xbc, 0x74, 0xff, 0x51, 0x5e, 0x7a, 0xf0, 0x28,
+	0x2f, 0x6d, 0x3f, 0xca, 0x4b, 0x7f, 0x78, 0x94, 0x4f, 0xbc, 0xf6, 0x38, 0x9f, 0xb8, 0xf3, 0x38,
+	0x2f, 0x3d, 0x78, 0x9c, 0x4f, 0x6c, 0x3f, 0xce, 0x27, 0xde, 0xbe, 0x55, 0x90, 0x9e, 0xdc, 0x2a,
+	0x48, 0x4f, 0x6f, 0x15, 0x52, 0xe2, 0x8f, 0x02, 0x37, 0x6f, 0x17, 0xd8, 0xdf, 0x1a, 0xbe, 0x7f,
+	0x5b, 0xfc, 0xe9, 0xe0, 0xa7, 0xb7, 0x0b, 0x03, 0xce, 0x4d, 0x92, 0xc0, 0xd8, 0x07, 0xa9, 0x9f,
+	0xdf, 0x0e, 0xfe, 0x17, 0xe1, 0x62, 0x92, 0xfd, 0x39, 0xe5, 0xf9, 0xff, 0x07, 0x00, 0x00, 0xff,
+	0xff, 0x69, 0xc0, 0xd2, 0x47, 0x5a, 0x23, 0x00, 0x00,
 }
 
 func (this *Meta) Equal(that interface{}) bool {
@@ -2772,10 +2593,7 @@ func (this *ObjectState) Equal(that interface{}) bool {
 	if !this.Class.Equal(&that1.Class) {
 		return false
 	}
-	if !this.State.Equal(&that1.State) {
-		return false
-	}
-	if !this.PreviousState.Equal(&that1.PreviousState) {
+	if !this.Memory.Equal(&that1.Memory) {
 		return false
 	}
 	if this.Deactivated != that1.Deactivated {
@@ -2824,6 +2642,9 @@ func (this *VDelegatedRequestFinished) Equal(that interface{}) bool {
 		return false
 	}
 	if !this.LatestState.Equal(that1.LatestState) {
+		return false
+	}
+	if !this.PendingTranscript.Equal(&that1.PendingTranscript) {
 		return false
 	}
 	return true
@@ -2890,51 +2711,6 @@ func (this *VDelegatedCallResponse) Equal(that interface{}) bool {
 		return false
 	}
 	if !this.ResponseDelegationSpec.Equal(&that1.ResponseDelegationSpec) {
-		return false
-	}
-	return true
-}
-func (this *CallDelegationToken) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*CallDelegationToken)
-	if !ok {
-		that2, ok := that.(CallDelegationToken)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if this.TokenTypeAndFlags != that1.TokenTypeAndFlags {
-		return false
-	}
-	if !this.Approver.Equal(&that1.Approver) {
-		return false
-	}
-	if !this.DelegateTo.Equal(&that1.DelegateTo) {
-		return false
-	}
-	if this.PulseNumber != that1.PulseNumber {
-		return false
-	}
-	if !this.Callee.Equal(&that1.Callee) {
-		return false
-	}
-	if !this.Caller.Equal(&that1.Caller) {
-		return false
-	}
-	if !this.Outgoing.Equal(&that1.Outgoing) {
-		return false
-	}
-	if !this.ApproverSignature.Equal(&that1.ApproverSignature) {
 		return false
 	}
 	return true
@@ -3027,7 +2803,7 @@ func (this *VCachedMemoryRequest) Equal(that interface{}) bool {
 	if !this.Object.Equal(&that1.Object) {
 		return false
 	}
-	if !this.StateID.Equal(&that1.StateID) {
+	if !this.State.Equal(&that1.State) {
 		return false
 	}
 	return true
@@ -3051,25 +2827,156 @@ func (this *VCachedMemoryResponse) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !this.Object.Equal(&that1.Object) {
-		return false
-	}
-	if this.Inactive != that1.Inactive {
-		return false
-	}
-	if !this.StateID.Equal(&that1.StateID) {
-		return false
-	}
 	if this.CallStatus != that1.CallStatus {
 		return false
 	}
-	if !this.Node.Equal(&that1.Node) {
+	if !this.State.Equal(&that1.State) {
 		return false
 	}
-	if !this.PrevStateID.Equal(&that1.PrevStateID) {
+	return true
+}
+func (this *Transcript) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Transcript)
+	if !ok {
+		that2, ok := that.(Transcript)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
 		return false
 	}
-	if !this.Memory.Equal(&that1.Memory) {
+	if len(this.Entries) != len(that1.Entries) {
+		return false
+	}
+	for i := range this.Entries {
+		if !this.Entries[i].Equal(&that1.Entries[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *Transcript_TranscriptEntryIncomingRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Transcript_TranscriptEntryIncomingRequest)
+	if !ok {
+		that2, ok := that.(Transcript_TranscriptEntryIncomingRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.ObjectMemory.Equal(&that1.ObjectMemory) {
+		return false
+	}
+	if !this.Incoming.Equal(&that1.Incoming) {
+		return false
+	}
+	if !this.Request.Equal(&that1.Request) {
+		return false
+	}
+	return true
+}
+func (this *Transcript_TranscriptEntryOutgoingRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Transcript_TranscriptEntryOutgoingRequest)
+	if !ok {
+		that2, ok := that.(Transcript_TranscriptEntryOutgoingRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Request.Equal(&that1.Request) {
+		return false
+	}
+	if !this.Reason.Equal(&that1.Reason) {
+		return false
+	}
+	return true
+}
+func (this *Transcript_TranscriptEntryOutgoingResult) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Transcript_TranscriptEntryOutgoingResult)
+	if !ok {
+		that2, ok := that.(Transcript_TranscriptEntryOutgoingResult)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.OutgoingResult.Equal(&that1.OutgoingResult) {
+		return false
+	}
+	if !this.CallResult.Equal(&that1.CallResult) {
+		return false
+	}
+	if !this.Reason.Equal(&that1.Reason) {
+		return false
+	}
+	return true
+}
+func (this *Transcript_TranscriptEntryIncomingResult) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Transcript_TranscriptEntryIncomingResult)
+	if !ok {
+		that2, ok := that.(Transcript_TranscriptEntryIncomingResult)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.IncomingResult.Equal(&that1.IncomingResult) {
+		return false
+	}
+	if !this.ObjectState.Equal(&that1.ObjectState) {
+		return false
+	}
+	if !this.Reason.Equal(&that1.Reason) {
 		return false
 	}
 	return true
@@ -3112,143 +3019,6 @@ func (this *VObjectTranscriptReport) Equal(that interface{}) bool {
 	}
 	if !this.ObjectTranscript.Equal(&that1.ObjectTranscript) {
 		return false
-	}
-	return true
-}
-func (this *VObjectTranscriptReport_TranscriptEntryIncomingRequest) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*VObjectTranscriptReport_TranscriptEntryIncomingRequest)
-	if !ok {
-		that2, ok := that.(VObjectTranscriptReport_TranscriptEntryIncomingRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if !this.ObjectMemory.Equal(&that1.ObjectMemory) {
-		return false
-	}
-	if !this.Incoming.Equal(&that1.Incoming) {
-		return false
-	}
-	if !bytes.Equal(this.Request, that1.Request) {
-		return false
-	}
-	return true
-}
-func (this *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*VObjectTranscriptReport_TranscriptEntryOutgoingRequest)
-	if !ok {
-		that2, ok := that.(VObjectTranscriptReport_TranscriptEntryOutgoingRequest)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if !this.Outgoing.Equal(&that1.Outgoing) {
-		return false
-	}
-	return true
-}
-func (this *VObjectTranscriptReport_TranscriptEntryOutgoingResult) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*VObjectTranscriptReport_TranscriptEntryOutgoingResult)
-	if !ok {
-		that2, ok := that.(VObjectTranscriptReport_TranscriptEntryOutgoingResult)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if !this.OutgoingResult.Equal(&that1.OutgoingResult) {
-		return false
-	}
-	if !bytes.Equal(this.CallResult, that1.CallResult) {
-		return false
-	}
-	return true
-}
-func (this *VObjectTranscriptReport_TranscriptEntryIncomingResult) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*VObjectTranscriptReport_TranscriptEntryIncomingResult)
-	if !ok {
-		that2, ok := that.(VObjectTranscriptReport_TranscriptEntryIncomingResult)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if !this.IncomingResult.Equal(&that1.IncomingResult) {
-		return false
-	}
-	if !this.ObjectState.Equal(&that1.ObjectState) {
-		return false
-	}
-	return true
-}
-func (this *VObjectTranscriptReport_Transcript) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*VObjectTranscriptReport_Transcript)
-	if !ok {
-		that2, ok := that.(VObjectTranscriptReport_Transcript)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if len(this.Entries) != len(that1.Entries) {
-		return false
-	}
-	for i := range this.Entries {
-		if !this.Entries[i].Equal(&that1.Entries[i]) {
-			return false
-		}
 	}
 	return true
 }
@@ -4714,21 +4484,7 @@ func (m *ObjectState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0xc8
 	}
 	{
-		size, err := m.PreviousState.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		if size > 0 {
-			i -= size
-			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x1
-			i--
-			dAtA[i] = 0xc2
-		}
-	}
-	{
-		size, err := m.State.MarshalToSizedBuffer(dAtA[:i])
+		size, err := m.Memory.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -4812,6 +4568,20 @@ func (m *VDelegatedRequestFinished) MarshalToSizedBuffer(dAtA []byte) (int, erro
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
+	{
+		size, err := m.PendingTranscript.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xf2
+		}
+	}
 	if m.LatestState != nil {
 		{
 			size, err := m.LatestState.MarshalToSizedBuffer(dAtA[:i])
@@ -5100,145 +4870,6 @@ func (m *VDelegatedCallResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
-func (m *CallDelegationToken) Visit(ctx MessageVisitor) error {
-	return ctx.Message(m, 1010)
-}
-
-const TypeCallDelegationTokenPolymorphID = 1010
-
-func (*CallDelegationToken) GetDefaultPolymorphID() uint64 {
-	return 1010
-}
-
-func (m *CallDelegationToken) Marshal() (dAtA []byte, err error) {
-	size := m.ProtoSize()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	if n != size {
-		panic("illegal state")
-	}
-	return dAtA[:n], nil
-}
-
-func (m *CallDelegationToken) MarshalTo(dAtA []byte) (int, error) {
-	size := m.ProtoSize()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *CallDelegationToken) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
-	{
-		size, err := m.ApproverSignature.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		if size > 0 {
-			i -= size
-			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x1
-			i--
-			dAtA[i] = 0xda
-		}
-	}
-	{
-		size, err := m.Outgoing.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		if size > 0 {
-			i -= size
-			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x1
-			i--
-			dAtA[i] = 0xd2
-		}
-	}
-	{
-		size, err := m.Caller.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		if size > 0 {
-			i -= size
-			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x1
-			i--
-			dAtA[i] = 0xca
-		}
-	}
-	{
-		size, err := m.Callee.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		if size > 0 {
-			i -= size
-			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x1
-			i--
-			dAtA[i] = 0xc2
-		}
-	}
-	if m.PulseNumber != 0 {
-		i = encodeVarintProtoVnvn(dAtA, i, uint64(m.PulseNumber))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xb8
-	}
-	{
-		size, err := m.DelegateTo.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		if size > 0 {
-			i -= size
-			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x1
-			i--
-			dAtA[i] = 0xb2
-		}
-	}
-	{
-		size, err := m.Approver.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		if size > 0 {
-			i -= size
-			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x1
-			i--
-			dAtA[i] = 0xaa
-		}
-	}
-	if m.TokenTypeAndFlags != 0 {
-		i = encodeVarintProtoVnvn(dAtA, i, uint64(m.TokenTypeAndFlags))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xa0
-	}
-	i = encodeVarintProtoVnvn(dAtA, i, uint64(1010))
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0x80
-	return len(dAtA) - i, nil
-}
-
 func (m *VFindCallRequest) Visit(ctx MessageVisitor) error {
 	return ctx.Message(m, 1011)
 }
@@ -5448,7 +5079,7 @@ func (m *VCachedMemoryRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
 	{
-		size, err := m.StateID.MarshalToSizedBuffer(dAtA[:i])
+		size, err := m.State.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -5456,9 +5087,9 @@ func (m *VCachedMemoryRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			i -= size
 			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x3
+			dAtA[i] = 0x1
 			i--
-			dAtA[i] = 0x92
+			dAtA[i] = 0xb2
 		}
 	}
 	{
@@ -5517,82 +5148,7 @@ func (m *VCachedMemoryResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
 	{
-		size, err := m.Memory.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		if size > 0 {
-			i -= size
-			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x3
-			i--
-			dAtA[i] = 0xb2
-		}
-	}
-	{
-		size, err := m.PrevStateID.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		if size > 0 {
-			i -= size
-			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x3
-			i--
-			dAtA[i] = 0xaa
-		}
-	}
-	{
-		size, err := m.Node.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		if size > 0 {
-			i -= size
-			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x3
-			i--
-			dAtA[i] = 0xa2
-		}
-	}
-	if m.CallStatus != 0 {
-		i = encodeVarintProtoVnvn(dAtA, i, uint64(m.CallStatus))
-		i--
-		dAtA[i] = 0x3
-		i--
-		dAtA[i] = 0x98
-	}
-	{
-		size, err := m.StateID.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		if size > 0 {
-			i -= size
-			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x3
-			i--
-			dAtA[i] = 0x92
-		}
-	}
-	if m.Inactive {
-		i--
-		if m.Inactive {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xc8
-	}
-	{
-		size, err := m.Object.MarshalToSizedBuffer(dAtA[:i])
+		size, err := m.State.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -5602,8 +5158,15 @@ func (m *VCachedMemoryResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			i--
 			dAtA[i] = 0x1
 			i--
-			dAtA[i] = 0xaa
+			dAtA[i] = 0xb2
 		}
+	}
+	if m.CallStatus != 0 {
+		i = encodeVarintProtoVnvn(dAtA, i, uint64(m.CallStatus))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa8
 	}
 	i = encodeVarintProtoVnvn(dAtA, i, uint64(1014))
 	i--
@@ -5613,17 +5176,17 @@ func (m *VCachedMemoryResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *VObjectTranscriptReport) Visit(ctx MessageVisitor) error {
+func (m *Transcript) Visit(ctx MessageVisitor) error {
 	return ctx.Message(m, 1015)
 }
 
-const TypeVObjectTranscriptReportPolymorphID = 1015
+const TypeTranscriptPolymorphID = 1015
 
-func (*VObjectTranscriptReport) GetDefaultPolymorphID() uint64 {
+func (*Transcript) GetDefaultPolymorphID() uint64 {
 	return 1015
 }
 
-func (m *VObjectTranscriptReport) Marshal() (dAtA []byte, err error) {
+func (m *Transcript) Marshal() (dAtA []byte, err error) {
 	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -5636,34 +5199,20 @@ func (m *VObjectTranscriptReport) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *VObjectTranscriptReport) MarshalTo(dAtA []byte) (int, error) {
+func (m *Transcript) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *VObjectTranscriptReport) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *Transcript) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
-	{
-		size, err := m.ObjectTranscript.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		if size > 0 {
-			i -= size
-			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x70
-			i--
-			dAtA[i] = 0xe2
-		}
-	}
-	if len(m.PendingTranscripts) > 0 {
-		for iNdEx := len(m.PendingTranscripts) - 1; iNdEx >= 0; iNdEx-- {
+	if len(m.Entries) > 0 {
+		for iNdEx := len(m.Entries) - 1; iNdEx >= 0; iNdEx-- {
 			{
-				size, err := m.PendingTranscripts[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				size, err := m.Entries[iNdEx].MarshalToSizedBuffer(dAtA[:i])
 				if err != nil {
 					return 0, err
 				}
@@ -5673,42 +5222,7 @@ func (m *VObjectTranscriptReport) MarshalToSizedBuffer(dAtA []byte) (int, error)
 			i--
 			dAtA[i] = 0x70
 			i--
-			dAtA[i] = 0xda
-		}
-	}
-	{
-		size, err := m.Object.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		if size > 0 {
-			i -= size
-			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x70
-			i--
-			dAtA[i] = 0xca
-		}
-	}
-	if m.AsOf != 0 {
-		i = encodeVarintProtoVnvn(dAtA, i, uint64(m.AsOf))
-		i--
-		dAtA[i] = 0x70
-		i--
-		dAtA[i] = 0xc0
-	}
-	{
-		size, err := m.Any.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		if size > 0 {
-			i -= size
-			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x1
-			i--
-			dAtA[i] = 0x9a
+			dAtA[i] = 0xc2
 		}
 	}
 	i = encodeVarintProtoVnvn(dAtA, i, uint64(1015))
@@ -5719,17 +5233,17 @@ func (m *VObjectTranscriptReport) MarshalToSizedBuffer(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) Visit(ctx MessageVisitor) error {
+func (m *Transcript_TranscriptEntryIncomingRequest) Visit(ctx MessageVisitor) error {
 	return ctx.Message(m, 101501)
 }
 
-const TypeVObjectTranscriptReport_TranscriptEntryIncomingRequestPolymorphID = 101501
+const TypeTranscript_TranscriptEntryIncomingRequestPolymorphID = 101501
 
-func (*VObjectTranscriptReport_TranscriptEntryIncomingRequest) GetDefaultPolymorphID() uint64 {
+func (*Transcript_TranscriptEntryIncomingRequest) GetDefaultPolymorphID() uint64 {
 	return 101501
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) Marshal() (dAtA []byte, err error) {
+func (m *Transcript_TranscriptEntryIncomingRequest) Marshal() (dAtA []byte, err error) {
 	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -5742,26 +5256,29 @@ func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) Marshal() (dAtA
 	return dAtA[:n], nil
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) MarshalTo(dAtA []byte) (int, error) {
+func (m *Transcript_TranscriptEntryIncomingRequest) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *Transcript_TranscriptEntryIncomingRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
-	if len(m.Request) > 0 {
-		i -= len(m.Request)
-		copy(dAtA[i:], m.Request)
-		i--
-		dAtA[i] = 132
-		i = encodeVarintProtoVnvn(dAtA, i, uint64(len(m.Request)+1))
-		i--
-		dAtA[i] = 0x70
-		i--
-		dAtA[i] = 0xd2
+	{
+		size, err := m.Request.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xd2
+		}
 	}
 	{
 		size, err := m.Incoming.MarshalToSizedBuffer(dAtA[:i])
@@ -5799,17 +5316,17 @@ func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) MarshalToSizedB
 	return len(dAtA) - i, nil
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) Visit(ctx MessageVisitor) error {
+func (m *Transcript_TranscriptEntryOutgoingRequest) Visit(ctx MessageVisitor) error {
 	return ctx.Message(m, 101502)
 }
 
-const TypeVObjectTranscriptReport_TranscriptEntryOutgoingRequestPolymorphID = 101502
+const TypeTranscript_TranscriptEntryOutgoingRequestPolymorphID = 101502
 
-func (*VObjectTranscriptReport_TranscriptEntryOutgoingRequest) GetDefaultPolymorphID() uint64 {
+func (*Transcript_TranscriptEntryOutgoingRequest) GetDefaultPolymorphID() uint64 {
 	return 101502
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) Marshal() (dAtA []byte, err error) {
+func (m *Transcript_TranscriptEntryOutgoingRequest) Marshal() (dAtA []byte, err error) {
 	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -5822,18 +5339,32 @@ func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) Marshal() (dAtA
 	return dAtA[:n], nil
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) MarshalTo(dAtA []byte) (int, error) {
+func (m *Transcript_TranscriptEntryOutgoingRequest) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *Transcript_TranscriptEntryOutgoingRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
 	{
-		size, err := m.Outgoing.MarshalToSizedBuffer(dAtA[:i])
+		size, err := m.Reason.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xca
+		}
+	}
+	{
+		size, err := m.Request.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -5854,17 +5385,17 @@ func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) MarshalToSizedB
 	return len(dAtA) - i, nil
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) Visit(ctx MessageVisitor) error {
+func (m *Transcript_TranscriptEntryOutgoingResult) Visit(ctx MessageVisitor) error {
 	return ctx.Message(m, 101503)
 }
 
-const TypeVObjectTranscriptReport_TranscriptEntryOutgoingResultPolymorphID = 101503
+const TypeTranscript_TranscriptEntryOutgoingResultPolymorphID = 101503
 
-func (*VObjectTranscriptReport_TranscriptEntryOutgoingResult) GetDefaultPolymorphID() uint64 {
+func (*Transcript_TranscriptEntryOutgoingResult) GetDefaultPolymorphID() uint64 {
 	return 101503
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) Marshal() (dAtA []byte, err error) {
+func (m *Transcript_TranscriptEntryOutgoingResult) Marshal() (dAtA []byte, err error) {
 	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -5877,26 +5408,43 @@ func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) Marshal() (dAtA 
 	return dAtA[:n], nil
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) MarshalTo(dAtA []byte) (int, error) {
+func (m *Transcript_TranscriptEntryOutgoingResult) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *Transcript_TranscriptEntryOutgoingResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
-	if len(m.CallResult) > 0 {
-		i -= len(m.CallResult)
-		copy(dAtA[i:], m.CallResult)
-		i--
-		dAtA[i] = 132
-		i = encodeVarintProtoVnvn(dAtA, i, uint64(len(m.CallResult)+1))
-		i--
-		dAtA[i] = 0x70
-		i--
-		dAtA[i] = 0xca
+	{
+		size, err := m.Reason.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xd2
+		}
+	}
+	{
+		size, err := m.CallResult.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xca
+		}
 	}
 	{
 		size, err := m.OutgoingResult.MarshalToSizedBuffer(dAtA[:i])
@@ -5920,17 +5468,17 @@ func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) MarshalToSizedBu
 	return len(dAtA) - i, nil
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) Visit(ctx MessageVisitor) error {
+func (m *Transcript_TranscriptEntryIncomingResult) Visit(ctx MessageVisitor) error {
 	return ctx.Message(m, 101504)
 }
 
-const TypeVObjectTranscriptReport_TranscriptEntryIncomingResultPolymorphID = 101504
+const TypeTranscript_TranscriptEntryIncomingResultPolymorphID = 101504
 
-func (*VObjectTranscriptReport_TranscriptEntryIncomingResult) GetDefaultPolymorphID() uint64 {
+func (*Transcript_TranscriptEntryIncomingResult) GetDefaultPolymorphID() uint64 {
 	return 101504
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) Marshal() (dAtA []byte, err error) {
+func (m *Transcript_TranscriptEntryIncomingResult) Marshal() (dAtA []byte, err error) {
 	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -5943,16 +5491,30 @@ func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) Marshal() (dAtA 
 	return dAtA[:n], nil
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) MarshalTo(dAtA []byte) (int, error) {
+func (m *Transcript_TranscriptEntryIncomingResult) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *Transcript_TranscriptEntryIncomingResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
+	{
+		size, err := m.Reason.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xd2
+		}
+	}
 	{
 		size, err := m.ObjectState.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -5989,11 +5551,17 @@ func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) MarshalToSizedBu
 	return len(dAtA) - i, nil
 }
 
-func (m *VObjectTranscriptReport_Transcript) Visit(ctx MessageVisitor) error {
-	return ctx.Message(m, 0)
+func (m *VObjectTranscriptReport) Visit(ctx MessageVisitor) error {
+	return ctx.Message(m, 1016)
 }
 
-func (m *VObjectTranscriptReport_Transcript) Marshal() (dAtA []byte, err error) {
+const TypeVObjectTranscriptReportPolymorphID = 1016
+
+func (*VObjectTranscriptReport) GetDefaultPolymorphID() uint64 {
+	return 1016
+}
+
+func (m *VObjectTranscriptReport) Marshal() (dAtA []byte, err error) {
 	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -6006,20 +5574,34 @@ func (m *VObjectTranscriptReport_Transcript) Marshal() (dAtA []byte, err error) 
 	return dAtA[:n], nil
 }
 
-func (m *VObjectTranscriptReport_Transcript) MarshalTo(dAtA []byte) (int, error) {
+func (m *VObjectTranscriptReport) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *VObjectTranscriptReport_Transcript) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *VObjectTranscriptReport) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
-	if len(m.Entries) > 0 {
-		for iNdEx := len(m.Entries) - 1; iNdEx >= 0; iNdEx-- {
+	{
+		size, err := m.ObjectTranscript.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xda
+		}
+	}
+	if len(m.PendingTranscripts) > 0 {
+		for iNdEx := len(m.PendingTranscripts) - 1; iNdEx >= 0; iNdEx-- {
 			{
-				size, err := m.Entries[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				size, err := m.PendingTranscripts[iNdEx].MarshalToSizedBuffer(dAtA[:i])
 				if err != nil {
 					return 0, err
 				}
@@ -6029,27 +5611,60 @@ func (m *VObjectTranscriptReport_Transcript) MarshalToSizedBuffer(dAtA []byte) (
 			i--
 			dAtA[i] = 0x70
 			i--
-			dAtA[i] = 0xc2
+			dAtA[i] = 0xd2
 		}
 	}
-	if i < len(dAtA) {
-		i = encodeVarintProtoVnvn(dAtA, i, uint64(0))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x80
+	{
+		size, err := m.Object.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xca
+		}
 	}
+	if m.AsOf != 0 {
+		i = encodeVarintProtoVnvn(dAtA, i, uint64(m.AsOf))
+		i--
+		dAtA[i] = 0x70
+		i--
+		dAtA[i] = 0xc0
+	}
+	{
+		size, err := m.Any.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	i = encodeVarintProtoVnvn(dAtA, i, uint64(1016))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
 	return len(dAtA) - i, nil
 }
 
 func (m *VObjectValidationReport) Visit(ctx MessageVisitor) error {
-	return ctx.Message(m, 1016)
+	return ctx.Message(m, 1017)
 }
 
-const TypeVObjectValidationReportPolymorphID = 1016
+const TypeVObjectValidationReportPolymorphID = 1017
 
 func (*VObjectValidationReport) GetDefaultPolymorphID() uint64 {
-	return 1016
+	return 1017
 }
 
 func (m *VObjectValidationReport) Marshal() (dAtA []byte, err error) {
@@ -6110,7 +5725,7 @@ func (m *VObjectValidationReport) MarshalToSizedBuffer(dAtA []byte) (int, error)
 			dAtA[i] = 0xaa
 		}
 	}
-	i = encodeVarintProtoVnvn(dAtA, i, uint64(1016))
+	i = encodeVarintProtoVnvn(dAtA, i, uint64(1017))
 	i--
 	dAtA[i] = 0x1
 	i--
@@ -6142,17 +5757,17 @@ func init() {
 	RegisterMessageType(1006, "", (*VDelegatedRequestFinished)(nil))
 	RegisterMessageType(1008, "", (*VDelegatedCallRequest)(nil))
 	RegisterMessageType(1009, "", (*VDelegatedCallResponse)(nil))
-	RegisterMessageType(1010, "", (*CallDelegationToken)(nil))
 	RegisterMessageType(1011, "", (*VFindCallRequest)(nil))
 	RegisterMessageType(1012, "", (*VFindCallResponse)(nil))
 	RegisterMessageType(1013, "", (*VCachedMemoryRequest)(nil))
 	RegisterMessageType(1014, "", (*VCachedMemoryResponse)(nil))
-	RegisterMessageType(1015, "", (*VObjectTranscriptReport)(nil))
-	RegisterMessageType(101501, "", (*VObjectTranscriptReport_TranscriptEntryIncomingRequest)(nil))
-	RegisterMessageType(101502, "", (*VObjectTranscriptReport_TranscriptEntryOutgoingRequest)(nil))
-	RegisterMessageType(101503, "", (*VObjectTranscriptReport_TranscriptEntryOutgoingResult)(nil))
-	RegisterMessageType(101504, "", (*VObjectTranscriptReport_TranscriptEntryIncomingResult)(nil))
-	RegisterMessageType(1016, "", (*VObjectValidationReport)(nil))
+	RegisterMessageType(1015, "", (*Transcript)(nil))
+	RegisterMessageType(101501, "", (*Transcript_TranscriptEntryIncomingRequest)(nil))
+	RegisterMessageType(101502, "", (*Transcript_TranscriptEntryOutgoingRequest)(nil))
+	RegisterMessageType(101503, "", (*Transcript_TranscriptEntryOutgoingResult)(nil))
+	RegisterMessageType(101504, "", (*Transcript_TranscriptEntryIncomingResult)(nil))
+	RegisterMessageType(1016, "", (*VObjectTranscriptReport)(nil))
+	RegisterMessageType(1017, "", (*VObjectValidationReport)(nil))
 }
 
 func (m *Meta) ProtoSize() (n int) {
@@ -6523,10 +6138,7 @@ func (m *ObjectState) ProtoSize() (n int) {
 	if l = m.Class.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvn(uint64(l))
 	}
-	if l = m.State.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	if l = m.PreviousState.ProtoSize(); l > 0 {
+	if l = m.Memory.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvn(uint64(l))
 	}
 	if m.Deactivated {
@@ -6569,6 +6181,9 @@ func (m *VDelegatedRequestFinished) ProtoSize() (n int) {
 		if l = m.LatestState.ProtoSize(); l > 0 {
 			n += 2 + l + sovProtoVnvn(uint64(l))
 		}
+	}
+	if l = m.PendingTranscript.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
 	}
 	n += 2 + sovProtoVnvn(1006)
 	return n
@@ -6615,40 +6230,6 @@ func (m *VDelegatedCallResponse) ProtoSize() (n int) {
 		n += 2 + l + sovProtoVnvn(uint64(l))
 	}
 	n += 2 + sovProtoVnvn(1009)
-	return n
-}
-
-func (m *CallDelegationToken) ProtoSize() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.TokenTypeAndFlags != 0 {
-		n += 2 + sovProtoVnvn(uint64(m.TokenTypeAndFlags))
-	}
-	if l = m.Approver.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	if l = m.DelegateTo.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	if m.PulseNumber != 0 {
-		n += 2 + sovProtoVnvn(uint64(m.PulseNumber))
-	}
-	if l = m.Callee.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	if l = m.Caller.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	if l = m.Outgoing.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	if l = m.ApproverSignature.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	n += 2 + sovProtoVnvn(1010)
 	return n
 }
 
@@ -6707,7 +6288,7 @@ func (m *VCachedMemoryRequest) ProtoSize() (n int) {
 	if l = m.Object.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvn(uint64(l))
 	}
-	if l = m.StateID.ProtoSize(); l > 0 {
+	if l = m.State.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvn(uint64(l))
 	}
 	n += 2 + sovProtoVnvn(1013)
@@ -6720,28 +6301,102 @@ func (m *VCachedMemoryResponse) ProtoSize() (n int) {
 	}
 	var l int
 	_ = l
-	if l = m.Object.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	if m.Inactive {
-		n += 3
-	}
-	if l = m.StateID.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
 	if m.CallStatus != 0 {
 		n += 2 + sovProtoVnvn(uint64(m.CallStatus))
 	}
-	if l = m.Node.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	if l = m.PrevStateID.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	if l = m.Memory.ProtoSize(); l > 0 {
+	if l = m.State.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvn(uint64(l))
 	}
 	n += 2 + sovProtoVnvn(1014)
+	return n
+}
+
+func (m *Transcript) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Entries) > 0 {
+		for _, e := range m.Entries {
+			l = e.ProtoSize()
+			n += 2 + l + sovProtoVnvn(uint64(l))
+		}
+	}
+	n += 2 + sovProtoVnvn(1015)
+	return n
+}
+
+func (m *Transcript_TranscriptEntryIncomingRequest) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.ObjectMemory.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	if l = m.Incoming.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	if l = m.Request.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	n += 2 + sovProtoVnvn(101501)
+	return n
+}
+
+func (m *Transcript_TranscriptEntryOutgoingRequest) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.Request.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	if l = m.Reason.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	n += 2 + sovProtoVnvn(101502)
+	return n
+}
+
+func (m *Transcript_TranscriptEntryOutgoingResult) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.OutgoingResult.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	if l = m.CallResult.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	if l = m.Reason.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	n += 2 + sovProtoVnvn(101503)
+	return n
+}
+
+func (m *Transcript_TranscriptEntryIncomingResult) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.IncomingResult.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	if l = m.ObjectState.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	if l = m.Reason.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	n += 2 + sovProtoVnvn(101504)
 	return n
 }
 
@@ -6769,93 +6424,7 @@ func (m *VObjectTranscriptReport) ProtoSize() (n int) {
 	if l = m.ObjectTranscript.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvn(uint64(l))
 	}
-	n += 2 + sovProtoVnvn(1015)
-	return n
-}
-
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) ProtoSize() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if l = m.ObjectMemory.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	if l = m.Incoming.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	l = len(m.Request)
-	if l > 0 {
-		l++
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	n += 2 + sovProtoVnvn(101501)
-	return n
-}
-
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) ProtoSize() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if l = m.Outgoing.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	n += 2 + sovProtoVnvn(101502)
-	return n
-}
-
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) ProtoSize() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if l = m.OutgoingResult.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	l = len(m.CallResult)
-	if l > 0 {
-		l++
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	n += 2 + sovProtoVnvn(101503)
-	return n
-}
-
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) ProtoSize() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if l = m.IncomingResult.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	if l = m.ObjectState.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvn(uint64(l))
-	}
-	n += 2 + sovProtoVnvn(101504)
-	return n
-}
-
-func (m *VObjectTranscriptReport_Transcript) ProtoSize() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if len(m.Entries) > 0 {
-		for _, e := range m.Entries {
-			l = e.ProtoSize()
-			n += 2 + l + sovProtoVnvn(uint64(l))
-		}
-	}
-	if n > 0 {
-		n += 2 + sovProtoVnvn(0)
-	}
+	n += 2 + sovProtoVnvn(1016)
 	return n
 }
 
@@ -6874,7 +6443,7 @@ func (m *VObjectValidationReport) ProtoSize() (n int) {
 	if m.In != 0 {
 		n += 2 + sovProtoVnvn(uint64(m.In))
 	}
-	n += 2 + sovProtoVnvn(1016)
+	n += 2 + sovProtoVnvn(1017)
 	return n
 }
 
@@ -6885,42 +6454,16 @@ func sozProtoVnvn(x uint64) (n int) {
 	return sovProtoVnvn(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
 func (m *Meta) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *Meta) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *Meta) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Meta: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Meta: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 20:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Payload", wireType)
-			}
-			var msglen int
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -6930,210 +6473,217 @@ func (m *Meta) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (in
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: Meta: wiretype end group for non-group")
 			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: Meta: illegal tag %d (wire type %d)", fieldNum, wire)
 			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Payload.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 21:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Sender", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			switch fieldNum {
+			case 20:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Payload", wireType)
 				}
-				if iNdEx >= l {
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Sender.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 22:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Receiver", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Receiver.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 23:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Pulse", wireType)
-			}
-			m.Pulse = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Pulse |= PulseNumber(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 24:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.ID.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.Payload.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 21:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Sender", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Sender.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 22:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Receiver", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Receiver.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 23:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Pulse", wireType)
+				}
+				m.Pulse = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.Pulse |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 24:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.ID.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func (m *MessageExample) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *MessageExample) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *MessageExample) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: MessageExample: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: MessageExample: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 19:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RecordExample", wireType)
-			}
-			var msglen int
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -7143,151 +6693,158 @@ func (m *MessageExample) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: MessageExample: wiretype end group for non-group")
 			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: MessageExample: illegal tag %d (wire type %d)", fieldNum, wire)
 			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.RecordExample.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 1800:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MsgParam", wireType)
-			}
-			m.MsgParam = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			switch fieldNum {
+			case 19:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field RecordExample", wireType)
 				}
-				if iNdEx >= l {
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.MsgParam |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 1801:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MsgBytes", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if byteLen > 0 {
-				if dAtA[iNdEx] != 132 {
-					return ErrExpectedBinaryMarkerProtoVnvn
-				}
-				iNdEx++
-			}
-			m.MsgBytes = append(m.MsgBytes[:0], dAtA[iNdEx:postIndex]...)
-			if m.MsgBytes == nil {
-				m.MsgBytes = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.RecordExample.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 1800:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field MsgParam", wireType)
+				}
+				m.MsgParam = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.MsgParam |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 1801:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field MsgBytes", wireType)
+				}
+				var byteLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					byteLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if byteLen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + byteLen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if byteLen > 0 {
+					if dAtA[iNdEx] != 132 {
+						return ErrExpectedBinaryMarkerProtoVnvn
+					}
+					iNdEx++
+				}
+				m.MsgBytes = append(m.MsgBytes[:0], dAtA[iNdEx:postIndex]...)
+				if m.MsgBytes == nil {
+					m.MsgBytes = []byte{}
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func (m *MessageExample_Head) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *MessageExample_Head) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *MessageExample_Head) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Head: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Head: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 40:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Str", wireType)
-			}
-			var msglen int
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -7297,111 +6854,118 @@ func (m *MessageExample_Head) UnmarshalWithUnknownCallback(dAtA []byte, skipFn f
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: Head: wiretype end group for non-group")
 			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: Head: illegal tag %d (wire type %d)", fieldNum, wire)
 			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Str.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 1800:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MsgParam", wireType)
-			}
-			m.MsgParam = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			switch fieldNum {
+			case 40:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Str", wireType)
 				}
-				if iNdEx >= l {
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.MsgParam |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.Str.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 1800:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field MsgParam", wireType)
+				}
+				m.MsgParam = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.MsgParam |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func (m *MessageExample2) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *MessageExample2) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *MessageExample2) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: MessageExample2: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: MessageExample2: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 19:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AnyRecordLazy", wireType)
-			}
-			var msglen int
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -7411,151 +6975,158 @@ func (m *MessageExample2) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func(
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: MessageExample2: wiretype end group for non-group")
 			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: MessageExample2: illegal tag %d (wire type %d)", fieldNum, wire)
 			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.AnyRecordLazy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 1800:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MsgParam", wireType)
-			}
-			m.MsgParam = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			switch fieldNum {
+			case 19:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field AnyRecordLazy", wireType)
 				}
-				if iNdEx >= l {
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.MsgParam |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 1801:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MsgBytes", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if byteLen > 0 {
-				if dAtA[iNdEx] != 132 {
-					return ErrExpectedBinaryMarkerProtoVnvn
-				}
-				iNdEx++
-			}
-			m.MsgBytes = append(m.MsgBytes[:0], dAtA[iNdEx:postIndex]...)
-			if m.MsgBytes == nil {
-				m.MsgBytes = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.AnyRecordLazy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 1800:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field MsgParam", wireType)
+				}
+				m.MsgParam = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.MsgParam |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 1801:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field MsgBytes", wireType)
+				}
+				var byteLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					byteLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if byteLen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + byteLen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if byteLen > 0 {
+					if dAtA[iNdEx] != 132 {
+						return ErrExpectedBinaryMarkerProtoVnvn
+					}
+					iNdEx++
+				}
+				m.MsgBytes = append(m.MsgBytes[:0], dAtA[iNdEx:postIndex]...)
+				if m.MsgBytes == nil {
+					m.MsgBytes = []byte{}
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func (m *VCallRequest) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VCallRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VCallRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 20:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallType", wireType)
-			}
-			m.CallType = 0
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -7565,766 +7136,773 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.CallType |= CallType(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-		case 21:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallFlags", wireType)
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: VCallRequest: wiretype end group for non-group")
 			}
-			m.CallFlags = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: VCallRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 20:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallType", wireType)
 				}
-				if iNdEx >= l {
+				m.CallType = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.CallType |= CallType(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 21:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallFlags", wireType)
+				}
+				m.CallFlags = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.CallFlags |= CallFlags(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 22:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallAsOf", wireType)
+				}
+				m.CallAsOf = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.CallAsOf |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 23:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Caller", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.CallFlags |= CallFlags(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 22:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallAsOf", wireType)
-			}
-			m.CallAsOf = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.CallAsOf |= PulseNumber(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 23:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Caller", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Caller.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 24:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 25:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallSiteDeclaration", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.CallSiteDeclaration.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 26:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallSiteMethod", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.CallSiteMethod = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 27:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallSequence", wireType)
-			}
-			m.CallSequence = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.CallSequence |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 28:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallReason", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.CallReason.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 29:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RootTX", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.RootTX.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 30:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallTX", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.CallTX.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 31:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ExpenseCenter", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.ExpenseCenter.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 32:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ResourceCenter", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.ResourceCenter.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 34:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegationSpec", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 36:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ProducerSignature", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.ProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 37:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RegistrarSignature", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.RegistrarSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 38:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RegistrarDelegationSpec", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.RegistrarDelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 40:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallRequestFlags", wireType)
-			}
-			m.CallRequestFlags = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.CallRequestFlags |= CallRequestFlags(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 41:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field KnownCalleeIncoming", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.KnownCalleeIncoming.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 43:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallOutgoing", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.CallOutgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 44:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TXExpiry", wireType)
-			}
-			m.TXExpiry = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.TXExpiry |= PulseNumber(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 45:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SecurityContext", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.SecurityContext.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 46:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TXContext", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.TXContext.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 47:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Arguments", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Arguments.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.Caller.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 24:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 25:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallSiteDeclaration", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.CallSiteDeclaration.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 26:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallSiteMethod", wireType)
+				}
+				var stringLen uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					stringLen |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				intStringLen := int(stringLen)
+				if intStringLen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + intStringLen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				m.CallSiteMethod = string(dAtA[iNdEx:postIndex])
+				iNdEx = postIndex
+			case 27:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallSequence", wireType)
+				}
+				m.CallSequence = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.CallSequence |= uint32(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 28:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallReason", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.CallReason.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 29:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field RootTX", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.RootTX.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 30:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallTX", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.CallTX.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 31:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field ExpenseCenter", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.ExpenseCenter.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 32:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field ResourceCenter", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.ResourceCenter.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 34:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field DelegationSpec", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 36:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field ProducerSignature", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.ProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 37:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field RegistrarSignature", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.RegistrarSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 38:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field RegistrarDelegationSpec", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.RegistrarDelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 40:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallRequestFlags", wireType)
+				}
+				m.CallRequestFlags = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.CallRequestFlags |= CallRequestFlags(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 41:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field KnownCalleeIncoming", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.KnownCalleeIncoming.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 43:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallOutgoing", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.CallOutgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 44:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field TXExpiry", wireType)
+				}
+				m.TXExpiry = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.TXExpiry |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 45:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field SecurityContext", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.SecurityContext.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 46:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field TXContext", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.TXContext.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 47:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Arguments", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Arguments.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func (m *VCallResult) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VCallResult: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VCallResult: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 20:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallType", wireType)
-			}
-			m.CallType = 0
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -8334,498 +7912,505 @@ func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.CallType |= CallType(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-		case 21:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallFlags", wireType)
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: VCallResult: wiretype end group for non-group")
 			}
-			m.CallFlags = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: VCallResult: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 20:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallType", wireType)
 				}
-				if iNdEx >= l {
+				m.CallType = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.CallType |= CallType(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 21:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallFlags", wireType)
+				}
+				m.CallFlags = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.CallFlags |= CallFlags(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 22:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallAsOf", wireType)
+				}
+				m.CallAsOf = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.CallAsOf |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 23:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Caller", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.CallFlags |= CallFlags(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 22:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallAsOf", wireType)
-			}
-			m.CallAsOf = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.CallAsOf |= PulseNumber(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 23:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Caller", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Caller.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 24:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 25:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ResultFlags", wireType)
-			}
-			m.ResultFlags = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.ResultFlags |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 26:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallOutgoing", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.CallOutgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 27:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallIncoming", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.CallIncoming.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 29:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegationSpec", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 31:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallIncomingResult", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.CallIncomingResult.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 32:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ProducerSignature", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.ProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 33:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RegistrarSignature", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.RegistrarSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 34:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RegistrarDelegationSpec", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.RegistrarDelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 37:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SecurityContext", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.SecurityContext.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 38:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReturnArguments", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.ReturnArguments.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.Caller.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 24:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 25:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field ResultFlags", wireType)
+				}
+				m.ResultFlags = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.ResultFlags |= uint32(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 26:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallOutgoing", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.CallOutgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 27:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallIncoming", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.CallIncoming.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 29:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field DelegationSpec", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 31:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallIncomingResult", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.CallIncomingResult.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 32:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field ProducerSignature", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.ProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 33:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field RegistrarSignature", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.RegistrarSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 34:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field RegistrarDelegationSpec", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.RegistrarDelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 37:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field SecurityContext", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.SecurityContext.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 38:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field ReturnArguments", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.ReturnArguments.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func (m *VStateRequest) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *VStateRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *VStateRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VStateRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VStateRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 20:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AsOf", wireType)
-			}
-			m.AsOf = 0
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -8835,248 +8420,255 @@ func (m *VStateRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.AsOf |= PulseNumber(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-		case 21:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: VStateRequest: wiretype end group for non-group")
 			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: VStateRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 20:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field AsOf", wireType)
 				}
-				if iNdEx >= l {
+				m.AsOf = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.AsOf |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 21:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 22:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RequestedContent", wireType)
-			}
-			m.RequestedContent = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.RequestedContent |= StateRequestContentFlags(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 23:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RequestedContentLimit", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.RequestedContentLimit.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 25:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegationSpec", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 27:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ProducerSignature", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.ProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 28:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallRequestFlags", wireType)
-			}
-			m.CallRequestFlags = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.CallRequestFlags |= int32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 22:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field RequestedContent", wireType)
+				}
+				m.RequestedContent = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.RequestedContent |= StateRequestContentFlags(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 23:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field RequestedContentLimit", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.RequestedContentLimit.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 25:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field DelegationSpec", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 27:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field ProducerSignature", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.ProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 28:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallRequestFlags", wireType)
+				}
+				m.CallRequestFlags = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.CallRequestFlags |= int32(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func (m *VStateReport) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VStateReport: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VStateReport: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 20:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AsOf", wireType)
-			}
-			m.AsOf = 0
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -9086,464 +8678,471 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.AsOf |= PulseNumber(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-		case 21:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: VStateReport: wiretype end group for non-group")
 			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: VStateReport: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 20:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field AsOf", wireType)
 				}
-				if iNdEx >= l {
+				m.AsOf = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.AsOf |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 21:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 23:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegationSpec", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 25:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UnorderedPendingCount", wireType)
-			}
-			m.UnorderedPendingCount = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.UnorderedPendingCount |= int32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 26:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UnorderedPendingEarliestPulse", wireType)
-			}
-			m.UnorderedPendingEarliestPulse = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.UnorderedPendingEarliestPulse |= PulseNumber(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 27:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OrderedPendingCount", wireType)
-			}
-			m.OrderedPendingCount = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.OrderedPendingCount |= int32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 28:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OrderedPendingEarliestPulse", wireType)
-			}
-			m.OrderedPendingEarliestPulse = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.OrderedPendingEarliestPulse |= PulseNumber(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 29:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PreRegisteredQueueCount", wireType)
-			}
-			m.PreRegisteredQueueCount = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.PreRegisteredQueueCount |= int32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 30:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PreRegisteredEarliestPulse", wireType)
-			}
-			m.PreRegisteredEarliestPulse = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.PreRegisteredEarliestPulse |= PulseNumber(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 31:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PriorityCallQueueCount", wireType)
-			}
-			m.PriorityCallQueueCount = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.PriorityCallQueueCount |= int32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 32:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LatestValidatedState", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.LatestValidatedState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 33:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LatestValidatedCode", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.LatestValidatedCode.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 34:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LatestDirtyState", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.LatestDirtyState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 35:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LatestDirtyCode", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.LatestDirtyCode.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 36:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ProvidedContent", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.ProvidedContent == nil {
-				m.ProvidedContent = &VStateReport_ProvidedContentBody{}
-			}
-			if err := m.ProvidedContent.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 37:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
-			}
-			m.Status = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Status |= VStateReport_StateStatus(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 23:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field DelegationSpec", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 25:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field UnorderedPendingCount", wireType)
+				}
+				m.UnorderedPendingCount = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.UnorderedPendingCount |= int32(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 26:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field UnorderedPendingEarliestPulse", wireType)
+				}
+				m.UnorderedPendingEarliestPulse = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.UnorderedPendingEarliestPulse |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 27:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field OrderedPendingCount", wireType)
+				}
+				m.OrderedPendingCount = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.OrderedPendingCount |= int32(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 28:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field OrderedPendingEarliestPulse", wireType)
+				}
+				m.OrderedPendingEarliestPulse = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.OrderedPendingEarliestPulse |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 29:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field PreRegisteredQueueCount", wireType)
+				}
+				m.PreRegisteredQueueCount = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.PreRegisteredQueueCount |= int32(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 30:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field PreRegisteredEarliestPulse", wireType)
+				}
+				m.PreRegisteredEarliestPulse = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.PreRegisteredEarliestPulse |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 31:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field PriorityCallQueueCount", wireType)
+				}
+				m.PriorityCallQueueCount = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.PriorityCallQueueCount |= int32(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 32:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field LatestValidatedState", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.LatestValidatedState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 33:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field LatestValidatedCode", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.LatestValidatedCode.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 34:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field LatestDirtyState", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.LatestDirtyState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 35:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field LatestDirtyCode", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.LatestDirtyCode.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 36:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field ProvidedContent", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if m.ProvidedContent == nil {
+					m.ProvidedContent = &VStateReport_ProvidedContentBody{}
+				}
+				if err := m.ProvidedContent.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 37:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+				}
+				m.Status = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.Status |= VStateReport_StateStatus(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func (m *VStateReport_ProvidedContentBody) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *VStateReport_ProvidedContentBody) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *VStateReport_ProvidedContentBody) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ProvidedContentBody: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ProvidedContentBody: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 21:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LatestValidatedState", wireType)
-			}
-			var msglen int
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -9553,271 +9152,278 @@ func (m *VStateReport_ProvidedContentBody) UnmarshalWithUnknownCallback(dAtA []b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: ProvidedContentBody: wiretype end group for non-group")
 			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: ProvidedContentBody: illegal tag %d (wire type %d)", fieldNum, wire)
 			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.LatestValidatedState == nil {
-				m.LatestValidatedState = &ObjectState{}
-			}
-			if err := m.LatestValidatedState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 22:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LatestDirtyState", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			switch fieldNum {
+			case 21:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field LatestValidatedState", wireType)
 				}
-				if iNdEx >= l {
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
+				if m.LatestValidatedState == nil {
+					m.LatestValidatedState = &ObjectState{}
 				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.LatestDirtyState == nil {
-				m.LatestDirtyState = &ObjectState{}
-			}
-			if err := m.LatestDirtyState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 23:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LatestValidatedCode", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.LatestValidatedCode == nil {
-				m.LatestValidatedCode = &ObjectState{}
-			}
-			if err := m.LatestValidatedCode.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 24:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LatestDirtyCode", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.LatestDirtyCode == nil {
-				m.LatestDirtyCode = &ObjectState{}
-			}
-			if err := m.LatestDirtyCode.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 25:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OrderedQueue", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.OrderedQueue = append(m.OrderedQueue, Reference{})
-			if err := m.OrderedQueue[len(m.OrderedQueue)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 26:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UnorderedQueue", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.UnorderedQueue = append(m.UnorderedQueue, Reference{})
-			if err := m.UnorderedQueue[len(m.UnorderedQueue)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.LatestValidatedState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 22:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field LatestDirtyState", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if m.LatestDirtyState == nil {
+					m.LatestDirtyState = &ObjectState{}
+				}
+				if err := m.LatestDirtyState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 23:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field LatestValidatedCode", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if m.LatestValidatedCode == nil {
+					m.LatestValidatedCode = &ObjectState{}
+				}
+				if err := m.LatestValidatedCode.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 24:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field LatestDirtyCode", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if m.LatestDirtyCode == nil {
+					m.LatestDirtyCode = &ObjectState{}
+				}
+				if err := m.LatestDirtyCode.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 25:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field OrderedQueue", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				m.OrderedQueue = append(m.OrderedQueue, Reference{})
+				if err := m.OrderedQueue[len(m.OrderedQueue)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 26:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field UnorderedQueue", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				m.UnorderedQueue = append(m.UnorderedQueue, Reference{})
+				if err := m.UnorderedQueue[len(m.UnorderedQueue)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func (m *ObjectState) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *ObjectState) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *ObjectState) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ObjectState: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ObjectState: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 20:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Reference", wireType)
-			}
-			var msglen int
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -9827,211 +9433,185 @@ func (m *ObjectState) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: ObjectState: wiretype end group for non-group")
 			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: ObjectState: illegal tag %d (wire type %d)", fieldNum, wire)
 			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Reference.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 22:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Class", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			switch fieldNum {
+			case 20:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Reference", wireType)
 				}
-				if iNdEx >= l {
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Class.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 23:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.State.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 24:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PreviousState", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.PreviousState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 25:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Deactivated", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Deactivated = bool(v != 0)
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.Reference.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 22:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Class", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Class.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 23:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Memory", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Memory.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 25:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Deactivated", wireType)
+				}
+				var v int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					v |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				m.Deactivated = bool(v != 0)
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func (m *VDelegatedRequestFinished) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *VDelegatedRequestFinished) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *VDelegatedRequestFinished) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VDelegatedRequestFinished: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VDelegatedRequestFinished: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 20:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallType", wireType)
-			}
-			m.CallType = 0
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -10041,284 +9621,324 @@ func (m *VDelegatedRequestFinished) UnmarshalWithUnknownCallback(dAtA []byte, sk
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.CallType |= CallType(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-		case 21:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallFlags", wireType)
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: VDelegatedRequestFinished: wiretype end group for non-group")
 			}
-			m.CallFlags = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: VDelegatedRequestFinished: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 20:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallType", wireType)
 				}
-				if iNdEx >= l {
+				m.CallType = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.CallType |= CallType(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 21:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallFlags", wireType)
+				}
+				m.CallFlags = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.CallFlags |= CallFlags(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 22:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.CallFlags |= CallFlags(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 22:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 23:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ResultFlags", wireType)
-			}
-			m.ResultFlags = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.ResultFlags |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 24:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallOutgoing", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.CallOutgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 25:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallIncoming", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.CallIncoming.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 26:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegationSpec", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 29:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LatestState", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.LatestState == nil {
-				m.LatestState = &ObjectState{}
-			}
-			if err := m.LatestState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 23:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field ResultFlags", wireType)
+				}
+				m.ResultFlags = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.ResultFlags |= uint32(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 24:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallOutgoing", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.CallOutgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 25:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallIncoming", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.CallIncoming.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 26:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field DelegationSpec", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 29:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field LatestState", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if m.LatestState == nil {
+					m.LatestState = &ObjectState{}
+				}
+				if err := m.LatestState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 30:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field PendingTranscript", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.PendingTranscript.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func (m *VDelegatedCallRequest) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *VDelegatedCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *VDelegatedCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VDelegatedCallRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VDelegatedCallRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 20:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
-			}
-			var msglen int
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -10328,210 +9948,217 @@ func (m *VDelegatedCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: VDelegatedCallRequest: wiretype end group for non-group")
 			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: VDelegatedCallRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 21:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallFlags", wireType)
-			}
-			m.CallFlags = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			switch fieldNum {
+			case 20:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
 				}
-				if iNdEx >= l {
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.CallFlags |= CallFlags(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 22:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallOutgoing", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.CallOutgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 24:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallIncoming", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.CallIncoming.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 25:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegationSpec", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 21:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallFlags", wireType)
+				}
+				m.CallFlags = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.CallFlags |= CallFlags(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 22:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallOutgoing", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.CallOutgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 24:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallIncoming", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.CallIncoming.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 25:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field DelegationSpec", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func (m *VDelegatedCallResponse) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *VDelegatedCallResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *VDelegatedCallResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VDelegatedCallResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VDelegatedCallResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 20:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
-			}
-			var msglen int
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -10541,456 +10168,165 @@ func (m *VDelegatedCallResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipF
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: VDelegatedCallResponse: wiretype end group for non-group")
 			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: VDelegatedCallResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 21:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallIncoming", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			switch fieldNum {
+			case 20:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
 				}
-				if iNdEx >= l {
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.CallIncoming.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 22:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ResponseDelegationSpec", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.ResponseDelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 21:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallIncoming", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.CallIncoming.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 22:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field ResponseDelegationSpec", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.ResponseDelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
-}
-func (m *CallDelegationToken) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
-}
-func (m *CallDelegationToken) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: CallDelegationToken: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: CallDelegationToken: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 20:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TokenTypeAndFlags", wireType)
-			}
-			m.TokenTypeAndFlags = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.TokenTypeAndFlags |= CallDelegationTokenType(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 21:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Approver", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Approver.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 22:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegateTo", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.DelegateTo.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 23:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PulseNumber", wireType)
-			}
-			m.PulseNumber = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.PulseNumber |= PulseNumber(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 24:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 25:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Caller", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Caller.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 26:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Outgoing", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Outgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 27:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ApproverSignature", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.ApproverSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
-					return err
-				}
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
+	return iNdEx, nil
 }
 func (m *VFindCallRequest) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *VFindCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *VFindCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VFindCallRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VFindCallRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 20:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LookAt", wireType)
-			}
-			m.LookAt = 0
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -11000,144 +10336,151 @@ func (m *VFindCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.LookAt |= PulseNumber(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-		case 21:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: VFindCallRequest: wiretype end group for non-group")
 			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: VFindCallRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 20:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field LookAt", wireType)
 				}
-				if iNdEx >= l {
+				m.LookAt = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.LookAt |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 21:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 22:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Outgoing", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Outgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 22:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Outgoing", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Outgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func (m *VFindCallResponse) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *VFindCallResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *VFindCallResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VFindCallResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VFindCallResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 20:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LookedAt", wireType)
-			}
-			m.LookedAt = 0
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -11147,199 +10490,206 @@ func (m *VFindCallResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn fun
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.LookedAt |= PulseNumber(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-		case 21:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: VFindCallResponse: wiretype end group for non-group")
 			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: VFindCallResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 20:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field LookedAt", wireType)
 				}
-				if iNdEx >= l {
+				m.LookedAt = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.LookedAt |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 21:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 22:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Outgoing", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Outgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 23:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
-			}
-			m.Status = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Status |= VFindCallResponse_CallState(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 24:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallResult", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.CallResult == nil {
-				m.CallResult = &VCallResult{}
-			}
-			if err := m.CallResult.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 22:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Outgoing", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Outgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 23:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+				}
+				m.Status = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.Status |= VFindCallResponse_CallState(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 24:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallResult", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if m.CallResult == nil {
+					m.CallResult = &VCallResult{}
+				}
+				if err := m.CallResult.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func (m *VCachedMemoryRequest) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *VCachedMemoryRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *VCachedMemoryRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VCachedMemoryRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VCachedMemoryRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 21:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
-			}
-			var msglen int
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -11349,125 +10699,132 @@ func (m *VCachedMemoryRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn 
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: VCachedMemoryRequest: wiretype end group for non-group")
 			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: VCachedMemoryRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 50:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StateID", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			switch fieldNum {
+			case 21:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
 				}
-				if iNdEx >= l {
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.StateID.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 22:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.State.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func (m *VCachedMemoryResponse) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *VCachedMemoryResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *VCachedMemoryResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VCachedMemoryResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VCachedMemoryResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 21:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
-			}
-			var msglen int
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -11477,263 +10834,860 @@ func (m *VCachedMemoryResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: VCachedMemoryResponse: wiretype end group for non-group")
 			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: VCachedMemoryResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 25:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Inactive", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			switch fieldNum {
+			case 21:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallStatus", wireType)
 				}
-				if iNdEx >= l {
+				m.CallStatus = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.CallStatus |= VCachedMemoryResponse_Status(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 22:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Inactive = bool(v != 0)
-		case 50:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StateID", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.StateID.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 51:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallStatus", wireType)
-			}
-			m.CallStatus = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.CallStatus |= VCachedMemoryResponse_Status(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 52:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Node", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Node.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 53:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PrevStateID", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.PrevStateID.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 54:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Memory", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Memory.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.State.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
+}
+func (m *Transcript) Unmarshal(dAtA []byte) error {
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
+}
+func (m *Transcript) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		err := func() error {
+			var wire uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				wire |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: Transcript: wiretype end group for non-group")
+			}
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: Transcript: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 1800:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Entries", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				m.Entries = append(m.Entries, Any{})
+				if err := m.Entries[len(m.Entries)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
+			}
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
+		}
+	}
+
+	if iNdEx > l {
+		return iNdEx, io.ErrUnexpectedEOF
+	}
+	return iNdEx, nil
+}
+func (m *Transcript_TranscriptEntryIncomingRequest) Unmarshal(dAtA []byte) error {
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
+}
+func (m *Transcript_TranscriptEntryIncomingRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		err := func() error {
+			var wire uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				wire |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: TranscriptEntryIncomingRequest: wiretype end group for non-group")
+			}
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: TranscriptEntryIncomingRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 1800:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field ObjectMemory", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.ObjectMemory.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 1801:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Incoming", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Incoming.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 1802:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Request", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Request.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
+			}
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
+		}
+	}
+
+	if iNdEx > l {
+		return iNdEx, io.ErrUnexpectedEOF
+	}
+	return iNdEx, nil
+}
+func (m *Transcript_TranscriptEntryOutgoingRequest) Unmarshal(dAtA []byte) error {
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
+}
+func (m *Transcript_TranscriptEntryOutgoingRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		err := func() error {
+			var wire uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				wire |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: TranscriptEntryOutgoingRequest: wiretype end group for non-group")
+			}
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: TranscriptEntryOutgoingRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 1800:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Request", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Request.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 1801:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Reason", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Reason.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
+			}
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
+		}
+	}
+
+	if iNdEx > l {
+		return iNdEx, io.ErrUnexpectedEOF
+	}
+	return iNdEx, nil
+}
+func (m *Transcript_TranscriptEntryOutgoingResult) Unmarshal(dAtA []byte) error {
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
+}
+func (m *Transcript_TranscriptEntryOutgoingResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		err := func() error {
+			var wire uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				wire |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: TranscriptEntryOutgoingResult: wiretype end group for non-group")
+			}
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: TranscriptEntryOutgoingResult: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 1800:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field OutgoingResult", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.OutgoingResult.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 1801:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field CallResult", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.CallResult.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 1802:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Reason", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Reason.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
+			}
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
+		}
+	}
+
+	if iNdEx > l {
+		return iNdEx, io.ErrUnexpectedEOF
+	}
+	return iNdEx, nil
+}
+func (m *Transcript_TranscriptEntryIncomingResult) Unmarshal(dAtA []byte) error {
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
+}
+func (m *Transcript_TranscriptEntryIncomingResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		err := func() error {
+			var wire uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				wire |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: TranscriptEntryIncomingResult: wiretype end group for non-group")
+			}
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: TranscriptEntryIncomingResult: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 1800:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field IncomingResult", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.IncomingResult.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 1801:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field ObjectState", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.ObjectState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 1802:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Reason", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Reason.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
+			}
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
+		}
+	}
+
+	if iNdEx > l {
+		return iNdEx, io.ErrUnexpectedEOF
+	}
+	return iNdEx, nil
 }
 func (m *VObjectTranscriptReport) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *VObjectTranscriptReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *VObjectTranscriptReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VObjectTranscriptReport: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VObjectTranscriptReport: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 19:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Any", wireType)
-			}
-			var msglen int
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -11743,833 +11697,218 @@ func (m *VObjectTranscriptReport) UnmarshalWithUnknownCallback(dAtA []byte, skip
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: VObjectTranscriptReport: wiretype end group for non-group")
 			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: VObjectTranscriptReport: illegal tag %d (wire type %d)", fieldNum, wire)
 			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Any.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 1800:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AsOf", wireType)
-			}
-			m.AsOf = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			switch fieldNum {
+			case 19:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Any", wireType)
 				}
-				if iNdEx >= l {
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.AsOf |= PulseNumber(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 1801:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 1803:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PendingTranscripts", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PendingTranscripts = append(m.PendingTranscripts, VObjectTranscriptReport_Transcript{})
-			if err := m.PendingTranscripts[len(m.PendingTranscripts)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 1804:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ObjectTranscript", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.ObjectTranscript.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.Any.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 1800:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field AsOf", wireType)
+				}
+				m.AsOf = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.AsOf |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 1801:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 1802:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field PendingTranscripts", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				m.PendingTranscripts = append(m.PendingTranscripts, Transcript{})
+				if err := m.PendingTranscripts[len(m.PendingTranscripts)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 1803:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field ObjectTranscript", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.ObjectTranscript.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: TranscriptEntryIncomingRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: TranscriptEntryIncomingRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1800:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ObjectMemory", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.ObjectMemory.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 1801:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Incoming", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Incoming.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 1802:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Request", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if byteLen > 0 {
-				if dAtA[iNdEx] != 132 {
-					return ErrExpectedBinaryMarkerProtoVnvn
-				}
-				iNdEx++
-			}
-			m.Request = append(m.Request[:0], dAtA[iNdEx:postIndex]...)
-			if m.Request == nil {
-				m.Request = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
-					return err
-				}
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: TranscriptEntryOutgoingRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: TranscriptEntryOutgoingRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1800:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Outgoing", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Outgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
-					return err
-				}
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
-}
-func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: TranscriptEntryOutgoingResult: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: TranscriptEntryOutgoingResult: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1800:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OutgoingResult", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.OutgoingResult.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 1801:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallResult", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if byteLen > 0 {
-				if dAtA[iNdEx] != 132 {
-					return ErrExpectedBinaryMarkerProtoVnvn
-				}
-				iNdEx++
-			}
-			m.CallResult = append(m.CallResult[:0], dAtA[iNdEx:postIndex]...)
-			if m.CallResult == nil {
-				m.CallResult = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
-					return err
-				}
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
-}
-func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: TranscriptEntryIncomingResult: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: TranscriptEntryIncomingResult: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1800:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field IncomingResult", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.IncomingResult.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 1801:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ObjectState", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.ObjectState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
-					return err
-				}
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *VObjectTranscriptReport_Transcript) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
-}
-func (m *VObjectTranscriptReport_Transcript) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Transcript: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Transcript: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1800:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Entries", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Entries = append(m.Entries, Any{})
-			if err := m.Entries[len(m.Entries)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
-					return err
-				}
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
+	return iNdEx, nil
 }
 func (m *VObjectValidationReport) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	_, err := m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+	return err
 }
-func (m *VObjectValidationReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (m *VObjectValidationReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) (int, error) {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProtoVnvn
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VObjectValidationReport: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VObjectValidationReport: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 21:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
-			}
-			var msglen int
+		err := func() error {
+			var wire uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvn
@@ -12579,106 +11918,139 @@ func (m *VObjectValidationReport) UnmarshalWithUnknownCallback(dAtA []byte, skip
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				wire |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return fmt.Errorf("proto: VObjectValidationReport: wiretype end group for non-group")
 			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
+			if fieldNum <= 0 {
+				return fmt.Errorf("proto: VObjectValidationReport: illegal tag %d (wire type %d)", fieldNum, wire)
 			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 50:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Validated", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
+			switch fieldNum {
+			case 21:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
 				}
-				if iNdEx >= l {
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Validated.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 55:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field In", wireType)
-			}
-			m.In = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvn
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.In |= PulseNumber(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+				if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 					return err
 				}
+				iNdEx = postIndex
+			case 50:
+				if wireType != 2 {
+					return fmt.Errorf("proto: wrong wireType = %d for field Validated", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				if err := m.Validated.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				iNdEx = postIndex
+			case 55:
+				if wireType != 0 {
+					return fmt.Errorf("proto: wrong wireType = %d for field In", wireType)
+				}
+				m.In = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowProtoVnvn
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					m.In |= PulseNumber(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			default:
+				iNdEx = preIndex
+				skippy, err := skipFn(dAtA[iNdEx:])
+				if err != nil {
+					return err
+				}
+				if skippy < 0 {
+					l = iNdEx
+					break
+				}
+				if skippy == 0 {
+					if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+						return err
+					}
+				}
+				if (iNdEx + skippy) < 0 {
+					return ErrInvalidLengthProtoVnvn
+				}
+				if (iNdEx + skippy) > l {
+					return io.ErrUnexpectedEOF
+				}
+				iNdEx += skippy
 			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthProtoVnvn
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
+			return nil
+		}()
+		if err != nil {
+			return preIndex, err
 		}
 	}
 
 	if iNdEx > l {
-		return io.ErrUnexpectedEOF
+		return iNdEx, io.ErrUnexpectedEOF
 	}
-	return nil
+	return iNdEx, nil
 }
 func skipProtoVnvn(dAtA []byte) (n int, err error) {
 	l := len(dAtA)

@@ -74,7 +74,7 @@ func (p *RecordPayloads) MarshalTo(b []byte) (int, error) {
 		if rawBytes {
 			n, err = pl.marshalTo(b[pos : pos+sz])
 		} else {
-			n, err = protokit.BinaryMarshalTo(b[pos:pos+sz], pl.marshalTo)
+			n, err = protokit.BinaryMarshalTo(b[pos:pos+sz], false, pl.marshalTo)
 		}
 		switch {
 		case err != nil:

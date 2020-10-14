@@ -36,7 +36,7 @@ jobs:
         with:
           go-version: ${{env.GO_VERSION}}
       - name: Add bin to path
-        run: echo "::add-path::${{env.GOPATH}}\\bin"
+        run: echo "${{env.GOPATH}}\\bin" >> $GITHUB_PATH
       - name: Go mod cache setup
         uses: actions/cache@v2
         with:
@@ -52,6 +52,12 @@ jobs:
       - name: Check succesful build
         run: make pre-build build
         working-directory: ${{env.WORKDIR}}
+      - name: Set dynamic port ranges
+        run: |
+          netsh int ipv4 set dynamicport tcp start=51000 num=14000
+          netsh int ipv4 set dynamicport udp start=51000 num=14000
+          netsh int ipv4 show dynamicport tcp
+          netsh int ipv4 show dynamicport udp
       - name: Run unit and slow tests and check code coverage
         if: always()
         run: make test_with_coverage
@@ -64,14 +70,18 @@ jobs:
           path: ${{env.WORKDIR}}/integration_extended_test.log
       - name: Run functional tests multiple times with race detector as local cloud
         if: always()
-        run: make test_func_cloud_race > functional_test_cloud.log
+        run: make test_func_cloud_race
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
-      - name: Upload functional_test_cloud.log to artifacts
+      - name: Aggregate logs into a single archive
+        if: always()
+        run: tar -cvzf nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log || true
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Upload logs to artifacts
         if: always()
         uses: actions/upload-artifact@v1
         with:
-          name: functional_test_cloud_windows
-          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/functional_test_cloud.log
+          name: nodes-output-windows
+          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/nodes-output.tgz
       - name: Add coverage.html to artifacts
         uses: actions/upload-artifact@v1
         with:

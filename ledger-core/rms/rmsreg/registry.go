@@ -30,9 +30,9 @@ func SetRegistry(r *TypeRegistry) {
 var unmarshalerType = reflect.TypeOf((*unmarshaler)(nil)).Elem()
 
 type TypeRegistry struct {
-	mutex     sync.RWMutex
-	commons   map[uint64]reflect.Type
-	specials  map[string]map[uint64]reflect.Type
+	mutex    sync.RWMutex
+	commons  map[uint64]reflect.Type
+	specials map[string]map[uint64]reflect.Type
 
 	digester  cryptkit.DataDigester
 	digesters map[uint64]cryptkit.DataDigester
@@ -191,19 +191,34 @@ func UnmarshalType(b []byte, typeFn UnmarshalTypeFunc) (uint64, reflect.Type, er
 }
 
 func UnmarshalAs(b []byte, obj interface{}, skipFn UnknownCallbackFunc) error {
-	var err error
 	if skipFn == nil {
-		err = obj.(unmarshaler).Unmarshal(b)
-	} else if un, ok := obj.(unmarshalerWithUnknownCallback); ok {
-		err = un.UnmarshalWithUnknownCallback(b, skipFn)
-	} else {
-		return throw.E("wrong type")
+		return obj.(unmarshaler).Unmarshal(b)
 	}
+	if un, ok := obj.(unmarshalerWithUnknownCallback); ok {
+		_, err := un.UnmarshalWithUnknownCallback(b, skipFn)
+		return err
+	}
+	return throw.Unsupported()
+}
 
-	return err
+func UnmarshalAsWithPos(b []byte, obj interface{}, skipFn UnknownCallbackFunc) (int, error) {
+	if un, ok := obj.(unmarshalerWithUnknownCallback); ok {
+		return un.UnmarshalWithUnknownCallback(b, skipFn)
+	}
+	if skipFn != nil {
+		return 0, throw.Unsupported()
+	}
+	if err := obj.(unmarshaler).Unmarshal(b); err != nil {
+		return 0, err
+	}
+	return len(b), nil
 }
 
 func UnmarshalAsType(b []byte, vType reflect.Type, skipFn UnknownCallbackFunc) (interface{}, error) {
+	if vType.Kind() == reflect.Ptr {
+		vType = vType.Elem()
+	}
+
 	obj := reflect.New(vType).Interface()
 	if err := UnmarshalAs(b, obj, skipFn); err != nil {
 		return nil, err

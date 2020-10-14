@@ -33,7 +33,7 @@ func TestNewStreamHandler(t *testing.T) {
 	done := make(chan struct{})
 	ctx, cancel := context.WithCancel(ctx)
 	go func() {
-		h.HandleStream(ctx, "127.0.0.1:8080", con1)
+		h.HandleStream(ctx, con1)
 		done <- struct{}{}
 	}()
 

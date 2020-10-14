@@ -234,13 +234,12 @@ func (s *SMVDelegatedRequestFinished) updateMemoryCache(ctx smachine.ExecutionCo
 		return
 	}
 	objectDescriptor := s.latestState()
-	if objectDescriptor.HeadRef().IsEmpty() || objectDescriptor.StateID().IsEmpty() {
+	if objectDescriptor.IsEmpty() {
 		return
 	}
 
 	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
-		ref := reference.NewRecordOf(objectDescriptor.HeadRef(), objectDescriptor.StateID())
-		err := svc.Set(ctx, ref, objectDescriptor)
+		err := svc.Set(ctx, objectDescriptor.State(), objectDescriptor)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to set dirty memory", err)
@@ -261,9 +260,9 @@ func (s *SMVDelegatedRequestFinished) latestState() descriptor.Object {
 
 	return descriptor.NewObject(
 		s.Payload.Callee.GetValue(),
-		state.Reference.GetValueWithoutBase(),
+		state.Reference.GetValue().GetLocal(),
 		state.Class.GetValue(),
-		state.State.GetBytes(),
+		state.Memory.GetBytes(),
 		state.Deactivated,
 	)
 }

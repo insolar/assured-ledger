@@ -11,7 +11,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -63,9 +62,7 @@ func (s *SMVCachedMemoryRequest) Init(ctx smachine.InitializationContext) smachi
 
 func (s *SMVCachedMemoryRequest) stepGetMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		objectRootRef  = s.Payload.Object.GetValue()
-		objectStateID  = s.Payload.StateID.GetValueWithoutBase()
-		objectStateRef = reference.NewRecordOf(objectRootRef, objectStateID)
+		objectStateRef = s.Payload.State.GetValue()
 	)
 
 	return s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
@@ -90,19 +87,20 @@ func (s *SMVCachedMemoryRequest) stepWaitResult(ctx smachine.ExecutionContext) s
 func (s *SMVCachedMemoryRequest) stepBuildResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.object.HeadRef().IsEmpty() {
 		s.response = &rms.VCachedMemoryResponse{
-			Object:     s.Payload.Object,
-			StateID:    s.Payload.StateID,
 			CallStatus: rms.CachedMemoryStateUnknown,
+			State: rms.ObjectState{
+				Reference: s.Payload.State,
+			},
 		}
 	} else {
 		s.response = &rms.VCachedMemoryResponse{
-			Object:     s.Payload.Object,
-			StateID:    s.Payload.StateID,
 			CallStatus: rms.CachedMemoryStateFound,
-			// Node:        s.object.HeadRef(),
-			// PrevStateID: s.object.StateID(),
-			Inactive: s.object.Deactivated(),
-			Memory:   rms.NewBytes(s.object.Memory()),
+			State: rms.ObjectState{
+				Reference:   s.Payload.State,
+				Class:       rms.NewReference(s.object.Class()),
+				Memory:      rms.NewBytes(s.object.Memory()),
+				Deactivated: s.object.Deactivated(),
+			},
 		}
 	}
 

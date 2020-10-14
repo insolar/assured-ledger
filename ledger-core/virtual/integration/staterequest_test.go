@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
@@ -60,8 +61,11 @@ func TestVirtual_VStateRequest(t *testing.T) {
 			}
 
 			// prepare checker
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			{
+				// vStateID := reference.NewRecordOf(object, server.RandomLocalWithPulse())
+				// dStateID := reference.NewRecordOf(object, server.RandomLocalWithPulse())
+
 				expectedVStateReport := &rms.VStateReport{
 					Status:           rms.StateStatusReady,
 					AsOf:             pulseNumber,
@@ -72,19 +76,31 @@ func TestVirtual_VStateRequest(t *testing.T) {
 				case rms.RequestLatestDirtyState:
 					expectedVStateReport.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							State: rms.NewBytes(rawWalletState),
-							Class: rms.NewReference(testwallet.ClassReference),
+							Reference: rms.NewReference(reference.Global{}),
+							Memory:    rms.NewBytes(rawWalletState),
+							Class:     rms.NewReference(testwallet.ClassReference),
 						},
 					}
+
 				case rms.RequestLatestValidatedState:
 					expectedVStateReport.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 						LatestValidatedState: &rms.ObjectState{
-							State: rms.NewBytes(rawWalletState),
-							Class: rms.NewReference(testwallet.ClassReference),
+							Reference: rms.NewReference(reference.Global{}),
+							Memory:    rms.NewBytes(rawWalletState),
+							Class:     rms.NewReference(testwallet.ClassReference),
 						},
 					}
 				}
 				typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
+					if c := report.ProvidedContent; c != nil {
+						if c.LatestValidatedState != nil {
+							c.LatestValidatedState.Reference = rms.NewReference(reference.Global{})
+						}
+						if c.LatestDirtyState != nil {
+							c.LatestDirtyState.Reference = rms.NewReference(reference.Global{})
+						}
+					}
+
 					utils.AssertVStateReportsEqual(t, expectedVStateReport, report)
 					return false
 				})
@@ -124,7 +140,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 
 	server.IncrementPulseAndWaitIdle(ctx)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	{
 		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 			assert.Equal(t, &rms.VStateReport{
@@ -173,28 +189,22 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 
 			var (
 				objectGlobal = server.RandomGlobalWithPulse()
-				pulseNumber  = server.GetPulse().PulseNumber
-				vStateReport = &rms.VStateReport{
-					AsOf:            pulseNumber,
-					Status:          rms.StateStatusInactive,
-					Object:          rms.NewReference(objectGlobal),
-					ProvidedContent: nil,
-				}
+				vStateReport = server.StateReportBuilder().Object(objectGlobal).Inactive().Report()
 			)
 			server.IncrementPulse(ctx)
 			p2 := server.GetPulse().PulseNumber
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 				vStateReport.AsOf = p2
-				assert.Equal(t, vStateReport, report)
+				assert.Equal(t, &vStateReport, report)
 				return false
 			})
 
 			// Send VStateReport
 			{
 				reportSend := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-				server.SendPayload(ctx, vStateReport)
+				server.SendPayload(ctx, &vStateReport)
 				commontestutils.WaitSignalsTimed(t, 10*time.Second, reportSend)
 			}
 

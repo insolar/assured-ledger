@@ -10,68 +10,51 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	walletproxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
 func BenchmarkOnWallets(b *testing.B) {
+	convlog.DisableTextConvLog()
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
 
-	resultSignal := make(synckit.ClosableSignalChannel, 1)
-
 	wallets := make([]reference.Global, 0, 1000)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
-	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
-		if result.CallType == rms.CallTypeConstructor {
-			var (
-				err             error
-				ref             reference.Global
-				contractCallErr *foundation.Error
-			)
-			err = foundation.UnmarshalMethodResultSimplified(result.ReturnArguments.GetBytes(), &ref, &contractCallErr)
-			require.NoError(b, err)
-			require.Nil(b, contractCallErr)
-			wallets = append(wallets, ref)
-		}
-		resultSignal <- struct{}{}
-		return false
-	})
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, b, server)
+	typedChecker.VCallResult.SetResend(false)
 
-	pl := *utils.GenerateVCallRequestConstructor(server)
-	pl.Callee.Set(walletproxy.GetClass())
-	pl.CallSiteMethod = "New"
+	pl := utils.GenerateVCallRequestConstructor(server)
+	pl.SetClass(walletproxy.GetClass())
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1000)
 
 	// create 1000 wallets to run get/set on them
 	for i := 0; i < 1000; i++ {
-		pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
-		msg := server.WrapPayload(&pl).Finalize()
+		pl.SetCallSequence(uint32(i) + 1)
+		rawPl := pl.Get()
 
-		server.SendMessage(ctx, msg)
-		testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
+		server.SendPayload(ctx, &rawPl)
+		wallets = append(wallets, pl.GetObject())
 	}
+
+	testutils.WaitSignalsTimed(b, 10*time.Second, executeDone)
 
 	b.Logf("created %d wallets", len(wallets))
 
 	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(
-		len(wallets),
-		func(i, j int) {
-			wallets[i], wallets[j] = wallets[j], wallets[i]
-		},
-	)
+	rand.Shuffle(len(wallets), func(i, j int) { wallets[i], wallets[j] = wallets[j], wallets[i] })
 
 	b.StopTimer()
 	b.ResetTimer()
+
 	b.Run("Get", func(b *testing.B) {
 		resultSignal := make(synckit.ClosableSignalChannel, 1)
 		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
@@ -85,22 +68,25 @@ func BenchmarkOnWallets(b *testing.B) {
 
 		b.StopTimer()
 		b.ResetTimer()
-		walletNum := 0
+
+		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, b.N)
+
 		for i := 0; i < b.N; i++ {
 			pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
-			pl.Callee.Set(wallets[walletNum%len(wallets)])
-			walletNum++
-			msg := server.WrapPayload(&pl).Finalize()
+			pl.Callee.Set(wallets[i%len(wallets)])
 
 			b.StartTimer()
-			server.SendMessage(ctx, msg)
-			testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
+			server.SendPayload(ctx, &pl)
+			<-resultSignal
 			b.StopTimer()
 		}
+
+		testutils.WaitSignalsTimed(b, 10*time.Second, executeDone)
+		testutils.WaitSignalsTimed(b, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	})
 
 	b.Run("Set", func(b *testing.B) {
-		typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
+		resultSignal := make(synckit.ClosableSignalChannel, 1)
 		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 			resultSignal <- struct{}{}
 			return false
@@ -112,18 +98,19 @@ func BenchmarkOnWallets(b *testing.B) {
 		b.StopTimer()
 		b.ResetTimer()
 
-		walletNum := 0
+		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, b.N)
+
 		for i := 0; i < b.N; i++ {
 			pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
-			pl.Callee.Set(wallets[walletNum%len(wallets)])
-			walletNum++
-
-			msg := server.WrapPayload(&pl).Finalize()
+			pl.Callee.Set(wallets[i%len(wallets)])
 
 			b.StartTimer()
-			server.SendMessage(ctx, msg)
-			testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
+			server.SendPayload(ctx, &pl)
+			<-resultSignal
 			b.StopTimer()
 		}
+
+		testutils.WaitSignalsTimed(b, 10*time.Second, executeDone)
+		testutils.WaitSignalsTimed(b, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	})
 }

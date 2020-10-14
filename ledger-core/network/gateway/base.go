@@ -8,7 +8,7 @@ package gateway
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -17,6 +17,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
+
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -89,6 +92,10 @@ type Base struct {
 	isDiscovery     bool                   // nolint
 	isJoinAssistant bool                   // nolint
 	joinAssistant   nodeinfo.DiscoveryNode // joinAssistant
+
+	mu             sync.Mutex
+	reconnectNodes []profiles.ActiveNode
+	localRedirect  bool
 }
 
 // NewGateway creates new gateway on top of existing
@@ -134,6 +141,12 @@ func (g *Base) Init(ctx context.Context) error {
 	g.HostNetwork.RegisterRequestHandler(types.Reconnect, g.HandleReconnect)
 
 	g.bootstrapETA = g.Options.BootstrapTimeout
+
+	// remember who is Me and who is joinAssistant
+	cert := g.CertificateManager.GetCertificate()
+	g.isDiscovery = network.OriginIsDiscovery(cert)
+	g.isJoinAssistant = network.OriginIsJoinAssistant(cert)
+	g.joinAssistant = network.JoinAssistant(cert)
 
 	return nil
 }
@@ -264,9 +277,11 @@ func (g *Base) UpdateState(ctx context.Context, pu beat.Beat) {
 
 	nodeCount := int64(pu.Online.GetIndexedCount())
 	inslogger.FromContext(ctx).Debugf("[ AddCommittedBeat ] Population size: %d", nodeCount)
-}
 
-func (g *Base) BeforeRun(ctx context.Context, pulse pulse.Data) {}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.reconnectNodes = pu.Online.GetProfiles()
+}
 
 // Auther casts us to Auther or obtain it in another way
 func (g *Base) Auther() network.Auther {
@@ -342,6 +357,17 @@ func (g *Base) discoveryMiddleware(handler network.RequestHandler) network.Reque
 	}
 }
 
+func (g *Base) hasCollision(shortID node.ShortNodeID) bool {
+	na := g.NodeKeeper.FindAnyLatestNodeSnapshot()
+	if na != nil {
+		nodes := na.GetPopulation().GetProfiles()
+		if len(nodes) > 1 {
+			return network.CheckShortIDCollision(nodes, shortID)
+		}
+	}
+	return shortID == g.localStatic.GetStaticNodeID()
+}
+
 func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
 	if request.GetRequest() == nil || request.GetRequest().GetBootstrap() == nil {
 		return nil, throw.Errorf("process bootstrap: got invalid protobuf request message: %s", request)
@@ -349,19 +375,7 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 
 	data := request.GetRequest().GetBootstrap()
 
-	var nodes []nodeinfo.NetworkNode
-	if na := g.NodeKeeper.FindAnyLatestNodeSnapshot(); na != nil {
-		nodes = na.GetPopulation().GetProfiles()
-	}
-
-	hasCollision := false
-	if len(nodes) > 1 {
-		hasCollision = network.CheckShortIDCollision(nodes, data.CandidateProfile.ShortID)
-	} else {
-		hasCollision = data.CandidateProfile.ShortID == g.localStatic.GetStaticNodeID()
-	}
-
-	if hasCollision {
+	if g.hasCollision(data.CandidateProfile.ShortID) {
 		return g.HostNetwork.BuildResponse(ctx, request, &rms.BootstrapResponse{Code: rms.BootstrapResponseCode_UpdateShortID}), nil
 	}
 
@@ -398,6 +412,64 @@ func validateTimestamp(timestamp int64, delta time.Duration) bool {
 	return time.Now().UTC().Sub(time.Unix(timestamp, 0)) < delta
 }
 
+func (g *Base) getDiscoveryCount() int {
+	nodes := make([]nodeinfo.NetworkNode, 0)
+	if na := g.NodeKeeper.FindAnyLatestNodeSnapshot(); na != nil {
+		nodes = na.GetPopulation().GetProfiles()
+	}
+
+	return len(network.FindDiscoveriesInNodeList(nodes, g.CertificateManager.GetCertificate()))
+}
+
+func (g *Base) getReconnectHost() (legacyhost.Host, error) {
+	var (
+		reconnectHost legacyhost.Host
+		err           error
+	)
+
+	ch := make(chan legacyhost.Host)
+	go func() {
+		var h legacyhost.Host
+		var n profiles.ActiveNode
+
+		g.mu.Lock()
+		defer g.mu.Unlock()
+		if len(g.reconnectNodes) > 0 {
+			n, g.reconnectNodes = g.reconnectNodes[0], g.reconnectNodes[1:]
+			h = nwapi.NewHostPort(nodeinfo.NodeAddr(n), false)
+
+			fmt.Printf("AuthRedirect reconnect: %s\n", h)
+		} else if !g.localRedirect {
+			h = nwapi.NewHostPort(g.localStatic.GetDefaultEndpoint().GetIPAddress().String(), false)
+			fmt.Printf("AuthRedirect local reconnect: %s\n", h)
+			g.localRedirect = true
+		}
+
+		ch <- h
+		close(ch)
+	}()
+
+	select {
+	case reconnectHost = <-ch:
+	case <-time.After(time.Second * 10):
+		err = throw.W(err, "failed to get reconnectHost timeout")
+	}
+
+	return reconnectHost, err
+}
+
+func (g *Base) getPermit(reconnectHost *legacyhost.Host) (*rms.Permit, error) {
+	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(adapters.ECDSAPublicKeyOfProfile(g.localStatic))
+	if err != nil {
+		return nil, err
+	}
+
+	return bootstrap.CreatePermit(g.NodeKeeper.GetLocalNodeReference(),
+		reconnectHost, pubKey,
+		g.CryptographyService,
+	)
+}
+
 func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
 	if request.GetRequest() == nil || request.GetRequest().GetAuthorize() == nil {
 		return nil, throw.Errorf("process authorize: got invalid protobuf request message: %s", request)
@@ -431,41 +503,29 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return g.HostNetwork.BuildResponse(ctx, request, &rms.AuthorizeResponse{Code: rms.AuthorizeResponseCode_WrongMandate, Error: err.Error()}), nil
 	}
 
-	var nodes []nodeinfo.NetworkNode
-	var discoveryCount int
-	if na := g.NodeKeeper.FindAnyLatestNodeSnapshot(); na != nil {
-		nodes = na.GetPopulation().GetProfiles()
+	reconnectHost, err := g.getReconnectHost()
+	switch {
+	case err != nil:
+		inslogger.FromContext(ctx).Warnf("AuthorizeRequest: failed to get reconnectHost: %s", err)
+		return nil, err
+	case !reconnectHost.CanConnect():
+		inslogger.FromContext(ctx).Warnf("AuthorizeRequest: failed to get valid reconnectHost")
+		return nil, throw.New("failed to get valid reconnectHost")
 	}
 
-	var reconnectHost nwapi.Address
-	if g.isJoinAssistant && len(nodes) > 1 && nodes != nil /* != is to fix annoying GoLand hint */ {
-		randNode := nodes[rand.Intn(len(nodes))]
-		reconnectHost = nwapi.NewHostPort(nodeinfo.NodeAddr(randNode), false)
+	inslogger.FromContext(ctx).Warnf("Got reconnectHost: %s", reconnectHost.String())
 
-		discoveryCount := len(network.FindDiscoveriesInNodeList(nodes, g.CertificateManager.GetCertificate()))
-		if discoveryCount == 0 {
-			err = throw.New("missing discoveries")
-			inslogger.FromContext(ctx).Warn("AuthorizeRequest: ", err)
-			return nil, err
-		}
-	} else {
-		// workaround bootstrap to the local node
-		reconnectHost = nwapi.NewHostPort(g.localStatic.GetDefaultEndpoint().GetNameAddress().String(), false)
-		discoveryCount = 1
-	}
-
-	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(adapters.ECDSAPublicKeyOfProfile(g.localStatic))
-	if err != nil {
-		err = throw.W(err, "failed to export PK")
+	discoveryCount := g.getDiscoveryCount()
+	if discoveryCount == 0 && !g.isJoinAssistant {
+		err = throw.New("missing discoveries")
 		inslogger.FromContext(ctx).Warn("AuthorizeRequest: ", err)
 		return nil, err
 	}
 
-	permit, err := bootstrap.CreatePermit(g.NodeKeeper.GetLocalNodeReference(),
-		&reconnectHost, pubKey,
-		g.CryptographyService,
-	)
+	permit, err := g.getPermit(&reconnectHost)
 	if err != nil {
+		err = throw.W(err, "failed to export PK")
+		inslogger.FromContext(ctx).Warn("AuthorizeRequest: ", err)
 		return nil, err
 	}
 

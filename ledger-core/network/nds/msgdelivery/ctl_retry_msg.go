@@ -18,6 +18,8 @@ type msgSender struct {
 	stages retries.StagedController
 	tracks ttlMap
 
+	marks  nodeMsgMarks
+
 	jobs chan retryJob
 	oob  chan *msgShipment
 }
@@ -88,8 +90,8 @@ func (p *msgSender) sendBodyOnly(msg *msgShipment) {
 	msg.sendBody()
 }
 
-func (p *msgSender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID)) {
-	p.jobs <- retryJob{ids, repeatFn}
+func (p *msgSender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID), bulkFn func([]retries.RetryID)) {
+	p.jobs <- retryJob{ids, repeatFn, bulkFn}
 }
 
 func (p *msgSender) CheckState(id retries.RetryID) retries.RetryState {
@@ -101,10 +103,7 @@ func (p *msgSender) CheckState(id retries.RetryID) retries.RetryState {
 }
 
 func (p *msgSender) get(shid ShipmentID) *msgShipment {
-	if msg := p.tracks.get(shid); msg != nil {
-		return msg
-	}
-	return nil
+	return p.tracks.get(shid)
 }
 
 func (p *msgSender) Remove(ids []retries.RetryID) {
@@ -129,31 +128,38 @@ func (p *msgSender) stop() {
 
 /**********************************/
 
-type nodeMarks struct {
+type nodeMsgMarks struct {
 	mutex sync.Mutex
-	marks map[uint32]struct{}
+	marks map[uint32]*retryMsgWorker
 }
 
-func (p *nodeMarks) unmark(id ShipmentID) {
+func (p *nodeMsgMarks) unmark(id ShipmentID) {
 	p.unmarkNode(id.NodeID())
 }
 
-func (p *nodeMarks) mark(id ShipmentID) bool {
-	return p.markNode(id.NodeID())
+func (p *nodeMsgMarks) mark(id ShipmentID, w *retryMsgWorker) (bool, *retryMsgWorker) {
+	return p.markNode(id.NodeID(), w)
 }
 
-func (p *nodeMarks) markNode(nid uint32) bool {
-	p.mutex.Lock()
-	if _, ok := p.marks[nid]; ok {
-		p.mutex.Unlock()
-		return false
+func (p *nodeMsgMarks) markNode(nid uint32, w *retryMsgWorker) (bool, *retryMsgWorker) {
+	if w == nil {
+		panic(throw.IllegalValue())
 	}
-	p.marks[nid] = struct{}{}
-	p.mutex.Unlock()
-	return true
+
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	if p.marks == nil {
+		p.marks = map[uint32]*retryMsgWorker{}
+	} else if owner, ok := p.marks[nid]; ok {
+		return false, owner
+	}
+
+	p.marks[nid] = w
+	return true, w
 }
 
-func (p *nodeMarks) unmarkNode(nid uint32) {
+func (p *nodeMsgMarks) unmarkNode(nid uint32) {
 	p.mutex.Lock()
 	delete(p.marks, nid)
 	p.mutex.Unlock()

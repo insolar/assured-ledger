@@ -6,6 +6,7 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "github.com/insolar/assured-ledger/ledger-core/insproto/ins.proto";
 import "rms.proto";
 import "proto_records.proto";
+import "proto_common.proto";
 
 option (insproto.notation_all) = true;
 option (insproto.zeroable_all) = true;
@@ -61,19 +62,6 @@ message MessageExample2 {
     // Add here custom fields
     uint64 MsgParam = 1800;
     bytes MsgBytes = 1801;
-}
-
-
-enum CallType {
-    CallTypeInvalid = 0; // zero value in Go
-    CallTypeInboundAPI = 1;
-    CallTypeOutboundAPI = 2;
-    CallTypeMethod = 3;
-    CallTypeConstructor = 4;
-    CallTypeNotify = 5;
-    CallTypeSAGA = 6;
-    CallTypeParallel = 7;
-    CallTypeSchedule = 8;
 }
 
 message VCallRequest {
@@ -198,8 +186,7 @@ message VStateReport {
 message ObjectState {
     Reference Reference = 20;
     Reference Class = 22;
-    Binary State = 23;
-    Binary PreviousState = 24;
+    Binary Memory = 23;
     bool Deactivated = 25;
 }
 
@@ -217,6 +204,8 @@ message VDelegatedRequestFinished {
     CallDelegationToken DelegationSpec = 26;
 
     ObjectState LatestState = 29 [(gogoproto.nullable) = true];
+
+    Transcript PendingTranscript = 30;
 }
 
 message VDelegatedCallRequest {
@@ -235,19 +224,6 @@ message VDelegatedCallResponse {
     Reference Callee = 20;
     Reference CallIncoming = 21;
     CallDelegationToken ResponseDelegationSpec = 22;
-}
-
-message CallDelegationToken {
-    option (insproto.id) = 1010;
-
-    uint32 TokenTypeAndFlags = 20 [(gogoproto.casttype) = "CallDelegationTokenType"];
-    Reference Approver = 21;
-    Reference DelegateTo = 22;
-    uint32 PulseNumber = 23 [(gogoproto.casttype) = "PulseNumber"];
-    Reference Callee = 24;
-    Reference Caller = 25;
-    Reference Outgoing = 26;
-    Binary ApproverSignature = 27;
 }
 
 message VFindCallRequest {
@@ -275,29 +251,59 @@ message VFindCallResponse {
 message VCachedMemoryRequest {
     option (insproto.id) = 1013;
     Reference Object = 21;
-    Reference StateID = 50;
+    Reference State = 22;
 }
 
 message VCachedMemoryResponse {
     option (insproto.id) = 1014;
     enum Status {
-        CachedMemoryStateUnknown = 0; // zero value in Go
+        CachedMemoryStateInvalid = 0; // zero value in Go
         CachedMemoryStateFound = 1;
-        CachedMemoryStateRedirect = 2;
+        CachedMemoryStateUnknown = 2;
         CachedMemoryStateMissing = 3;
     }
 
-    Reference Object = 21;
-    Reference StateID = 50;
-    Status CallStatus = 51;
-    Reference Node = 52;
-    Reference PrevStateID = 53;
-    bool Inactive = 25;
-    Binary Memory = 54;
+    Status CallStatus = 21;
+    ObjectState State = 22;
+}
+
+message Transcript {
+    option (insproto.id) = 1015;
+
+    message TranscriptEntryIncomingRequest {
+        option (insproto.id) = 101501;
+
+        Reference ObjectMemory = 1800;
+        Reference Incoming = 1801;
+        VCallRequest Request = 1802;
+    }
+    message TranscriptEntryOutgoingRequest {
+        option (insproto.id) = 101502;
+
+        Reference Request = 1800;
+        Reference Reason = 1801;
+    }
+    message TranscriptEntryOutgoingResult {
+        option (insproto.id) = 101503;
+
+        Reference OutgoingResult = 1800;
+        VCallResult CallResult = 1801;
+        Reference Reason = 1802;
+    }
+    message TranscriptEntryIncomingResult {
+        option (insproto.id) = 101504;
+
+        Reference IncomingResult = 1800;
+        Reference ObjectState = 1801;
+        Reference Reason = 1802;
+    }
+
+    // stub
+    repeated Any Entries = 1800;
 }
 
 message VObjectTranscriptReport {
-    option (insproto.id) = 1015;
+    option (insproto.id) = 1016;
 
     //*** Start of predefined section ***//
     reserved 1 to 18, 20 to 1799;
@@ -308,45 +314,13 @@ message VObjectTranscriptReport {
     uint32 AsOf = 1800 [(gogoproto.casttype) = "PulseNumber"];
     Reference Object = 1801;
 
-    message TranscriptEntryIncomingRequest {
-        option (insproto.id) = 101501;
+    repeated Transcript PendingTranscripts = 1802;
 
-        Reference ObjectMemory = 1800;
-        Reference Incoming = 1801;
-        bytes Request = 1802; // fixme: waiting for messages to move to RMS package
-    }
-    message TranscriptEntryOutgoingRequest {
-        option (insproto.id) = 101502;
-
-        Reference Outgoing = 1800;
-    }
-    message TranscriptEntryOutgoingResult {
-        option (insproto.id) = 101503;
-
-        Reference OutgoingResult = 1800;
-        bytes CallResult = 1801; // fixme: waiting for messages to move to RMS package
-    }
-    message TranscriptEntryIncomingResult {
-        option (insproto.id) = 101504;
-
-        Reference IncomingResult = 1800;
-        Reference ObjectState = 1801;
-    }
-
-    message Transcript {
-        option (insproto.id) = 0;
-
-        // stub
-        repeated Any Entries = 1800;
-    }
-
-    repeated Transcript PendingTranscripts = 1803;
-
-    Transcript ObjectTranscript = 1804;
+    Transcript ObjectTranscript = 1803;
 }
 
 message VObjectValidationReport {
-    option (insproto.id) = 1016;
+    option (insproto.id) = 1017;
     Reference Object = 21;
     uint32 In = 55 [(gogoproto.casttype) = "PulseNumber"];
     Reference Validated = 50;

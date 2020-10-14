@@ -46,7 +46,6 @@ func (n *gatewayer) SwitchState(ctx context.Context, state network.State, pulse 
 	}
 
 	gateway := n.gateway.NewGateway(ctx, state)
-	gateway.BeforeRun(ctx, pulse)
 
 	n.gateway = gateway
 	go n.gateway.Run(ctx, pulse)

@@ -19,7 +19,6 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/bootstrap"
-	pulsewatcher "github.com/insolar/assured-ledger/ledger-core/cmd/pulsewatcher/config"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -55,6 +54,95 @@ var (
 		"127.0.0.1:53113",
 		"127.0.0.1:54114",
 		"127.0.0.1:51115",
+
+		"127.0.0.1:51215",
+		"127.0.0.1:51219",
+
+		"127.0.0.1:51315",
+		"127.0.0.1:51319",
+		"127.0.0.1:51415",
+		"127.0.0.1:51515",
+		"127.0.0.1:51615",
+		"127.0.0.1:51715",
+		"127.0.0.1:51815",
+		"127.0.0.1:51915",
+		"127.0.0.1:51919",
+
+		"127.0.0.1:52315",
+		"127.0.0.1:52319",
+		"127.0.0.1:52415",
+		"127.0.0.1:52515",
+		"127.0.0.1:52615",
+		"127.0.0.1:52715",
+		"127.0.0.1:52815",
+		"127.0.0.1:52915",
+		"127.0.0.1:52919",
+
+		"127.0.0.1:53305",
+		"127.0.0.1:53315",
+		"127.0.0.1:53319",
+		"127.0.0.1:53415",
+		"127.0.0.1:53515",
+		"127.0.0.1:53615",
+		"127.0.0.1:53715",
+		"127.0.0.1:53815",
+		"127.0.0.1:53915",
+		"127.0.0.1:53919",
+
+		"127.0.0.1:54305",
+		"127.0.0.1:54315",
+		"127.0.0.1:54319",
+		"127.0.0.1:54415",
+		"127.0.0.1:54515",
+		"127.0.0.1:54615",
+		"127.0.0.1:54715",
+		"127.0.0.1:54815",
+		"127.0.0.1:54915",
+		"127.0.0.1:54919",
+
+		"127.0.0.1:55305",
+		"127.0.0.1:55315",
+		"127.0.0.1:55319",
+		"127.0.0.1:55415",
+		"127.0.0.1:55515",
+		"127.0.0.1:55615",
+		"127.0.0.1:55715",
+		"127.0.0.1:55815",
+		"127.0.0.1:55915",
+		"127.0.0.1:55919",
+
+		"127.0.0.1:56305",
+		"127.0.0.1:56315",
+		"127.0.0.1:56319",
+		"127.0.0.1:56415",
+		"127.0.0.1:56515",
+		"127.0.0.1:56615",
+		"127.0.0.1:56715",
+		"127.0.0.1:56815",
+		"127.0.0.1:56915",
+		"127.0.0.1:56919",
+
+		"127.0.0.1:57305",
+		"127.0.0.1:57315",
+		"127.0.0.1:57319",
+		"127.0.0.1:57415",
+		"127.0.0.1:57515",
+		"127.0.0.1:57615",
+		"127.0.0.1:57715",
+		"127.0.0.1:57815",
+		"127.0.0.1:57915",
+		"127.0.0.1:57919",
+
+		"127.0.0.1:58305",
+		"127.0.0.1:58315",
+		"127.0.0.1:58319",
+		"127.0.0.1:58415",
+		"127.0.0.1:58515",
+		"127.0.0.1:58615",
+		"127.0.0.1:58715",
+		"127.0.0.1:58815",
+		"127.0.0.1:58915",
+		"127.0.0.1:58919",
 	}
 )
 
@@ -66,7 +154,6 @@ var (
 	fileLogTemplate                  = withBaseDir("logs/discoverynodes/%d/output.log")
 	nodeDataDirectoryTemplate        = "nodes/%d/data"
 	nodeCertificatePathTemplate      = "nodes/%d/cert.json"
-	pulsewatcherFileName             = withBaseDir("pulsewatcher.yaml")
 
 	prometheusConfigTmpl = "scripts/prom/server.yml.tmpl"
 	prometheusFileName   = "prometheus.yaml"
@@ -76,6 +163,9 @@ var (
 
 	pulsardConfigTmpl = "scripts/insolard/pulsar_template.yaml"
 	pulsardFileName   = withBaseDir("pulsar.yaml")
+
+	pulseWatcherConfigTmpl = "scripts/insolard/pulsewatcher_template.yaml"
+	pulseWatcherFileName   = withBaseDir("pulsewatcher.yaml")
 
 	keeperdConfigTmpl = "scripts/insolard/keeperd_template.yaml"
 	keeperdFileName   = withBaseDir("keeperd.yaml")
@@ -187,7 +277,7 @@ func main() {
 	bootstrapConf, err := bootstrap.ParseConfig(bootstrapFileName)
 	check("Can't read bootstrap config", err)
 
-	pwConfig := pulsewatcher.Config{}
+	pwConfig := configuration.NewPulseWatcherConfiguration()
 	discoveryNodesConfigs := make([]configuration.Configuration, 0, len(bootstrapConf.DiscoveryNodes))
 
 	promVars := &promConfigVars{
@@ -301,10 +391,8 @@ func main() {
 
 	pwConfig.Interval = 500 * time.Millisecond
 	pwConfig.Timeout = 1 * time.Second
-	mustMakeDir(filepath.Dir(pulsewatcherFileName))
-	err = pulsewatcher.WriteConfig(pulsewatcherFileName, pwConfig)
-	check("couldn't write pulsewatcher config file", err)
-	fmt.Println("generate_insolar_configs.go: write to file", pulsewatcherFileName)
+	writePulseWatcherConfig(pwConfig)
+	fmt.Println("generate_insolar_configs.go: write to file", pulseWatcherFileName)
 }
 
 type node struct {
@@ -365,6 +453,17 @@ func writePulsarConfig(pcv *pulsarConfigVars) {
 	check("Can't process template: "+pulsardConfigTmpl, err)
 	err = makeFile(pulsardFileName, b.String())
 	check("Can't makeFileWithDir: "+pulsardFileName, err)
+}
+
+func writePulseWatcherConfig(pcv configuration.PulseWatcherConfig) {
+	templates, err := template.ParseFiles(pulseWatcherConfigTmpl)
+	check("Can't parse template: "+pulseWatcherConfigTmpl, err)
+
+	var b bytes.Buffer
+	err = templates.Execute(&b, &pcv)
+	check("Can't process template: "+pulseWatcherConfigTmpl, err)
+	err = makeFile(pulseWatcherFileName, b.String())
+	check("Can't makeFileWithDir: "+pulseWatcherFileName, err)
 }
 
 func writeKeeperdConfig() {
