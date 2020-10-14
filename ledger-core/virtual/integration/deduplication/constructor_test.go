@@ -292,16 +292,8 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	}
 
 	if test.VDelegatedRequestFinished != nil {
-		objectRef := server.RandomGlobalWithPulse()
-		deactivateRequest := utils.GenerateVCallRequestMethod(server)
-		deactivateRequest.Callee.Set(objectRef)
-		deactivateRequest.CallSiteMethod = "Destroy"
-		outgoing := server.BuildRandomOutgoingWithPulse()
-		deactivateRequest.CallOutgoing.Set(outgoing)
-
-		prevStateRef := server.RandomRecordOf(objectRef)
-		stateRef := server.RandomRecordOf(objectRef)
-		pendingTranscript := utils.BuildIncomingTranscript(*deactivateRequest, prevStateRef, stateRef)
+		stateRef := server.RandomRecordOf(object)
+		pendingTranscript := utils.BuildIncomingTranscript(pl, nil, stateRef)
 
 		test.VDelegatedRequestFinished = &rms.VDelegatedRequestFinished{
 			CallType:     rms.CallTypeConstructor,
@@ -310,7 +302,7 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 			CallOutgoing: rms.NewReference(outgoing),
 			CallIncoming: rms.NewReference(reference.NewRecordOf(class, outgoing.GetLocal())),
 			LatestState: &rms.ObjectState{
-				Reference: rms.NewReference(server.RandomRecordOf(object)),
+				Reference: rms.NewReference(stateRef),
 				Class:     rms.NewReference(class),
 				Memory:    rms.NewBytes(ExecutionResultFromPreviousNode),
 			},
