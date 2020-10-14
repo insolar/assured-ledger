@@ -21,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/stepchecker"
@@ -110,11 +109,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 		execCtx := smachine.NewExecutionContextMock(mc).
 			NewBargeInWithParamMock.Return(smachine.BargeInWithParam{}).
 			PublishGlobalAliasAndBargeInMock.Return(true).
-			SleepMock.Set(
-			func() (c1 smachine.ConditionalBuilder) {
-				return smachine.NewStateConditionalBuilderMock(t).
-					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepWaitAndRegisterOutgoingResult))
-			})
+			JumpMock.Return(smachine.StateUpdate{})
 
 		smExecute.stepSendOutgoing(execCtx)
 	}
@@ -131,7 +126,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 
 	{ // check step after migration
 		execCtx := smachine.NewExecutionContextMock(mc).
-			SleepMock.Set(testutils.AssertConditionalBuilderJumpStep(t, smExecute.stepWaitAndRegisterOutgoingResult))
+			JumpMock.Return(smachine.StateUpdate{})
 
 		smExecute.stepSendOutgoing(execCtx)
 	}

@@ -47,6 +47,7 @@ import (
 	virtualtestutils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/validation"
 )
 
 func executeLeakCheck(t *testing.T) {
@@ -77,6 +78,7 @@ func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 		Interference: sm.Payload.CallFlags.GetInterference(),
 		State:        sm.Payload.CallFlags.GetState(),
 	}
+	sm.transcript = validation.NewTranscript()
 	return sm
 }
 
