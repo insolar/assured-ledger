@@ -24,8 +24,7 @@ import (
 //go:generate sm-uml-gen -f $GOFILE
 
 type CachedMemoryReportAwaitKey struct {
-	Object reference.Global
-	State  reference.Local
+	State rms.Reference
 }
 
 type SMGetCachedMemory struct {
@@ -35,12 +34,11 @@ type SMGetCachedMemory struct {
 
 	// input
 	Object reference.Global
-	State  reference.Local
+	State  reference.Global
 	// output
 	Result descriptor.Object
 
-	stateGlobal reference.Global
-	response    *rms.VCachedMemoryResponse
+	response *rms.VCachedMemoryResponse
 }
 
 /* -------- Declaration ------------- */
@@ -83,15 +81,13 @@ func (s *SMGetCachedMemory) Init(ctx smachine.InitializationContext) smachine.St
 		panic(throw.IllegalValue())
 	}
 
-	s.stateGlobal = reference.NewRecordOf(s.Object, s.State)
-
 	return ctx.Jump(s.stepProcess)
 }
 
 func (s *SMGetCachedMemory) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	done := false
 	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
-		obj, err := svc.Get(ctx, s.stateGlobal)
+		obj, err := svc.Get(ctx, s.State)
 		return func(ctx smachine.AsyncResultContext) {
 			defer func() { done = true }()
 			s.Result = obj
@@ -126,18 +122,19 @@ func (s *SMGetCachedMemory) stepRequestMemory(ctx smachine.ExecutionContext) sma
 		}
 	})
 
-	key := CachedMemoryReportAwaitKey{Object: s.Object, State: s.State}
+	key := CachedMemoryReportAwaitKey{State: rms.NewReferenceLocal(s.State)}
 	if !ctx.PublishGlobalAliasAndBargeIn(key, bargeInCallback) {
 		return ctx.Error(throw.E("failed to publish bargeIn callback"))
 	}
 
 	msg := rms.VCachedMemoryRequest{
-		Object:  rms.NewReference(s.Object),
-		StateID: rms.NewReferenceLocal(s.State),
+		Object: rms.NewReference(s.Object),
+		State:  rms.NewReferenceLocal(s.State),
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &msg, affinity.DynamicRoleVirtualExecutor, s.Object, s.State.GetPulseNumber())
+		pulse := s.State.GetLocal().GetPulseNumber()
+		err := svc.SendRole(goCtx, &msg, affinity.DynamicRoleVirtualExecutor, s.Object, pulse)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)
@@ -168,14 +165,14 @@ func (s *SMGetCachedMemory) stepProcessResponse(ctx smachine.ExecutionContext) s
 
 	s.Result = descriptor.NewObject(
 		s.Object,
-		s.State,
-		s.response.Class.GetValue(),
-		s.response.Memory.GetBytes(),
-		s.response.Inactive,
+		s.State.GetLocal(),
+		s.response.State.Class.GetValue(),
+		s.response.State.Memory.GetBytes(),
+		s.response.State.Deactivated,
 	)
 
 	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
-		err := svc.Set(ctx, s.stateGlobal, s.Result)
+		err := svc.Set(ctx, s.State, s.Result)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to set memory", err)

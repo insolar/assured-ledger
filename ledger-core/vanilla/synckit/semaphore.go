@@ -35,6 +35,10 @@ func (v Semaphore) TryLock() bool {
 	}
 }
 
+func (v Semaphore) IsFull() bool {
+	return len(v.sema) == cap(v.sema)
+}
+
 func (v Semaphore) LockTimeout(d time.Duration) bool {
 	return v.LockExt(d, nil)
 }

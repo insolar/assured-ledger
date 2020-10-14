@@ -42,7 +42,7 @@ func (s *SMVCachedMemoryResponse) Init(ctx smachine.InitializationContext) smach
 }
 
 func (s *SMVCachedMemoryResponse) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	key := statemachine.CachedMemoryReportAwaitKey{Object: s.Payload.Object.GetValue(), State: s.Payload.StateID.GetValueWithoutBase()}
+	key := statemachine.CachedMemoryReportAwaitKey{State: s.Payload.State.Reference}
 
 	link, bargeInCallback := ctx.GetPublishedGlobalAliasAndBargeIn(key)
 	if link.IsZero() {

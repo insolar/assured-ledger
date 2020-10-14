@@ -186,7 +186,8 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 	})
 
 	report := utils.NewStateReportBuilder().
-		Pulse(prevPulse.GetPulseNumber()).Ready().Object(object).Memory(walletMemory).Report()
+		Pulse(prevPulse.GetPulseNumber()).Ready().Object(object).
+		Class(testwalletProxy.GetClass()).Memory(walletMemory).Report()
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 	server.SendPayload(ctx, &report)

@@ -43,45 +43,27 @@ func TestVirtual_ObjectValidationReport_EmptyCache(t *testing.T) {
 	defer server.Stop()
 
 	var (
-		objectGlobal = rms.NewReference(server.RandomGlobalWithPulse())
-		stateRef     = rms.NewReference(server.RandomGlobalWithPulse())
-		class        = rms.NewReference(server.RandomGlobalWithPulse())
+		objectGlobal = server.RandomGlobalWithPulse()
+		stateRef     = reference.NewRecordOf(objectGlobal, server.RandomLocalWithPulse())
+		class        = server.RandomGlobalWithPulse()
 	)
-
-	server.IncrementPulse(ctx)
 
 	// send VStateReport
 	{
-		prevPulse := server.GetPrevPulse().PulseNumber
+		report := server.StateReportBuilder().Object(objectGlobal).Ready().Class(class).Report()
 
-		report := &rms.VStateReport{
-			AsOf:   prevPulse,
-			Status: rms.StateStatusReady,
-			Object: objectGlobal,
-			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
-					Class:     class,
-					Memory:    rms.NewBytes([]byte("dirty state")),
-				},
-				LatestValidatedState: &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
-					Class:     class,
-					Memory:    rms.NewBytes([]byte("dirty state")),
-				},
-			},
-		}
+		server.IncrementPulse(ctx)
 		waitReport := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-		server.SendPayload(ctx, report)
+		server.SendPayload(ctx, &report)
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, waitReport)
 	}
 
 	// send VObjectValidationReport
 	{
 		validationReport := &rms.VObjectValidationReport{
-			Object:    objectGlobal,
+			Object:    rms.NewReference(objectGlobal),
 			In:        server.GetPulse().PulseNumber,
-			Validated: stateRef,
+			Validated: rms.NewReference(stateRef),
 		}
 		waitValidationReport := server.Journal.WaitStopOf(&handlers.SMVObjectValidationReport{}, 1)
 		waitSubroutine := server.Journal.WaitStopOf(&statemachine.SMGetCachedMemory{}, 1)
@@ -209,10 +191,9 @@ func (s *testSuite) addCheckers(t *testing.T, ctx context.Context, vCallRequestO
 	// add typedChecker
 	{
 		s.typedChecker.VCachedMemoryResponse.Set(func(response *rms.VCachedMemoryResponse) bool {
-			assert.Equal(t, s.objectGlobal, response.Object.GetValue())
-			assert.Equal(t, s.objDesc.State(), response.StateID.GetValue())
-			assert.Equal(t, []byte("new state"), response.Memory.GetBytes())
-			assert.False(t, response.Inactive)
+			assert.Equal(t, s.objDesc.State(), response.State.Reference.GetValue())
+			assert.Equal(t, []byte("new state"), response.State.Memory.GetBytes())
+			assert.False(t, response.State.Deactivated)
 			return false
 		})
 		s.typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
@@ -267,7 +248,7 @@ func (s *testSuite) sendVObjectValidationReport(t *testing.T, ctx context.Contex
 func (s *testSuite) sendVCachedMemoryRequest(t *testing.T, ctx context.Context) {
 	pl := &rms.VCachedMemoryRequest{
 		Object:  rms.NewReference(s.objectGlobal),
-		StateID: rms.NewReferenceLocal(s.objDesc.State().GetLocal()),
+		State: rms.NewReference(s.objDesc.State()),
 	}
 	executeDone := s.server.Journal.WaitStopOf(&handlers.SMVCachedMemoryRequest{}, 1)
 	s.server.SendPayload(ctx, pl)
