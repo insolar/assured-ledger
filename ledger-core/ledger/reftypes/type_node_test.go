@@ -69,6 +69,9 @@ func TestNodeRef(t *testing.T) {
 
 	_, _, err = UnpackNodeContractRef(nodeRef)
 	assert.Error(t, err)
+
+	require.True(t, tDefNode.CanBeDerivedWith(0, reference.NewLocal(pulse.MinTimePulse, 0, reference.LocalHash{})))
+	require.False(t, tDefNode.CanBeDerivedWith(0, reference.Empty().GetLocal()))
 }
 
 func TestNodeContractRef(t *testing.T) {
@@ -98,3 +101,13 @@ func TestNodeRefDetect(t *testing.T) {
 	assert.Equal(t, NodeContract, tDefNode.DetectSubType(nodeContractRef.GetBase(), nodeContractRef.GetLocal()))
 }
 
+func TestTypeNode_RefFrom(t *testing.T) {
+	nodeRef := NodeRef(reference.LocalHash{0xDE, 0xAD, 0xBE, 0xEF})
+	newNodeRef, err := tDefNode.RefFrom(nodeRef.GetBase(), nodeRef.GetLocal())
+	require.NoError(t, err)
+	require.Equal(t, nodeRef, newNodeRef)
+
+	tDefNodeContract.RefFrom(nodeRef.GetBase(), nodeRef.GetLocal())
+	require.NoError(t, err)
+	require.Equal(t, nodeRef, newNodeRef)
+}
