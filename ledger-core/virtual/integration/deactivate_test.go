@@ -58,7 +58,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				objectGlobal     = server.RandomGlobalWithPulse()
+				objectGlobal   = server.RandomGlobalWithPulse()
 				validatedState = []byte("initial state")
 				dirtyState     = validatedState
 			)
@@ -883,6 +883,8 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 				stateRef = server.RandomRecordOf(objectRef)
 				outgoing = server.BuildRandomOutgoingWithPulse()
 				incoming = reference.NewRecordOf(objectRef, outgoing.GetLocal())
+
+				pl *rms.VCallRequest
 			)
 
 			server.IncrementPulseAndWaitIdle(ctx)
@@ -929,7 +931,26 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
 				assert.Equal(t, objectRef, report.Object.GetValue())
 				assert.Equal(t, checkOutgoing.GetLocal().Pulse(), report.AsOf)
-				//assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+				if testCase.isolation.Interference == isolation.CallTolerable {
+					// VCallResult error: "try to call method on deactivated object"
+					// todo: we should write VCallResult with 4-type error in transcript ?
+					assert.Empty(t, report.ObjectTranscript.Entries)
+				} else {
+					assert.NotEmpty(t, report.ObjectTranscript.Entries)
+
+					transcript := report.ObjectTranscript
+					assert.Equal(t, 2, len(transcript.Entries))
+
+					request1, ok := transcript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
+					require.True(t, ok)
+					require.Equal(t, checkOutgoing, request1.Request.CallOutgoing.GetValue())
+					utils.AssertVCallRequestEqual(t, pl, &request1.Request)
+
+					result1, ok := transcript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+					require.True(t, ok)
+					require.Equal(t, p1, result1.ObjectState.GetValue().GetLocal().Pulse())
+					require.Equal(t, checkOutgoing, result1.Reason.GetValue())
+				}
 				return false
 			})
 			typedChecker.VDelegatedCallResponse.Set(func(response *rms.VDelegatedCallResponse) bool {
@@ -979,23 +1000,20 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			}
 
 			{ // send delegation request finished with deactivate flag
-				var (
-					plWrapper      = utils.GenerateVCallRequestConstructor(server)
-					constructorReq = plWrapper.Get()
-					outgoingP1     = constructorReq.CallOutgoing.GetValue()
-					object         = reference.NewSelf(outgoingP1.GetLocal())
-				)
-				afterPendingStateID := server.RandomLocalWithPulse()
-				dirtyStateRef := reference.NewRecordOf(object, afterPendingStateID)
+				deactivateRequest := utils.GenerateVCallRequestMethod(server)
+				deactivateRequest.Callee.Set(objectRef)
+				deactivateRequest.CallSiteMethod = "Destroy"
+				deactivateRequest.CallOutgoing.Set(outgoing)
 
-				pendingTranscript := utils.BuildIncomingTranscript(constructorReq, nil, dirtyStateRef)
+				prevStateRef := server.RandomRecordOf(objectRef)
+				pendingTranscript := utils.BuildIncomingTranscript(*deactivateRequest, prevStateRef, stateRef)
 
 				pl := rms.VDelegatedRequestFinished{
-					CallType:     rms.CallTypeMethod,
-					Callee:       rms.NewReference(objectRef),
-					CallOutgoing: rms.NewReference(outgoing),
-					CallIncoming: rms.NewReference(incoming),
-					CallFlags:    rms.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
+					CallType:          rms.CallTypeMethod,
+					Callee:            rms.NewReference(objectRef),
+					CallOutgoing:      rms.NewReference(outgoing),
+					CallIncoming:      rms.NewReference(incoming),
+					CallFlags:         rms.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
 					PendingTranscript: pendingTranscript,
 					LatestState: &rms.ObjectState{
 						Reference:   rms.NewReference(stateRef),
@@ -1009,7 +1027,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			}
 
 			{
-				pl := utils.GenerateVCallRequestMethod(server)
+				pl = utils.GenerateVCallRequestMethod(server)
 				pl.CallFlags = rms.BuildCallFlags(testCase.isolation.Interference, testCase.isolation.State)
 				pl.Callee.Set(objectRef)
 				pl.CallSiteMethod = "Check"
