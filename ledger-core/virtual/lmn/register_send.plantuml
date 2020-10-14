@@ -1,0 +1,29 @@
+@startuml
+state "Init" as T01_S001
+T01_S001 : SubSMRegisterRecordSend
+[*] --> T01_S001
+T01_S001 --> T01_S002
+state "s.messageSender" as T01_S003 <<sdlreceive>>
+state "stepSendRequest" as T01_S002
+T01_S002 : SubSMRegisterRecordSend
+T01_S002 --> [*] : [len()==0]
+T01_S002 --> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
+T01_S002 --> T01_S003 : PrepareAsync(ctx).WithoutAutoWakeUp()
+T01_S002 --> T01_S004
+state "stepUpdateSafeCount" as T01_S004
+T01_S004 : SubSMRegisterRecordSend
+T01_S004 --> T01_S004 : [!stateUpdate.IsEmpty()]
+T01_S004 --> T01_S005
+state "stepWaitResponse" as T01_S005
+T01_S005 : SubSMRegisterRecordSend
+T01_S005 --> [*] : [s.sendError!=nil]\nError
+T01_S005 --[dashed]> T01_S005 : [s.sendResult==nil]\nSleep
+T01_S005 --> T01_S002
+state "GetInitStateFor" as T00_S001
+T00_S001 : dSubSMRegisterRecordSend
+[*] --> T00_S001
+state "nil" as T00_U001
+T00_U001 : dSubSMRegisterRecordSend
+T00_U001 : UNKNOWN 
+T00_S001 --> T00_U001
+@enduml

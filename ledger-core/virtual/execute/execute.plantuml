@@ -3,15 +3,15 @@ state "Init" as T01_S002
 T01_S002 : SMExecute
 [*] --> T01_S002
 T01_S002 --> T01_S003 : Migrate: s.migrationDefault
-state "StepWaitExecutionResult" as T01_S026
-T01_S026 : SMExecute
-T01_S026 --[dotted]> T01_S021
-T01_S026 --[dashed]> T01_S026 : [s.executionNewState==nil]\nSleep
-T01_S026 --> T01_S027
-state "migrateDuringExecution" as T01_S021
-T01_S021 : SMExecute
-T01_S021 --> [*] : [...&&(...).delegationTokenSpec.IsZero()]\nError
-T01_S021 --> T01_S022
+state "StepWaitExecutionResult" as T01_S029
+T01_S029 : SMExecute
+T01_S029 --[dotted]> T01_S024
+T01_S029 --[dashed]> T01_S029 : [s.executionNewState==nil]\nSleep
+T01_S029 --> T01_S030
+state "migrateDuringExecution" as T01_S024
+T01_S024 : SMExecute
+T01_S024 --> [*] : [...&&(...).delegationTokenSpec.IsZero()]\nError
+T01_S024 --> T01_S025
 state "migrationDefault" as T01_S001
 T01_S001 : SMExecute
 T01_S001 --> [*]
@@ -19,15 +19,15 @@ state "s.messageSender" as T01_S011 <<sdlreceive>>
 T01_S011 : DUPLICATE
 state "s.runner" as T01_S008 <<sdlreceive>>
 T01_S008 : DUPLICATE
-state "shareObjectAccess" as T01_S050
-T01_S050 : SMExecute
-T01_S050 --[dashed]> T01_S050 : [smachine.NotPassed]\nWaitShared
-state "stepAwaitSMCallSummary" as T01_S045
-T01_S045 : SMExecute
-T01_S045 --[dotted]> T01_S021
-T01_S045 --[dotted]> T01_S001
-T01_S045 --[dashed]> T01_S045 : [smachine.NotPassed]\n[(...).AcquireForThisStep().IsNotPassed()]...\nWaitShared, Sleep
-T01_S045 --> T01_S046
+state "shareObjectAccess" as T01_S062
+T01_S062 : SMExecute
+T01_S062 --[dashed]> T01_S062 : [smachine.NotPassed]\nWaitShared
+state "stepAwaitSMCallSummary" as T01_S057
+T01_S057 : SMExecute
+T01_S057 --[dotted]> T01_S024
+T01_S057 --[dotted]> T01_S001
+T01_S057 --[dashed]> T01_S057 : [smachine.NotPassed]\n[(...).AcquireForThisStep().IsNotPassed()]...\nWaitShared, Sleep
+T01_S057 --> T01_S058
 state "stepCheckRequest" as T01_S003
 T01_S003 : SMExecute
 T01_S003 --[dotted]> T01_S001
@@ -46,64 +46,64 @@ T01_S010 --[dotted]> T01_S001
 T01_S010 --> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
 T01_S010 --> T01_S011 : PrepareAsync(ctx).WithoutAutoWakeUp()
 T01_S010 --> T01_S012
-state "stepExecuteAborted" as T01_S029
-T01_S029 : SMExecute
-T01_S029 --[dotted]> T01_S021
+state "stepExecuteAborted" as T01_S032
+T01_S032 : SMExecute
+T01_S032 --[dotted]> T01_S024
 state T01_U001 <<fork>>
-T01_S029 --> T01_U001
+T01_S032 --> T01_U001
 T01_U001 --> T01_S008 : PrepareExecutionAbort(ctx)
-T01_U001 --[dashed]> T01_S048
-state "stepExecuteContinue" as T01_S038
-T01_S038 : SMExecute
-T01_S038 --[dotted]> T01_S021
+T01_U001 --[dashed]> T01_S060
+state "stepExecuteContinue" as T01_S047
+T01_S047 : SMExecute
+T01_S047 --[dotted]> T01_S024
 state T01_U002 <<fork>>
-T01_S038 --> T01_U002
+T01_S047 --> T01_U002
 T01_U002 --> T01_S008 : Migrate: s
-T01_U002 --[dashed]> T01_S026 : migrateDuringExecution\nPrepareExecutionContinue(ctx).
-state "stepExecuteDecideNextStep" as T01_S027
-T01_S027 : SMExecute
-T01_S027 --[dotted]> T01_S021
-T01_S027 --> T01_S039 : [execution.Done]
-T01_S027 --> T01_S029 : [execution.Error]
-T01_S027 --> T01_S029 : [execution.Abort]
-T01_S027 --> T01_S028 : [execution.OutgoingCall]
-state "stepExecuteOutgoing" as T01_S028
+T01_U002 --[dashed]> T01_S029 : migrateDuringExecution\nPrepareExecutionContinue(ctx).
+state "stepExecuteDecideNextStep" as T01_S030
+T01_S030 : SMExecute
+T01_S030 --[dotted]> T01_S024
+T01_S030 --> T01_S048 : [execution.Done]
+T01_S030 --> T01_S032 : [execution.Error]
+T01_S030 --> T01_S032 : [execution.Abort]
+T01_S030 --> T01_S031 : [execution.OutgoingCall]
+state "stepExecuteOutgoing" as T01_S031
+T01_S031 : SMExecute
+T01_S031 --[dotted]> T01_S024
+T01_S031 --> T01_S047 : [s.intolerableCall()]
+T01_S031 --> T01_S047 : [s.intolerableCall()]
+T01_S031 --> T01_S047 : [...&&(...).Interference()==isolation.CallTolerable]
+T01_S031 --> T01_S033 : [s.outgoing!=nil]
+T01_S031 --> T01_S047
+state "stepExecuteStart" as T01_S028
 T01_S028 : SMExecute
-T01_S028 --[dotted]> T01_S021
-T01_S028 --> T01_S038 : [s.intolerableCall()]
-T01_S028 --> T01_S038 : [s.intolerableCall()]
-T01_S028 --> T01_S038 : [...&&(...).Interference()==isolation.CallTolerable]
-T01_S028 --> T01_S030 : [s.outgoing!=nil]
-T01_S028 --> T01_S038
-state "stepExecuteStart" as T01_S025
-T01_S025 : SMExecute
-T01_S025 --[dotted]> T01_S021
+T01_S028 --[dotted]> T01_S024
 state T01_U003 <<fork>>
-T01_S025 --> T01_U003
+T01_S028 --> T01_U003
 T01_U003 --> T01_S008 : PrepareExecutionStart(ctx)
-T01_U003 --[dashed]> T01_S026
-state "stepFinishRequest" as T01_S049
-T01_S049 : SMExecute
-T01_S049 --[dotted]> T01_S021
-T01_S049 --[dotted]> T01_S001
-T01_S049 --> T01_S045 : [s.execution.Result!=nil]
-T01_S049 --> T01_S047
-T01_S049 --> T01_S049 : [!stepUpdate.IsEmpty()]
-T01_S049 --> [*]
-state "stepGetDelegationToken" as T01_S022
-T01_S022 : SMExecute
-T01_S022 --[dotted]> T01_S021
-T01_S022 --> T01_S023 : CallSubroutine
-state "stepGetDelegationToken.2" as T01_S024
-T01_S024 : SMExecute
-T01_S024 --[dotted]> T01_S021
-T01_S024 --> T01_S033 : [s.outgoingSentCounter>0]
+T01_U003 --[dashed]> T01_S029
+state "stepFinishRequest" as T01_S061
+T01_S061 : SMExecute
+T01_S061 --[dotted]> T01_S024
+T01_S061 --[dotted]> T01_S001
+T01_S061 --> T01_S057 : [s.execution.Result!=nil]
+T01_S061 --> T01_S059
+T01_S061 --> T01_S061 : [!stepUpdate.IsEmpty()]
+T01_S061 --> [*]
+state "stepGetDelegationToken" as T01_S025
+T01_S025 : SMExecute
+T01_S025 --[dotted]> T01_S024
+T01_S025 --> T01_S026 : CallSubroutine
+state "stepGetDelegationToken.2" as T01_S027
+T01_S027 : SMExecute
+T01_S027 --[dotted]> T01_S024
+T01_S027 --> T01_S039 : [s.outgoingSentCounter>0]
 state "DYNAMIC stepAfterTokenGet" as T01_U004
 T01_U004 : SMExecute
 T01_U004 : UNKNOWN 
-T01_S024 --> T01_U004
-state "stepGetDelegationToken.subroutineSM.1" as T01_S023 <<sdlreceive>>
-T01_S023 --> T01_S024
+T01_S027 --> T01_U004
+state "stepGetDelegationToken.subroutineSM.1" as T01_S026 <<sdlreceive>>
+T01_S026 --> T01_S027
 state "stepGetObject" as T01_S004
 T01_S004 : SMExecute
 T01_S004 --[dotted]> T01_S001
@@ -112,12 +112,12 @@ T01_S004 --> T01_S005
 state "stepIsolationNegotiation" as T01_S007
 T01_S007 : SMExecute
 T01_S007 --[dotted]> T01_S001
-T01_S007 --> T01_S048 : [s.executionNewState!=nil]
+T01_S007 --> T01_S060 : [s.executionNewState!=nil]
 state T01_U005 <<fork>>
 T01_S007 --> T01_U005 : [s.methodIsolation.IsZero()]
 T01_U005 --> T01_S008 : PrepareExecutionClassify(ctx)
 T01_U005 --[dashed]> T01_S007 : Sleep
-T01_S007 --> T01_S048 : [err!=nil]
+T01_S007 --> T01_S060 : [err!=nil]
 T01_S007 --> T01_S009
 state "stepProcessFindCallResponse" as T01_S013
 T01_S013 : SMExecute
@@ -126,12 +126,12 @@ T01_S013 --> [*] : [...&&(...).findCallResponse.CallResult==nil]
 T01_S013 --> T01_S011 : PrepareAsync(ctx).WithoutAutoWakeUp()
 T01_S013 --> [*] : [...&&(...).findCallResponse.CallResult!=nil]
 T01_S013 --> T01_S014 : [(...).findCallResponse.Status==rms.CallStateUnknown]
-state "stepPublishDataCallSummary" as T01_S046
-T01_S046 : SMExecute
-T01_S046 --[dotted]> T01_S021
-T01_S046 --[dotted]> T01_S001
-T01_S046 --[dashed]> T01_S046 : [smachine.NotPassed]\nWaitShared
-T01_S046 --> T01_S047
+state "stepPublishDataCallSummary" as T01_S058
+T01_S058 : SMExecute
+T01_S058 --[dotted]> T01_S024
+T01_S058 --[dotted]> T01_S001
+T01_S058 --[dashed]> T01_S058 : [smachine.NotPassed]\nWaitShared
+T01_S058 --> T01_S059
 state "stepRegisterObjectLifeLine" as T01_S015
 T01_S015 : SMExecute
 T01_S015 --[dotted]> T01_S001
@@ -139,91 +139,137 @@ T01_S015 --> T01_S016 : CallSubroutine
 state "stepRegisterObjectLifeLine.2" as T01_S017
 T01_S017 : SMExecute
 T01_S017 --[dotted]> T01_S001
-T01_S017 --> [*] : [ctx.GetError()!=nil]\nError
 T01_S017 --> T01_S018
-state "stepRegisterObjectLifeLine.2.1" as T01_S018
-T01_S018 : SMExecute
-T01_S018 --[dotted]> T01_S001
-T01_S018 --[dashed]> T01_S018 : [ctx.Acquire().IsNotPassed()]\nSleep
-T01_S018 --> T01_S019
 state "stepRegisterObjectLifeLine.subroutineSM.1" as T01_S016 <<sdlreceive>>
 T01_S016 --> T01_S017
-state "stepRegisterObjectLifelineAfter" as T01_S019
-T01_S019 : SMExecute
-T01_S019 --[dotted]> T01_S001
-T01_S019 --> T01_S019 : [!stepUpdate.IsEmpty()]
-T01_S019 --> T01_S020
-state "stepRegisterOutgoing" as T01_S030
-T01_S030 : SMExecute
-T01_S030 --[dotted]> T01_S021
-T01_S030 --> T01_S031 : CallSubroutine
-state "stepRegisterOutgoing.2" as T01_S032
-T01_S032 : SMExecute
-T01_S032 --[dotted]> T01_S021
-T01_S032 --> T01_S033
-state "stepRegisterOutgoing.subroutineSM.1" as T01_S031 <<sdlreceive>>
-T01_S031 --> T01_S032
-state "stepSaveExecutionResult" as T01_S041
-T01_S041 : SMExecute
-T01_S041 --[dotted]> T01_S021
-T01_S041 --> T01_S042 : CallSubroutine
-state "stepSaveExecutionResult.2" as T01_S043
-T01_S043 : SMExecute
-T01_S043 --[dotted]> T01_S021
-T01_S043 --> T01_S044
-state "stepSaveExecutionResult.subroutineSM.1" as T01_S042 <<sdlreceive>>
-T01_S042 --> T01_S043
-state "stepSaveNewObject" as T01_S044
-T01_S044 : SMExecute
-T01_S044 --[dotted]> T01_S021
-T01_S044 --[dashed]> T01_S044 : [!ctx.Acquire().IsPassed()]\n[!stepUpdate.IsEmpty()]...\nSleep
-T01_S044 --> T01_S048 : [(...).migrationHappened||s.newObjectDescriptor==nil]
-T01_S044 --> T01_S048
-state "stepSendCallResult" as T01_S048
-T01_S048 : SMExecute
-T01_S048 --[dotted]> T01_S021
-T01_S048 --[dotted]> T01_S001
-T01_S048 --> T01_S049
-state "stepSendDelegatedRequestFinished" as T01_S047
-T01_S047 : SMExecute
-T01_S047 --[dotted]> T01_S021
-T01_S047 --[dotted]> T01_S001
-T01_S047 --> [*]
-state "stepSendOutgoing" as T01_S033
-T01_S033 : SMExecute
-T01_S033 --[dotted]> T01_S021
-T01_S033 --> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
-T01_S033 --> [*] : [(...).outgoingSentCounter>=MaxOutgoingSendCount]\nError
-T01_S033 --> T01_S011 : PrepareAsync(ctx).WithoutAutoWakeUp()
-T01_S033 --[dashed]> T01_S034 : Sleep
-state "stepStartRequestProcessing" as T01_S020
+state "stepRegisterObjectLifeLineSend" as T01_S018
+T01_S018 : SMExecute
+T01_S018 --[dotted]> T01_S001
+T01_S018 --[dashed]> T01_S018 : [s.lmnMessages==nil]\nSleep
+T01_S018 --> T01_S019 : CallSubroutine
+state "stepRegisterObjectLifeLineSend.2" as T01_S020
 T01_S020 : SMExecute
 T01_S020 --[dotted]> T01_S001
-T01_S020 --> T01_S020 : [!stepUpdate.IsEmpty()]
-T01_S020 --> T01_S048 : [isDeactivated]
-T01_S020 --> T01_S025 : Migrate: s.migrateDuringExecution
+T01_S020 --> [*] : [ctx.GetError()!=nil]\nError
+T01_S020 --> T01_S021
+state "stepRegisterObjectLifeLineSend.2.1" as T01_S021
+T01_S021 : SMExecute
+T01_S021 --[dotted]> T01_S001
+T01_S021 --[dashed]> T01_S021 : [ctx.Acquire().IsNotPassed()]\nSleep
+T01_S021 --> T01_S022
+state "stepRegisterObjectLifeLineSend.subroutineSM.1" as T01_S019 <<sdlreceive>>
+T01_S019 --> T01_S020
+state "stepRegisterObjectLifelineAfter" as T01_S022
+T01_S022 : SMExecute
+T01_S022 --[dotted]> T01_S001
+T01_S022 --> T01_S022 : [!stepUpdate.IsEmpty()]
+T01_S022 --> T01_S023
+state "stepRegisterOutgoing" as T01_S033
+T01_S033 : SMExecute
+T01_S033 --[dotted]> T01_S024
+T01_S033 --> T01_S034 : CallSubroutine
+state "stepRegisterOutgoing.2" as T01_S035
+T01_S035 : SMExecute
+T01_S035 --[dotted]> T01_S024
+T01_S035 --> T01_S036
+state "stepRegisterOutgoing.subroutineSM.1" as T01_S034 <<sdlreceive>>
+T01_S034 --> T01_S035
+state "stepRegisterOutgoingResultSend" as T01_S043
+T01_S043 : SMExecute
+T01_S043 --[dotted]> T01_S024
+T01_S043 --[dashed]> T01_S043 : [s.lmnMessages==nil]\nSleep
+T01_S043 --> T01_S044 : CallSubroutine
+state "stepRegisterOutgoingResultSend.2" as T01_S045
+T01_S045 : SMExecute
+T01_S045 --[dotted]> T01_S024
+T01_S045 --> T01_S046
+state "stepRegisterOutgoingResultSend.2.1" as T01_S046
+T01_S046 : SMExecute
+T01_S046 --[dotted]> T01_S024
+T01_S046 --[dashed]> T01_S046 : [ctx.Acquire().IsNotPassed()]\nSleep
+T01_S046 --> T01_S047
+state "stepRegisterOutgoingResultSend.subroutineSM.1" as T01_S044 <<sdlreceive>>
+T01_S044 --> T01_S045
+state "stepRegisterOutgoingSend" as T01_S036
+T01_S036 : SMExecute
+T01_S036 --[dotted]> T01_S024
+T01_S036 --[dashed]> T01_S036 : [s.lmnMessages==nil]\nSleep
+T01_S036 --> T01_S037 : CallSubroutine
+state "stepRegisterOutgoingSend.2" as T01_S038
+T01_S038 : SMExecute
+T01_S038 --[dotted]> T01_S024
+T01_S038 --> [*] : [ctx.GetError()!=nil]\nError
+T01_S038 --> T01_S039
+state "stepRegisterOutgoingSend.subroutineSM.1" as T01_S037 <<sdlreceive>>
+T01_S037 --> T01_S038
+state "stepSaveExecutionResult" as T01_S050
+T01_S050 : SMExecute
+T01_S050 --[dotted]> T01_S024
+T01_S050 --> T01_S051 : CallSubroutine
+state "stepSaveExecutionResult.2" as T01_S052
+T01_S052 : SMExecute
+T01_S052 --[dotted]> T01_S024
+T01_S052 --> T01_S053
+state "stepSaveExecutionResult.subroutineSM.1" as T01_S051 <<sdlreceive>>
+T01_S051 --> T01_S052
+state "stepSaveExecutionResultSend" as T01_S053
+T01_S053 : SMExecute
+T01_S053 --[dotted]> T01_S024
+T01_S053 --[dashed]> T01_S053 : [s.lmnMessages==nil]\nSleep
+T01_S053 --> T01_S054 : CallSubroutine
+state "stepSaveExecutionResultSend.2" as T01_S055
+T01_S055 : SMExecute
+T01_S055 --[dotted]> T01_S024
+T01_S055 --> [*] : [ctx.GetError()!=nil]\nError
+T01_S055 --> T01_S056
+state "stepSaveExecutionResultSend.subroutineSM.1" as T01_S054 <<sdlreceive>>
+T01_S054 --> T01_S055
+state "stepSaveNewObject" as T01_S056
+T01_S056 : SMExecute
+T01_S056 --[dotted]> T01_S024
+T01_S056 --[dashed]> T01_S056 : [!ctx.Acquire().IsPassed()]\n[!stepUpdate.IsEmpty()]...\nSleep
+T01_S056 --> T01_S060 : [(...).migrationHappened||s.newObjectDescriptor==nil]
+T01_S056 --> T01_S060
+state "stepSendCallResult" as T01_S060
+T01_S060 : SMExecute
+T01_S060 --[dotted]> T01_S024
+T01_S060 --[dotted]> T01_S001
+T01_S060 --> T01_S061
+state "stepSendDelegatedRequestFinished" as T01_S059
+T01_S059 : SMExecute
+T01_S059 --[dotted]> T01_S024
+T01_S059 --[dotted]> T01_S001
+T01_S059 --> [*]
+state "stepSendOutgoing" as T01_S039
+T01_S039 : SMExecute
+T01_S039 --[dotted]> T01_S024
+T01_S039 --> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
+T01_S039 --> [*] : [(...).outgoingSentCounter>=MaxOutgoingSendCount]\nError
+T01_S039 --> T01_S011 : PrepareAsync(ctx).WithoutAutoWakeUp()
+T01_S039 --[dashed]> T01_S040 : Sleep
+state "stepStartRequestProcessing" as T01_S023
+T01_S023 : SMExecute
+T01_S023 --[dotted]> T01_S001
+T01_S023 --> T01_S023 : [!stepUpdate.IsEmpty()]
+T01_S023 --> T01_S060 : [isDeactivated]
+T01_S023 --> T01_S028 : Migrate: s.migrateDuringExecution
 state "stepTakeLock" as T01_S014
 T01_S014 : SMExecute
 T01_S014 --[dotted]> T01_S001
 T01_S014 --[dashed]> T01_S014 : [!stepUpdate.IsEmpty()]\n[ctx.Acquire().IsNotPassed()]...\nSleep
 T01_S014 --> T01_S015 : [s.isConstructor]
-T01_S014 --> T01_S020
-state "stepWaitAndRegisterOutgoingResult" as T01_S034
-T01_S034 : SMExecute
-T01_S034 --[dotted]> T01_S021
-T01_S034 --[dashed]> T01_S034 : [s.outgoingVCallResult==nil]\nSleep
-T01_S034 --> T01_S035 : CallSubroutine
-state "stepWaitAndRegisterOutgoingResult.2" as T01_S036
-T01_S036 : SMExecute
-T01_S036 --[dotted]> T01_S021
-T01_S036 --> T01_S037
-state "stepWaitAndRegisterOutgoingResult.2.1" as T01_S037
-T01_S037 : SMExecute
-T01_S037 --[dotted]> T01_S021
-T01_S037 --[dashed]> T01_S037 : [ctx.Acquire().IsNotPassed()]\nSleep
-T01_S037 --> T01_S038
-state "stepWaitAndRegisterOutgoingResult.subroutineSM.1" as T01_S035 <<sdlreceive>>
-T01_S035 --> T01_S036
+T01_S014 --> T01_S023
+state "stepWaitAndRegisterOutgoingResult" as T01_S040
+T01_S040 : SMExecute
+T01_S040 --[dotted]> T01_S024
+T01_S040 --[dashed]> T01_S040 : [s.outgoingVCallResult==nil]\nSleep
+T01_S040 --> T01_S041 : CallSubroutine
+state "stepWaitAndRegisterOutgoingResult.2" as T01_S042
+T01_S042 : SMExecute
+T01_S042 --[dotted]> T01_S024
+T01_S042 --> T01_S043
+state "stepWaitAndRegisterOutgoingResult.subroutineSM.1" as T01_S041 <<sdlreceive>>
+T01_S041 --> T01_S042
 state "stepWaitFindCallResponse" as T01_S012
 T01_S012 : SMExecute
 T01_S012 --[dotted]> T01_S001
@@ -234,7 +280,7 @@ T01_S005 : SMExecute
 T01_S005 --[dotted]> T01_S001
 T01_S005 --[dashed]> T01_S005 : [!stepUpdate.IsEmpty()]\n[(...).AcquireForThisStep().IsNotPassed()]...\nSleep
 T01_S005 --> T01_S007 : [s.isConstructor]
-T01_S005 --> T01_S048 : [object.Missing]
+T01_S005 --> T01_S060 : [object.Missing]
 T01_S005 --> T01_S007 : [(...).pendingConstructorFinished.IsZero()]
 T01_S005 --> T01_S006
 state "stepWaitPendingConstructorFinished" as T01_S006
@@ -242,16 +288,16 @@ T01_S006 : SMExecute
 T01_S006 --[dotted]> T01_S001
 T01_S006 --[dashed]> T01_S006 : [ctx.Acquire().IsNotPassed()]\n[!stepUpdate.IsEmpty()]...\nSleep
 T01_S006 --> T01_S007
-state "stepWaitSafeAnswers" as T01_S040
-T01_S040 : SMExecute
-T01_S040 --[dotted]> T01_S021
-T01_S040 --> T01_S040 : [!stateUpdate.IsEmpty()]
-T01_S040 --> T01_S041
-state "stepWaitSafeAnswersRelease" as T01_S039
-T01_S039 : SMExecute
-T01_S039 --[dotted]> T01_S021
-T01_S039 --> T01_S048 : [(...).isIntolerableCallChangeState()]
-T01_S039 --> T01_S040
+state "stepWaitSafeAnswers" as T01_S049
+T01_S049 : SMExecute
+T01_S049 --[dotted]> T01_S024
+T01_S049 --> T01_S049 : [!stateUpdate.IsEmpty()]
+T01_S049 --> T01_S050
+state "stepWaitSafeAnswersRelease" as T01_S048
+T01_S048 : SMExecute
+T01_S048 --[dotted]> T01_S024
+T01_S048 --> T01_S060 : [(...).isIntolerableCallChangeState()]
+T01_S048 --> T01_S049
 state "GetInitStateFor" as T00_S001
 T00_S001 : dSMExecute
 [*] --> T00_S001

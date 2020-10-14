@@ -8,14 +8,9 @@
 package lmn
 
 import (
-	"context"
-
-	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
-	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
@@ -24,7 +19,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/execute/shared"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
@@ -48,55 +42,6 @@ func isConstructor(request *rms.VCallRequest) bool {
 	return request.CallType == rms.CallTypeConstructor
 }
 
-type Message struct {
-	payload            rmsreg.GoGoSerializable
-	registrarSignature rms.Binary
-	resultKey          ResultAwaitKey
-}
-
-func (m Message) ResultReceived() bool {
-	return !m.registrarSignature.IsEmpty()
-}
-
-func (m *Message) SetResult(signature rms.Binary) {
-	m.registrarSignature = signature
-}
-
-func (m Message) Payload() rmsreg.GoGoSerializable {
-	return m.payload
-}
-
-func (m *Message) CheckKey(key ResultAwaitKey) bool {
-	return m.resultKey == key
-}
-
-type MessagesHolder struct {
-	messages     []*Message
-	sentPosition int
-}
-
-func (s *MessagesHolder) AppendMessage(record rmsreg.GoGoSerializable, resultKey ResultAwaitKey) {
-	s.messages = append(s.messages, &Message{
-		payload:   record,
-		resultKey: resultKey,
-	})
-}
-
-func (s *MessagesHolder) NextUnsentMessage() *Message {
-	s.sentPosition++
-	if s.sentPosition >= len(s.messages) {
-		return nil
-	}
-	return s.messages[s.sentPosition]
-}
-
-func (s *MessagesHolder) CurrentSentMessage() *Message {
-	if s.sentPosition < 0 && s.sentPosition >= len(s.messages) {
-		panic(throw.IllegalState())
-	}
-	return s.messages[s.sentPosition]
-}
-
 type SubSMRegister struct {
 	// input arguments
 	Incoming          *rms.VCallRequest
@@ -106,7 +51,6 @@ type SubSMRegister struct {
 	IncomingResult    *execution.Update
 	Interference      isolation.InterferenceFlag
 	ObjectSharedState object.SharedStateAccessor
-	DryRun            bool
 
 	Object          reference.Global
 	LastFilamentRef reference.Global
@@ -116,19 +60,16 @@ type SubSMRegister struct {
 	PulseNumber         pulse.Number
 
 	// internal data
-	messages     MessagesHolder
-	requiredSafe int
-	sendError    error
 
 	// output arguments
 	NewObjectRef       reference.Global
 	NewLastFilamentRef reference.Global
 	NewLastLifelineRef reference.Global
+	Messages           []SerializableBasicMessage
 
 	// DI
-	messageSender messageSenderAdapter.MessageSender
-	pulseSlot     *conveyor.PulseSlot
-	refBuilder    RecordReferenceBuilderService
+	pulseSlot  *conveyor.PulseSlot
+	refBuilder RecordReferenceBuilderService
 }
 
 var dSubSMRegisterInstance smachine.StateMachineDeclaration = &dSubSMRegister{}
@@ -140,7 +81,6 @@ type dSubSMRegister struct {
 func (*dSubSMRegister) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := sm.(*SubSMRegister)
 
-	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.refBuilder)
 }
@@ -179,66 +119,8 @@ func (s *SubSMRegister) getRecordAnticipatedRef(record SerializableBasicRecord) 
 	return s.refBuilder.AnticipatedRefFromBytes(s.Object, pulseNumber, data)
 }
 
-func (s *SubSMRegister) bargeInHandler(param interface{}) smachine.BargeInCallbackFunc {
-	res, ok := param.(*rms.LRegisterResponse)
-	if !ok || res == nil {
-		panic(throw.IllegalValue())
-	}
-
-	return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-		var key = NewResultAwaitKey(res.AnticipatedRef, res.Flags)
-
-		unsentMsg := s.messages.CurrentSentMessage()
-		if !unsentMsg.CheckKey(key) {
-			panic(throw.E("Message order is broken"))
-		}
-
-		unsentMsg.SetResult(res.RegistrarSignature)
-
-		return ctx.WakeUp()
-	}
-}
-
 func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.LRegisterRequest) error {
-	var (
-		waitFlag   = msg.Flags
-		bargeInKey ResultAwaitKey
-	)
-
-	if s.DryRun {
-		s.messages.AppendMessage(msg, ResultAwaitKey{})
-
-		return nil
-	}
-
-	switch msg.Flags {
-	case rms.RegistrationFlags_FastSafe:
-		s.requiredSafe++
-
-		// TODO: add destructor to finish that SM's if not all answers were
-		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			return &SMWaitSafeResponse{
-				ObjectSharedState:   s.ObjectSharedState,
-				ExpectedKey:         NewResultAwaitKey(msg.AnticipatedRef, rms.RegistrationFlags_Safe),
-				SafeResponseCounter: s.SafeResponseCounter,
-			}
-		})
-
-		waitFlag = rms.RegistrationFlags_Fast
-
-		fallthrough
-	case rms.RegistrationFlags_Fast, rms.RegistrationFlags_Safe:
-		bargeIn := ctx.NewBargeInWithParam(s.bargeInHandler)
-		bargeInKey = NewResultAwaitKey(msg.AnticipatedRef, waitFlag)
-
-		if !ctx.PublishGlobalAliasAndBargeIn(bargeInKey, bargeIn) {
-			return throw.E("failed to publish bargeIn callback")
-		}
-	default:
-		panic(throw.IllegalValue())
-	}
-
-	s.messages.AppendMessage(msg, NewResultAwaitKey(msg.AnticipatedRef, waitFlag))
+	s.Messages = append(s.Messages, msg)
 
 	return nil
 }
@@ -246,9 +128,6 @@ func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.
 func (s *SubSMRegister) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	// do not do anything on migration, let parent SM to decide what needs to be done
 	ctx.SetDefaultMigration(func(ctx smachine.MigrationContext) smachine.StateUpdate { return ctx.Stop() })
-
-	// initialize message handler
-	s.messages.sentPosition = -1
 
 	// possible variants here:
 	// all
@@ -434,7 +313,7 @@ func (s *SubSMRegister) stepRegisterLifeline(ctx smachine.ExecutionContext) smac
 		return ctx.Error(err)
 	}
 
-	return ctx.Jump(s.stepSaveSafeCounter)
+	return ctx.Jump(s.stepUpdateFilaments)
 }
 
 func (s *SubSMRegister) stepRegisterIncoming(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -504,7 +383,7 @@ func (s *SubSMRegister) stepRegisterOutgoing(ctx smachine.ExecutionContext) smac
 
 	s.LastFilamentRef = anticipatedRef
 
-	return ctx.Jump(s.stepSaveSafeCounter)
+	return ctx.Jump(s.stepUpdateFilaments)
 }
 
 func (s *SubSMRegister) stepRegisterOutgoingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -529,7 +408,7 @@ func (s *SubSMRegister) stepRegisterOutgoingResult(ctx smachine.ExecutionContext
 
 	s.LastFilamentRef = anticipatedRef
 
-	return ctx.Jump(s.stepSaveSafeCounter)
+	return ctx.Jump(s.stepUpdateFilaments)
 }
 
 func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -657,76 +536,14 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 		}
 	}
 
-	return ctx.Jump(s.stepSaveSafeCounter)
+	return ctx.Jump(s.stepUpdateFilaments)
 }
 
-func (s *SubSMRegister) stepSaveSafeCounter(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SubSMRegister) stepUpdateFilaments(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	// save new intermediate state
 	s.NewLastLifelineRef = s.LastLifelineRef
 	s.NewLastFilamentRef = s.LastFilamentRef
 	s.NewObjectRef = s.Object
 
-	if s.requiredSafe < 0 {
-		panic(throw.IllegalState())
-	}
-
-	if s.DryRun {
-		return ctx.Jump(s.stepDone)
-	}
-
-	stateUpdate := shared.CounterIncrement(ctx, s.SafeResponseCounter, s.requiredSafe)
-	if !stateUpdate.IsEmpty() {
-		return stateUpdate
-	}
-
-	return ctx.Jump(s.stepSendMessage)
-}
-
-func (s *SubSMRegister) stepSendMessage(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.pulseSlot == nil {
-		panic(throw.IllegalState())
-	}
-
-	var (
-		obj          = s.Object
-		msg          = s.messages.NextUnsentMessage()
-		currentPulse = s.pulseSlot.CurrentPulseNumber()
-	)
-
-	if msg == nil {
-		return ctx.Jump(s.stepDone)
-	}
-
-	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, msg.Payload(), affinity.DynamicRoleLightExecutor, obj, currentPulse)
-		return func(ctx smachine.AsyncResultContext) {
-			s.sendError = throw.W(err, "failed to send LRegisterRequest message")
-		}
-	}).WithoutAutoWakeUp().Start()
-
-	return ctx.Jump(s.stepWaitResponse)
-}
-
-func (s *SubSMRegister) stepWaitResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.sendError != nil {
-		return ctx.Error(s.sendError)
-	}
-
-	if !s.messages.CurrentSentMessage().ResultReceived() {
-		return ctx.Sleep().ThenRepeat()
-	}
-
-	return ctx.Jump(s.stepSendMessage)
-}
-
-func (s *SubSMRegister) stepDone(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Stop()
-}
-
-func (s *SubSMRegister) GetMessages() []rmsreg.GoGoSerializable {
-	messages := make([]rmsreg.GoGoSerializable, 0, len(s.messages.messages))
-	for _, msg := range s.messages.messages {
-		messages = append(messages, msg.payload)
-	}
-	return messages
 }
