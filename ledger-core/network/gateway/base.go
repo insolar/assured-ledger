@@ -437,11 +437,8 @@ func (g *Base) getReconnectHost() (legacyhost.Host, error) {
 		if len(g.reconnectNodes) > 0 {
 			n, g.reconnectNodes = g.reconnectNodes[0], g.reconnectNodes[1:]
 			h = nwapi.NewHostPort(nodeinfo.NodeAddr(n), false)
-
-			fmt.Printf("AuthRedirect reconnect: %s\n", h)
 		} else if !g.localRedirect {
 			h = nwapi.NewHostPort(g.localStatic.GetDefaultEndpoint().GetIPAddress().String(), false)
-			fmt.Printf("AuthRedirect local reconnect: %s\n", h)
 			g.localRedirect = true
 		}
 
@@ -512,8 +509,6 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		inslogger.FromContext(ctx).Warnf("AuthorizeRequest: failed to get valid reconnectHost")
 		return nil, throw.New("failed to get valid reconnectHost")
 	}
-
-	inslogger.FromContext(ctx).Warnf("Got reconnectHost: %s", reconnectHost.String())
 
 	discoveryCount := g.getDiscoveryCount()
 	if discoveryCount == 0 && !g.isJoinAssistant {
