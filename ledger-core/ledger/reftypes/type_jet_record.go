@@ -13,6 +13,9 @@ import (
 )
 
 func JetRecordRef(id jet.ID, recordRef reference.LocalHolder) reference.Global {
+	if id == 0 {
+		panic(throw.IllegalValue())
+	}
 	local := recordRef.GetLocal()
 	if !pulseZeroScope(local.GetHeader()).IsTimePulse() {
 		panic(throw.IllegalValue())
@@ -109,7 +112,8 @@ func UnpackAsJetRecordOf(ref reference.Holder) (jet.DropID, reference.Local, err
 /**********************************************/
 
 var _ RefTypeDef = typeDefJetRecord{}
-type typeDefJetRecord struct {}
+
+type typeDefJetRecord struct{}
 
 func (typeDefJetRecord) CanBeDerivedWith(pulse.Number, reference.Local) bool {
 	return false
