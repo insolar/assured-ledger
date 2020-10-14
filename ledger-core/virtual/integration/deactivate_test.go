@@ -58,7 +58,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				objectGlobal     = server.RandomGlobalWithPulse()
+				objectGlobal   = server.RandomGlobalWithPulse()
 				validatedState = []byte("initial state")
 				dirtyState     = validatedState
 			)
@@ -997,48 +997,20 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			}
 
 			{ // send delegation request finished with deactivate flag
-				/*
-					typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+				deactivateRequest := utils.GenerateVCallRequestMethod(server)
+				deactivateRequest.Callee.Set(objectRef)
+				deactivateRequest.CallSiteMethod = "Destroy"
+				deactivateRequest.CallOutgoing.Set(outgoing)
 
-					var (
-						plWrapper      = utils.GenerateVCallRequestConstructor(server)
-						constructorReq = plWrapper.Get()
-						class          = constructorReq.Callee.GetValue()
-						outgoingP1     = constructorReq.CallOutgoing.GetValue()
-						object         = reference.NewSelf(outgoingP1.GetLocal())
-
-						incomingP1 = reference.NewRecordOf(object, outgoingP1.GetLocal())
-						p1         = server.GetPulse().PulseNumber
-						isolation  = contract.MethodIsolation{
-							Interference: isolation.CallIntolerable,
-							State:        isolation.CallDirty, // use dirty state because R0 does not copy dirty to validated state
-						}
-						getDelegated = false
-					)
-
-					bytes := []byte("after pending state")
-					afterPendingStateID := server.RandomLocalWithPulse()
-					dirtyStateRef := reference.NewRecordOf(object, afterPendingStateID)
-
-					pendingTranscript := buildIncomingTranscript(constructorReq, nil, dirtyStateRef)
-				*/
-				var (
-					plWrapper      = utils.GenerateVCallRequestConstructor(server)
-					constructorReq = plWrapper.Get()
-					outgoingP1     = constructorReq.CallOutgoing.GetValue()
-					object         = reference.NewSelf(outgoingP1.GetLocal())
-				)
-				afterPendingStateID := server.RandomLocalWithPulse()
-				dirtyStateRef := reference.NewRecordOf(object, afterPendingStateID)
-
-				pendingTranscript := buildIncomingTranscript(constructorReq, nil, dirtyStateRef)
+				prevStateRef := server.RandomRecordOf(objectRef)
+				pendingTranscript := buildIncomingTranscript(*deactivateRequest, prevStateRef, stateRef)
 
 				pl := rms.VDelegatedRequestFinished{
-					CallType:     rms.CallTypeMethod,
-					Callee:       rms.NewReference(objectRef),
-					CallOutgoing: rms.NewReference(outgoing),
-					CallIncoming: rms.NewReference(incoming),
-					CallFlags:    rms.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
+					CallType:          rms.CallTypeMethod,
+					Callee:            rms.NewReference(objectRef),
+					CallOutgoing:      rms.NewReference(outgoing),
+					CallIncoming:      rms.NewReference(incoming),
+					CallFlags:         rms.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
 					PendingTranscript: pendingTranscript,
 					LatestState: &rms.ObjectState{
 						Reference:   rms.NewReference(stateRef),
