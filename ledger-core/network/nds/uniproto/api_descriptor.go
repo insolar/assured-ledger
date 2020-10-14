@@ -15,19 +15,20 @@ type Descriptor struct {
 	// Certificate / signature? then needs unified_packet
 
 	// Supporter is optional
-	Supporter        Supporter
+	Supporter Supporter
 	// SupportedPackets is a list of packet types supported by the protocol.
 	// There are some restrictions on protocol type / packet type combinations. See ProtocolType.
 	SupportedPackets PacketDescriptors
 }
 
 func (d Descriptor) IsSupported() bool {
+	// todo: possible  bug
 	return d.SupportedPackets[0].IsSupported()
 }
 
 // PacketDescriptor defines flags and packet size limit for a given packet type of a protocol.
 type PacketDescriptor struct {
-	Flags      Flags
+	Flags Flags
 	// LengthBits is a number of bits used to represent maximum size of a packet.
 	// When LengthBits is [0..4], less than MinLengthBits, then the packet is considered as disabled.
 	// When LengthBits is over ExcessiveLengthBits then this packet can't be supported yet.
