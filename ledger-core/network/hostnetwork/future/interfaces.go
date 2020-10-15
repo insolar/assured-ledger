@@ -13,8 +13,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
 var (
@@ -31,7 +31,7 @@ type Future interface {
 	ID() types.RequestID
 
 	// Receiver returns the initiator of the packet.
-	Receiver() *legacyhost.Host
+	Receiver() nwapi.Address
 
 	// Request returns origin request.
 	Request() network.Packet

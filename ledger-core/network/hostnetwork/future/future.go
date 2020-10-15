@@ -12,13 +12,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
 type future struct {
 	response       chan network.ReceivedPacket
-	receiver       *legacyhost.Host
+	receiver       nwapi.Address
 	request        *rms.Packet
 	requestID      types.RequestID
 	cancelCallback CancelCallback
@@ -26,7 +26,7 @@ type future struct {
 }
 
 // NewFuture creates a new Future.
-func NewFuture(requestID types.RequestID, receiver *legacyhost.Host, packet *rms.Packet, cancelCallback CancelCallback) Future {
+func NewFuture(requestID types.RequestID, receiver nwapi.Address, packet *rms.Packet, cancelCallback CancelCallback) Future {
 	metrics.NetworkFutures.WithLabelValues(packet.GetType().String()).Inc()
 	return &future{
 		response:       make(chan network.ReceivedPacket, 1),
@@ -43,7 +43,7 @@ func (f *future) ID() types.RequestID {
 }
 
 // Receiver returns Host address that was used to create packet.
-func (f *future) Receiver() *legacyhost.Host {
+func (f *future) Receiver() nwapi.Address {
 	return f.receiver
 }
 
