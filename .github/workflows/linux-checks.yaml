@@ -111,6 +111,10 @@ jobs:
         with:
           name: integration_extended_test_linux
           path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/integration_extended_test.log
+      - name: Run benchmarks for 1 iteration
+        if: always()
+        run: make benchmarks_1x
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Run functional tests multiple times with race detector
         if: always()
         run: make test_func_race
