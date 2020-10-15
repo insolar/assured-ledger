@@ -44,7 +44,6 @@ type distributor struct {
 
 	pulseRequestTimeout time.Duration
 
-	publicAddress  string
 	bootstrapHosts []string
 	unifiedServer  *uniserver.UnifiedServer
 }

@@ -24,7 +24,7 @@ func NewPulsarUniserver() *uniserver.UnifiedServer {
 	sk := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), servicenetwork.TestSigningMethod, cryptkit.PublicAsymmetricKey)
 	skBytes[0] = 1
 
-	unifiedServer := uniserver.NewUnifiedServer(&dispatcher, servicenetwork.TestLogAdapter{context.Background()})
+	unifiedServer := uniserver.NewUnifiedServer(&dispatcher, servicenetwork.TestLogAdapter{Ctx: context.Background()})
 	unifiedServer.SetConfig(uniserver.ServerConfig{
 		BindingAddress: "127.0.0.1:0",
 		UDPMaxSize:     1400,

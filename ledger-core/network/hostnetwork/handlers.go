@@ -56,7 +56,6 @@ func (s *StreamHandler) HandleStream(ctx context.Context, reader io.Reader) {
 		}
 
 		mainLogger.Warnf("[ HandleStream ] Failed to deserialize packet: ", err.Error())
-		panic("[ HandleStream ] Failed to deserialize packet")
 		return
 	}
 

@@ -48,7 +48,7 @@ func (v TestDataSigner) DigestBytes(b []byte) cryptkit.Digest {
 }
 
 func (v TestDataSigner) NewHasher() cryptkit.DigestHasher {
-	return cryptkit.DigestHasher{v, crc32.NewIEEE()}
+	return cryptkit.DigestHasher{BasicDigester: v, Hash: crc32.NewIEEE()}
 }
 
 /**************************************/
