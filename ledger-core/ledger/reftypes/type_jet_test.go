@@ -64,6 +64,8 @@ func TestJetLocalRef(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, jet.ID(77), jetId)
 
+	_, err = UnpackJetLocalRef(reference.Empty())
+	require.Contains(t, err.Error(), ErrIllegalRefValue.Error())
 }
 
 func TestJetRef(t *testing.T) {
@@ -93,6 +95,9 @@ func TestJetRef(t *testing.T) {
 	jetId, err := UnpackJetRef(jetRef2)
 	assert.NoError(t, err)
 	assert.Equal(t, jet.ID(77), jetId)
+
+	_, err = UnpackJetRef(reference.Empty())
+	require.Contains(t, err.Error(), ErrIllegalRefValue.Error())
 
 	assert.False(t, tDefJet.CanBeDerivedWith(jetRef1.GetLocal().Pulse(), jetRef1.GetLocal()))
 

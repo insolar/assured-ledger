@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	ErrTimePulseRequired = throw.W(ErrIllegalRefValue, "time-pulse required")
-	ErrScopeNotImplemented = throw.W(ErrIllegalRefValue, "scopes are not implemented")
+	ErrTimePulseRequired        = throw.W(ErrIllegalRefValue, "time-pulse required")
+	ErrScopeNotImplemented      = throw.W(ErrIllegalRefValue, "scopes are not implemented")
 	ErrTimePulseNoScopeRequired = throw.W(ErrIllegalRefValue, "time-pulse with lifeline scope is required")
-	ErrLocalBeforeBase = throw.W(ErrIllegalRefValue, "local pulse is before base pulse")
+	ErrLocalBeforeBase          = throw.W(ErrIllegalRefValue, "local pulse is before base pulse")
 )
 
 func LifelineRef(base reference.Local) reference.Global {
@@ -53,7 +53,7 @@ func ensureObjRef(base, local reference.Local) {
 		panic(throw.NotImplemented())
 	case !pulseZeroScope(local.GetHeader()).IsTimePulse():
 		panic(throw.IllegalValue())
-	case base.Pulse() <	local.Pulse():
+	case base.Pulse() < local.Pulse():
 		panic(throw.IllegalValue())
 	}
 }
@@ -66,7 +66,7 @@ func inspectObjRef(base, local reference.Local) error {
 		return ErrScopeNotImplemented
 	case !pulseZeroScope(local.GetHeader()).IsTimePulse():
 		return ErrTimePulseNoScopeRequired
-	case base.Pulse() <	local.Pulse():
+	case base.Pulse() < local.Pulse():
 		return ErrLocalBeforeBase
 	}
 	return nil
@@ -103,7 +103,8 @@ func UnpackObjectLocalRef(ref reference.Local) (reference.Local, error) {
 /*****************************************************/
 
 var _ RefTypeDef = typeDefObject{}
-type typeDefObject struct {}
+
+type typeDefObject struct{}
 
 func (typeDefObject) CanBeDerivedWith(pn pulse.Number, local reference.Local) bool {
 	lpn := pulseZeroScope(local.GetHeader())
@@ -112,13 +113,13 @@ func (typeDefObject) CanBeDerivedWith(pn pulse.Number, local reference.Local) bo
 
 func (v typeDefObject) RefFrom(base, local reference.Local) (reference.Global, error) {
 	if err := v.VerifyGlobalRef(base, local); err != nil {
-		return reference.Global{}, nil
+		return reference.Global{}, err
 	}
 	return reference.New(base, local), nil
 }
 
 func (typeDefObject) Usage() Usage {
-	return UseAsBase|UseAsSelf|UseAsLocalValue
+	return UseAsBase | UseAsSelf | UseAsLocalValue
 }
 
 func (typeDefObject) VerifyGlobalRef(base, local reference.Local) error {
@@ -134,4 +135,3 @@ func (typeDefObject) VerifyLocalRef(ref reference.Local) error {
 func (typeDefObject) DetectSubType(_, _ reference.Local) RefType {
 	return 0
 }
-
