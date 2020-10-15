@@ -122,3 +122,7 @@ publish_functest: ## send results to testrail
 .PHONY: benchmarks
 benchmarks: ## run all the benchmarks
 	$(GOTEST) -bench=. -run=thereshouldbenotests ./...
+
+.PHONY: benchmarks_1x
+benchmarks_1x: ## run all the benchmarks for one iteration
+	$(GOTEST) -bench=. -benchtime=1x -run=thereshouldbenotests ./...
