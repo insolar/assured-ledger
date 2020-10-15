@@ -6,6 +6,7 @@
 package nwapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"encoding/hex"
@@ -504,6 +505,62 @@ func (a Address) IsLoopback() bool {
 	default:
 		return string(a.data0[:]) == v6Loopback
 	}
+}
+
+func (a *Address) ProtoSize() int {
+	return 2 + 1 +1 + 16 + len(a.data1)
+}
+
+func (a *Address) MarshalTo(data []byte) (int, error) {
+	buffer := bytes.NewBuffer(make([]byte, 0))
+
+	if err := binary.Write(buffer, binary.BigEndian, a.port); err != nil {
+		return 0, throw.W(err, "failed to marshal protobuf host port")
+	}
+
+	if err := binary.Write(buffer, binary.BigEndian, a.network); err != nil {
+		return 0, throw.W(err, "failed to marshal protobuf host network")
+	}
+
+	if err := binary.Write(buffer, binary.BigEndian, a.flags); err != nil {
+		return 0, throw.W(err, "failed to marshal protobuf host flags")
+	}
+
+	_, err := a.data0.WriteTo(buffer)
+	if err != nil {
+		return 0, throw.W(err, "failed to marshal protobuf host data0")
+	}
+
+	_, err = a.data1.WriteTo(buffer)
+	if err != nil {
+		return 0, throw.W(err, "failed to marshal protobuf host data1")
+	}
+
+	copy(data, buffer.Bytes())
+	return buffer.Len(), nil
+}
+
+func (a *Address) Unmarshal(data []byte) error {
+	reader := bytes.NewReader(data)
+	if err := binary.Read(reader, binary.BigEndian, &a.port); err != nil {
+		return throw.W(err, "failed to unmarshal protobuf host port")
+	}
+
+	if err := binary.Read(reader, binary.BigEndian, &a.network); err != nil {
+		return throw.W(err, "failed to unmarshal protobuf host network")
+	}
+
+	if err := binary.Read(reader, binary.BigEndian, &a.flags); err != nil {
+		return throw.W(err, "failed to unmarshal protobuf host flags")
+	}
+
+	if err := binary.Read(reader, binary.BigEndian, &a.data0); err != nil {
+		return throw.W(err, "failed to unmarshal protobuf host data0")
+	}
+
+	a.data1 = longbits.CopyBytes(data[20:])
+
+	return nil
 }
 
 /********************************************************/

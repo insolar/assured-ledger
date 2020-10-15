@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gotest.tools/assert"
 )
 
 func TestAddress_IsLoopback(t *testing.T) {
@@ -18,3 +19,19 @@ func TestAddress_IsLoopback(t *testing.T) {
 	require.True(t, NewHost("::1").IsLoopback())
 	require.False(t, NewHost("::2").IsLoopback())
 }
+
+func TestAddress_MarshalUnmarshal(t *testing.T) {
+	h := NewHost("127.0.0.1:123")
+
+	data := make([]byte, h.ProtoSize())
+	size, err := h.MarshalTo(data)
+	require.NoError(t, err)
+
+	h2 := Address{}
+	err = h2.Unmarshal(data)
+	require.NoError(t, err)
+
+	assert.Equal(t, h, h2)
+	assert.Equal(t, size, h.ProtoSize())
+}
+
