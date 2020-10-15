@@ -336,7 +336,7 @@ func (v typeDefJet) DetectSubType(base, local reference.Local) RefType {
 	case base == local:
 		return v.detectJetSubType(local, false)
 	case local.Pulse().IsTimePulse():
-		if v.detectJetSubType(local, false) == Jet {
+		if v.detectJetSubType(base, false) == Jet {
 			return JetRecord
 		}
 	}
