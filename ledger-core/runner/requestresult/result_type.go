@@ -8,9 +8,9 @@ package requestresult
 type Type uint8
 
 const (
-	SideEffectNone Type = iota
+	SideEffectNone Type = 0
+	SideEffectAmend Type = 1<<iota
 	SideEffectActivate
-	SideEffectAmend
 	SideEffectDeactivate
 )
 

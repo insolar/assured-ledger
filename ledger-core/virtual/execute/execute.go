@@ -60,7 +60,6 @@ type SMExecute struct {
 	executionNewState   *execution.Update
 	outgoingResult      []byte
 	outgoingVCallResult *rms.VCallResult
-	deactivate          bool
 	run                 runner.RunState
 	newObjectDescriptor descriptor.Object
 
@@ -743,10 +742,9 @@ func (s *SMExecute) prepareExecutionError(err error) {
 	}
 
 	s.executionNewState = &execution.Update{
-		Type:     execution.Error,
-		Error:    err,
-		Result:   requestresult.New(resultWithErr, s.outgoingObject),
-		Outgoing: nil,
+		Type:   execution.Error,
+		Error:  err,
+		Result: requestresult.NewResultBuilder().CallResult(resultWithErr).Result(),
 	}
 }
 
@@ -761,14 +759,6 @@ func (s *SMExecute) prepareOutgoingError(err error) {
 
 func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	switch outgoing := s.executionNewState.Outgoing.(type) {
-	case execution.Deactivate:
-		if s.intolerableCall() {
-			err := throw.E("interference violation: deactivate call from intolerable call")
-			ctx.Log().Warn(err)
-			s.prepareOutgoingError(err)
-			return ctx.Jump(s.stepExecuteContinue)
-		}
-		s.deactivate = true
 	case execution.CallConstructor:
 		if s.intolerableCall() {
 			err := throw.E("interference violation: constructor call from unordered call")
@@ -974,28 +964,15 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	if s.deactivate {
-		oldRequestResult := s.executionNewState.Result
+	if res := s.executionNewState.Result; res.HasEffects() {
+		s.newObjectDescriptor = descriptor.NewObject(
+			s.execution.Object,
+			s.lmnLastLifelineRef.GetLocal(),
+			res.Class(),
+			res.Memory(),
+			res.IsDeactivation(),
+		)
 
-		// we should overwrite old side effect with new one - deactivation of object
-		s.executionNewState.Result = requestresult.New(oldRequestResult.Result(), oldRequestResult.ObjectReference())
-		s.executionNewState.Result.SetDeactivate(s.execution.ObjectDescriptor)
-	}
-
-	switch s.executionNewState.Result.Type() {
-	case requestresult.SideEffectNone:
-		// do nothing
-	case requestresult.SideEffectActivate:
-		class, memory := s.executionNewState.Result.Activate()
-		s.newObjectDescriptor = s.makeNewDescriptor(class, memory, false)
-	case requestresult.SideEffectAmend:
-		class, memory := s.executionNewState.Result.Amend()
-		s.newObjectDescriptor = s.makeNewDescriptor(class, memory, false)
-	case requestresult.SideEffectDeactivate:
-		class, memory := s.executionNewState.Result.Deactivate()
-		s.newObjectDescriptor = s.makeNewDescriptor(class, memory, true)
-	default:
-		panic(throw.IllegalValue())
 	}
 
 	if s.migrationHappened || s.newObjectDescriptor == nil {
@@ -1036,7 +1013,7 @@ func (s *SMExecute) updateMemoryCache(ctx smachine.ExecutionContext, object desc
 }
 
 func (s *SMExecute) isIntolerableCallChangeState() bool {
-	return s.intolerableCall() && (s.deactivate || s.executionNewState.Result.Type() != requestresult.SideEffectNone)
+	return s.intolerableCall() && s.executionNewState.Result.HasEffects()
 }
 
 func (s *SMExecute) stepAwaitSMCallSummary(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -1092,12 +1069,12 @@ func (s *SMExecute) stepPublishDataCallSummary(ctx smachine.ExecutionContext) sm
 func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var lastState *rms.ObjectState = nil
 
-	if s.newObjectDescriptor != nil {
+	if desc := s.newObjectDescriptor; desc != nil {
 		lastState = &rms.ObjectState{
-			Reference:   rms.NewReference(s.lmnLastLifelineRef),
-			Memory:      rms.NewBytes(s.executionNewState.Result.Memory),
-			Class:       rms.NewReference(s.newObjectDescriptor.Class()),
-			Deactivated: s.executionNewState.Result.SideEffectType == requestresult.SideEffectDeactivate,
+			Reference:   rms.NewReference(desc.State()),
+			Memory:      rms.NewBytes(desc.Memory()),
+			Class:       rms.NewReference(desc.Class()),
+			Deactivated: desc.Deactivated(),
 		}
 	}
 
@@ -1127,14 +1104,10 @@ func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, 
 	}).WithoutAutoWakeUp().Start()
 }
 
-func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte, deactivated bool) descriptor.Object {
-	return descriptor.NewObject(s.execution.Object, s.lmnLastLifelineRef.GetLocal(), class, memory, deactivated)
-}
-
 func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		executionNewState = s.executionNewState.Result
-		executionResult   = executionNewState.Result()
+		executionResult   = executionNewState.CallResult()
 	)
 
 	msg := rms.VCallResult{

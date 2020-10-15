@@ -65,26 +65,13 @@ func (r *DefaultService) CallConstructor(in rpctypes.UpCallConstructorReq, out *
 	return nil
 }
 
-func (r *DefaultService) DeactivateObject(in rpctypes.UpDeactivateObjectReq, out *rpctypes.UpDeactivateObjectResp) error {
+func (r *DefaultService) DeactivateObject(in rpctypes.UpDeactivateObjectReq, _ *rpctypes.UpDeactivateObjectResp) error {
 	sink := r.getExecutionSink(in.ID)
 	if sink == nil {
 		panic(throw.E("failed to find ExecutionContext", nil))
 	}
 
-	event := execution.NewRPCBuilder(in.Request, in.Callee).Deactivate()
-	if !sink.ExternalCall(event) {
-		panic(throw.IllegalState())
-	}
-	r.awaitedRunFinish(in.ID, false)
-
-	result := sink.WaitInput()
-	if result.Error != nil {
-		panic(throw.NotImplemented())
-	}
-	out.Result = result.ExecutionResult
-	if out.Result != nil {
-		panic(throw.E("Deactivate result unexpected type, expected nil"))
-	}
+	sink.ResultBuilder().Deactivate()
 
 	return nil
 }

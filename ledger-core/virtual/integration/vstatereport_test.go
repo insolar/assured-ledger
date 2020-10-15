@@ -372,7 +372,8 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) startNewPending(
 			blockOnReleaser,
 			&execution.Update{
 				Type:   execution.Done,
-				Result: requestresult.New([]byte("result"), s.getObject()),
+				Result: requestresult.NewResultBuilder().CallResult([]byte("result")).
+					Class(s.getClass()).Result(),
 			},
 		)
 	s.runnerMock.AddExecutionClassify(

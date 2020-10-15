@@ -26,7 +26,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -86,12 +85,8 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 			{
 				runnerMock.AddExecutionClassify(outgoing, isolation, nil)
 
-				newObjDescriptor := descriptor.NewObject(
-					reference.Global{}, reference.Local{}, class, []byte(""), false,
-				)
-
-				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
-				requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
+				requestResult := requestresult.NewResultBuilder().CallResult([]byte("call result")).
+					Class(class).Memory([]byte("new memory")).Result()
 
 				executionMock := runnerMock.AddExecutionMock(outgoing)
 				executionMock.AddStart(func(ctx execution.Context) {
@@ -204,12 +199,8 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 			{
 				runnerMock.AddExecutionClassify(outgoing, isolation, nil)
 
-				newObjDescriptor := descriptor.NewObject(
-					reference.Global{}, reference.Local{}, class, []byte(""), false,
-				)
-
-				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
-				requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
+				requestResult := requestresult.NewResultBuilder().CallResult([]byte("call result")).
+					Class(class).Memory([]byte("new memory")).Result()
 
 				executionMock := runnerMock.AddExecutionMock(outgoing)
 				executionMock.AddStart(func(ctx execution.Context) {
@@ -763,7 +754,8 @@ func (s *deduplicateMethodUsingPrevVETest) setRunnerMock() {
 	isolation := contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallDirty}
 	s.runnerMock.AddExecutionClassify(s.outgoing, isolation, nil)
 
-	requestResult := requestresult.New([]byte("execution"), s.server.RandomGlobalWithPulse())
+	requestResult := requestresult.NewResultBuilder().CallResult([]byte("execution")).
+		Class(s.getClass()).Result()
 
 	executionMock := s.runnerMock.AddExecutionMock(s.outgoing)
 	executionMock.AddStart(func(ctx execution.Context) {

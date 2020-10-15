@@ -154,8 +154,9 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 						assert.Equal(t, bBarResult, result)
 					},
 					&execution.Update{
-						Type:   execution.Done,
-						Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
+						Type: execution.Done,
+						Result: requestresult.NewResultBuilder().CallResult([]byte("finish A.Foo")).
+							Class(class).Result(),
 					},
 				)
 
@@ -165,8 +166,9 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 					assert.Equal(t, objectAGlobal, ctx.Request.Caller.GetValue())
 					assert.Equal(t, byteArguments, ctx.Request.Arguments.GetBytes())
 				}, &execution.Update{
-					Type:   execution.Done,
-					Result: requestresult.New(bBarResult, objectBGlobal),
+					Type: execution.Done,
+					Result: requestresult.NewResultBuilder().CallResult(bBarResult).
+						Class(class).Result(),
 				})
 
 				runnerMock.AddExecutionClassify("Foo", test.flagsA, nil)
@@ -293,8 +295,9 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 						assert.Equal(t, []byte("finish B.Bar"), result)
 					},
 					&execution.Update{
-						Type:   execution.Done,
-						Result: requestresult.New([]byte("finish A.Foo"), objectA),
+						Type: execution.Done,
+						Result: requestresult.NewResultBuilder().CallResult([]byte("finish A.Foo")).
+							Class(class).Result(),
 					},
 				)
 
@@ -306,8 +309,9 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 						assert.Equal(t, byteArguments, ctx.Request.Arguments.GetBytes())
 					},
 					&execution.Update{
-						Type:   execution.Done,
-						Result: requestresult.New([]byte("finish B.Bar"), objectB),
+						Type: execution.Done,
+						Result: requestresult.NewResultBuilder().CallResult([]byte("finish B.Bar")).
+							Class(class).Result(),
 					},
 				)
 
@@ -432,8 +436,9 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 						assert.Equal(t, []byte("finish A.Bar"), result)
 					},
 					&execution.Update{
-						Type:   execution.Done,
-						Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
+						Type: execution.Done,
+						Result: requestresult.NewResultBuilder().CallResult([]byte("finish A.Foo")).
+							Class(class).Result(),
 					},
 				)
 
@@ -445,8 +450,9 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 						assert.Equal(t, byteArguments, ctx.Request.Arguments.GetBytes())
 					},
 					&execution.Update{
-						Type:   execution.Done,
-						Result: requestresult.New([]byte("finish A.Bar"), objectAGlobal),
+						Type: execution.Done,
+						Result: requestresult.NewResultBuilder().CallResult([]byte("finish A.Bar")).
+							Class(class).Result(),
 					},
 				)
 
@@ -554,8 +560,9 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 			// add ExecutionMocks to runnerMock
 			{
 				outgoingCall := execution.NewRPCBuilder(incomingA, objectAGlobal).CallMethod(objectBGlobal, classB, "Foo", byteArguments)
-				objectAResult := requestresult.New([]byte("finish A.New"), objectAGlobal)
-				objectAResult.SetActivate(classA, []byte("state A"))
+				objectAResult := requestresult.NewResultBuilder().CallResult([]byte("finish A.New")).
+					Class(classA).Activate([]byte("state A")).Result()
+
 				objectAExecutionMock := runnerMock.AddExecutionMock("New")
 				objectAExecutionMock.AddStart(
 					func(ctx execution.Context) {
@@ -589,7 +596,8 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 					},
 					&execution.Update{
 						Type:   execution.Done,
-						Result: requestresult.New([]byte("finish B.Foo"), objectBGlobal),
+						Result: requestresult.NewResultBuilder().CallResult([]byte("finish B.Foo")).
+							Class(classB).Result(),
 					},
 				)
 

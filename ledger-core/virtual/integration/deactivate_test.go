@@ -25,7 +25,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -58,7 +57,8 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				objectGlobal     = server.RandomGlobalWithPulse()
+				class          = server.RandomGlobalWithPulse()
+				objectGlobal   = server.RandomGlobalWithPulse()
 				validatedState = []byte("initial state")
 				dirtyState     = validatedState
 			)
@@ -97,14 +97,10 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 				// deactivate method
 				objectAExecutionMock := runnerMock.AddExecutionMock(outgoingDestroy)
 				objectAExecutionMock.AddStart(nil, &execution.Update{
-					Type:     execution.OutgoingCall,
-					Outgoing: execution.NewRPCBuilder(outgoingDestroy, objectGlobal).Deactivate(),
-				},
-				).AddContinue(nil, &execution.Update{
-					Type:   execution.Done,
-					Result: requestresult.New([]byte("deactivate result"), objectGlobal),
-				},
-				)
+					Type: execution.Done,
+					Result: requestresult.NewResultBuilder().CallResult([]byte("deactivate result")).
+						Class(class).Deactivate().Result(),
+				})
 				runnerMock.AddExecutionClassify(outgoingDestroy, tolerableFlags(), nil)
 
 				// get methods
@@ -117,8 +113,9 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 						assert.Equal(t, validatedState, ctx.ObjectDescriptor.Memory())
 					},
 					&execution.Update{
-						Type:   execution.Done,
-						Result: requestresult.New([]byte("validated result"), server.RandomGlobalWithPulse()),
+						Type: execution.Done,
+						Result: requestresult.NewResultBuilder().CallResult([]byte("validated result")).
+							Class(class).Result(),
 					},
 				)
 			}
@@ -338,7 +335,12 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 			// Add VCallResult check
 			{
 				typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
-					assert.Equal(t, []byte("finish Deactivate"), result.ReturnArguments.GetBytes())
+					var contractError *foundation.Error
+					err := foundation.UnmarshalMethodResultSimplified(
+						result.ReturnArguments.GetBytes(), &contractError,
+					)
+					assert.NoError(t, err)
+					assert.Equal(t, "intolerable call trying to change object state", contractError.Error())
 
 					return false
 				})
@@ -348,24 +350,13 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 			{
 				runnerMock.AddExecutionClassify(outgoing, contract.MethodIsolation{Interference: isolation.CallIntolerable, State: testCase.state}, nil)
 
-				requestResult := requestresult.New([]byte("outgoing call"), objectGlobal)
-				requestResult.SetDeactivate(descriptor.NewObject(objectGlobal, server.RandomLocalWithPulse(), class, []byte("initial state"), false))
+				requestResult := requestresult.NewResultBuilder().CallResult([]byte("finish Deactivate")).
+					Class(class).Deactivate().Result()
 				runnerMock.AddExecutionMock(outgoing).AddStart(
 					nil,
 					&execution.Update{
-						Type:     execution.OutgoingCall,
-						Result:   requestResult,
-						Outgoing: execution.NewRPCBuilder(server.BuildRandomOutgoingWithPulse(), objectGlobal).Deactivate(),
-					},
-				).AddContinue(
-					func(result []byte) {
-						contractErr, sysErr := foundation.UnmarshalMethodResult(result)
-						require.NoError(t, sysErr)
-						assert.Equal(t, "interference violation: deactivate call from intolerable call", contractErr.Error())
-					},
-					&execution.Update{
 						Type:   execution.Done,
-						Result: requestresult.New([]byte("finish Deactivate"), objectGlobal),
+						Result: requestResult,
 					},
 				)
 			}
@@ -396,8 +387,6 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 	const (
 		origDirtyMem     = "original dirty memory"
 		origValidatedMem = "original validated memory"
-
-		deactivateMethodName = "Deactivate"
 	)
 
 	defer commonTestUtils.LeakTester(t)
@@ -427,26 +416,17 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 	synchronizeExecution := synchronization.NewPoint(1)
 	{ // setup runner mock for deactivation call
 		runnerMock.AddExecutionClassify(outgoing, deactivateIsolation, nil)
-		requestResult := requestresult.New([]byte(deactivateMethodName+" result"), objectRef)
-		requestResult.SetDeactivate(descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), class, insolar.MustSerialize(initialBalance), false))
+
+		requestResult := requestresult.NewResultBuilder().CallResult([]byte("finish Deactivate")).
+			Class(class).Deactivate().Result()
 
 		runnerMock.AddExecutionMock(outgoing).AddStart(
 			func(ctx execution.Context) {
-				assert.Equal(t, objectRef, ctx.Request.Callee.GetValue())
-				assert.Equal(t, []byte(origDirtyMem), ctx.ObjectDescriptor.Memory())
-			},
-			&execution.Update{
-				Type:     execution.OutgoingCall,
-				Result:   requestResult,
-				Outgoing: execution.NewRPCBuilder(outgoing, objectRef).Deactivate(),
-			},
-		).AddContinue(
-			func(result []byte) {
 				synchronizeExecution.Synchronize()
 			},
 			&execution.Update{
 				Type:   execution.Done,
-				Result: requestresult.New([]byte("finish Deactivate"), objectRef),
+				Result: requestResult,
 			},
 		)
 	}
@@ -565,15 +545,12 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 
 	// mock
 	{
-		descr := descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), class, []byte("deactivate state"), false)
-		requestResult := requestresult.New([]byte("done"), objectRef)
-		requestResult.SetDeactivate(descr)
+		requestResult := requestresult.NewResultBuilder().CallResult([]byte("done")).
+			Class(class).Memory([]byte("deactivate state")).Deactivate().Result()
 
 		objectExecutionMock := runnerMock.AddExecutionMock(outgoingDeactivate)
-		objectExecutionMock.AddStart(nil, &execution.Update{
-			Type:     execution.OutgoingCall,
-			Outgoing: execution.NewRPCBuilder(server.RandomGlobalWithPulse(), objectRef).Deactivate(),
-		}).AddContinue(func(result []byte) {
+		objectExecutionMock.AddStart(
+		func(ctx execution.Context) {
 			synchronizeExecution.Synchronize()
 		}, &execution.Update{
 			Type:   execution.Done,
@@ -669,9 +646,8 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 	// mock
 	{
 		// Deactivate mock
-		descr := descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), class, []byte("deactivate state"), false)
-		requestResult := requestresult.New([]byte("deactivated"), objectRef)
-		requestResult.SetDeactivate(descr)
+		requestResult := requestresult.NewResultBuilder().CallResult([]byte("deactivated")).
+			Class(class).Memory([]byte("deactivate state")).Deactivate().Result()
 
 		deactivationMock := runnerMock.AddExecutionMock(outgoingDeactivate)
 		deactivationMock.AddStart(nil, &execution.Update{
@@ -681,8 +657,8 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 		runnerMock.AddExecutionClassify(outgoingDeactivate, isolation, nil)
 
 		// Constructor mock
-		result := requestresult.New([]byte("new"), outgoing)
-		result.SetActivate(class, []byte("state"))
+		result := requestresult.NewResultBuilder().CallResult([]byte("new")).
+			Class(class).Activate([]byte("state")).Result()
 
 		constructorMock := runnerMock.AddExecutionMock(outgoing)
 		constructorMock.AddStart(nil, &execution.Update{
@@ -882,7 +858,8 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 						},
 						&execution.Update{
 							Type:   execution.Done,
-							Result: requestresult.New([]byte("check done"), objectRef),
+							Result: requestresult.NewResultBuilder().CallResult([]byte("check done")).
+								Class(class).Result(),
 						},
 					)
 				}

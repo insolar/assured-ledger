@@ -26,6 +26,6 @@ type Update struct {
 	Type  UpdateType
 	Error error
 
-	Result   *requestresult.RequestResult
+	Result   requestresult.RequestResult
 	Outgoing RPC
 }

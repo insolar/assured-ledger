@@ -36,7 +36,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
@@ -211,6 +210,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		waitOutputChannel = make(chan struct{}, 0)
 		executeDone       = server.Journal.WaitStopOf(&execute.SMExecute{}, parallelCount)
 
+		class        = server.RandomGlobalWithPulse()
 		objectGlobal = server.RandomGlobalWithPulse()
 		prevPulse    = server.GetPulse().PulseNumber
 	)
@@ -237,7 +237,8 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 			pl.Callee.Set(objectGlobal)
 			pl.CallSiteMethod = "GetBalance"
 
-			result := requestresult.New([]byte("345"), objectGlobal)
+			result := requestresult.NewResultBuilder().CallResult([]byte("345")).
+				Class(class).Result()
 
 			key := pl.CallOutgoing.GetValue()
 			runnerMock.AddExecutionMock(key).AddStart(func(_ execution.Context) {
@@ -301,6 +302,7 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 	server.Init(ctx)
 
 	var (
+		class         = server.RandomGlobalWithPulse()
 		objectGlobal  = server.RandomGlobalWithPulse()
 		prevPulse     = server.GetPulse().PulseNumber
 		parallelCount = 2
@@ -327,7 +329,8 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 			pl.Callee.Set(objectGlobal)
 			pl.CallSiteMethod = "ordered-" + strconv.FormatInt(int64(i), 10)
 
-			result := requestresult.New([]byte("345"), objectGlobal)
+			result := requestresult.NewResultBuilder().CallResult([]byte("345")).
+				Class(class).Result()
 
 			key := pl.CallOutgoing.GetValue()
 			runnerMock.AddExecutionMock(key).AddStart(func(ctx execution.Context) {
@@ -442,8 +445,9 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 				assert.Equal(t, expectedError, result)
 
 			}, &execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New(expectedResult, objectAGlobal),
+				Type: execution.Done,
+				Result: requestresult.NewResultBuilder().CallResult(expectedResult).
+					Class(class).Result(),
 			})
 
 			runnerMock.AddExecutionClassify(outgoing, flags, nil)
@@ -525,6 +529,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 		flags     = contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}
 		callFlags = rms.BuildCallFlags(flags.Interference, flags.State)
 
+		classA  = server.RandomGlobalWithPulse()
 		classB1 = server.RandomGlobalWithPulse()
 		classB2 = server.RandomGlobalWithPulse()
 		classB3 = server.RandomGlobalWithPulse()
@@ -566,8 +571,9 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			logger.Debug("ExecutionContinue [A.Foo]")
 			assert.Equal(t, []byte("finish B3.Bar"), result)
 		}, &execution.Update{
-			Type:   execution.Done,
-			Result: requestresult.New([]byte("finish A.Foo"), objectA),
+			Type: execution.Done,
+			Result: requestresult.NewResultBuilder().CallResult([]byte("finish A.Foo")).
+				Class(classA).Result(),
 		})
 
 		runnerMock.AddExecutionMock(objectB1Global).AddStart(func(ctx execution.Context) {
@@ -576,8 +582,9 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			assert.Equal(t, objectA, ctx.Request.Caller.GetValue())
 			assert.Equal(t, []byte("B1"), ctx.Request.Arguments.GetBytes())
 		}, &execution.Update{
-			Type:   execution.Done,
-			Result: requestresult.New([]byte("finish B1.Bar"), objectB1Global),
+			Type: execution.Done,
+			Result: requestresult.NewResultBuilder().CallResult([]byte("finish B1.Bar")).
+				Class(classB1).Result(),
 		})
 
 		runnerMock.AddExecutionMock(objectB2Global).AddStart(func(ctx execution.Context) {
@@ -586,8 +593,9 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			assert.Equal(t, objectA, ctx.Request.Caller.GetValue())
 			assert.Equal(t, []byte("B2"), ctx.Request.Arguments.GetBytes())
 		}, &execution.Update{
-			Type:   execution.Done,
-			Result: requestresult.New([]byte("finish B2.Bar"), objectB2Global),
+			Type: execution.Done,
+			Result: requestresult.NewResultBuilder().CallResult([]byte("finish B2.Bar")).
+				Class(classB2).Result(),
 		})
 
 		runnerMock.AddExecutionMock(objectB3Global).AddStart(func(ctx execution.Context) {
@@ -596,8 +604,9 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			assert.Equal(t, objectA, ctx.Request.Caller.GetValue())
 			assert.Equal(t, []byte("B3"), ctx.Request.Arguments.GetBytes())
 		}, &execution.Update{
-			Type:   execution.Done,
-			Result: requestresult.New([]byte("finish B3.Bar"), objectB3Global),
+			Type: execution.Done,
+			Result: requestresult.NewResultBuilder().CallResult([]byte("finish B3.Bar")).
+				Class(classB3).Result(),
 		})
 
 		runnerMock.AddExecutionClassify(objectA, flags, nil)
@@ -699,6 +708,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		flags     = contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}
 		callFlags = rms.BuildCallFlags(flags.Interference, flags.State)
 
+		classA = server.RandomGlobalWithPulse()
 		classB = server.RandomGlobalWithPulse()
 
 		objectAGlobal = server.RandomGlobalWithPulse()
@@ -744,8 +754,9 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 				assert.Equal(t, []byte("finish B.Bar"), result)
 			},
 			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
+				Type: execution.Done,
+				Result: requestresult.NewResultBuilder().CallResult([]byte("finish A.Foo")).
+					Class(classA).Result(),
 			},
 		)
 
@@ -771,8 +782,9 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 				assert.Equal(t, []byte("finish B.Bar"), result)
 			},
 			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
+				Type: execution.Done,
+				Result: requestresult.NewResultBuilder().CallResult([]byte("finish A.Foo")).
+					Class(classA).Result(),
 			},
 		)
 
@@ -1061,12 +1073,10 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			// add ExecutionMock to runnerMock
 			{
 				runnerMock.AddExecutionClassify(outgoing, testCase.isolation, nil)
-				requestResult := requestresult.New([]byte(callResult), objectRef)
+				requestResult := requestresult.NewResultBuilder().CallResult([]byte(callResult)).
+					Class(class)
 				if testCase.canChangeState {
-					newObjDescriptor := descriptor.NewObject(
-						reference.Global{}, reference.Local{}, class, []byte(""), false,
-					)
-					requestResult.SetAmend(newObjDescriptor, []byte(changedObjectMem))
+					requestResult.Memory([]byte(changedObjectMem))
 				}
 
 				objectExecutionMock := runnerMock.AddExecutionMock(outgoing)
@@ -1080,7 +1090,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 					assert.Equal(t, []byte(expectedMemory), ctx.ObjectDescriptor.Memory())
 				}, &execution.Update{
 					Type:   execution.Done,
-					Result: requestResult,
+					Result: requestResult.Result(),
 				})
 			}
 			// setup type checker
@@ -1301,7 +1311,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				objectRef   = server.RandomGlobalWithPulse()
+				objectRef = server.RandomGlobalWithPulse()
 			)
 
 			{ // send object state to server
@@ -1344,11 +1354,8 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 
 				// if we use forbidden isolation, then execute should stop before Start happen
 				if !test.expectedUnImplementedError {
-					result := requestresult.New(test.callResult, outgoingRef)
-					desc := descriptor.NewObject(
-						reference.Global{}, reference.Local{}, server.RandomGlobalWithPulse(), []byte(""), false,
-					)
-					result.SetAmend(desc, []byte("new stuff"))
+					result := requestresult.NewResultBuilder().CallResult(test.callResult).
+						Class(server.RandomGlobalWithPulse()).Memory([]byte("new stuff")).Result()
 
 					runnerMock.AddExecutionMock(key).AddStart(nil, &execution.Update{
 						Type:   execution.Done,
@@ -1412,11 +1419,8 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 
 	{
 		runnerMock.AddExecutionClassify(outgoing, isolation, nil)
-		requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
-		newObjDescriptor := descriptor.NewObject(
-			reference.Global{}, reference.Local{}, class, []byte(""), false,
-		)
-		requestResult.SetAmend(newObjDescriptor, []byte(changedObjectMem))
+		requestResult := requestresult.NewResultBuilder().CallResult([]byte("call result")).
+			Class(class).Memory([]byte(changedObjectMem)).Result()
 
 		objectExecutionMock := runnerMock.AddExecutionMock(outgoing)
 		objectExecutionMock.AddStart(func(ctx execution.Context) {
@@ -1511,7 +1515,6 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		class        = server.RandomGlobalWithPulse()
 		initialState = []byte("initial state")
 		newState     = []byte("updated state")
-		dStateID     = reference.NewRecordOf(objectGlobal, server.RandomLocalWithPulse())
 	)
 
 	// add typedChecker mock
@@ -1555,15 +1558,8 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 
 	// add ExecutionMock to runnerMock
 	{
-		objectDescriptor := descriptor.NewObject(
-			objectGlobal,
-			dStateID.GetLocal(),
-			class,
-			newState,
-			false,
-		)
-		requestResult := requestresult.New([]byte("done"), server.RandomGlobalWithPulse())
-		requestResult.SetAmend(objectDescriptor, newState)
+		requestResult := requestresult.NewResultBuilder().CallResult([]byte("done")).
+			Class(class).Memory(newState).Result()
 
 		runnerMock.AddExecutionMock(outgoingChange).AddStart(
 			func(ctx execution.Context) {
@@ -1582,8 +1578,9 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 				assert.Equal(t, initialState, ctx.ObjectDescriptor.Memory())
 			},
 			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("get validated info 1"), server.RandomGlobalWithPulse()),
+				Type: execution.Done,
+				Result: requestresult.NewResultBuilder().CallResult([]byte("get validated info 1")).
+					Class(class).Result(),
 			},
 		)
 		runnerMock.AddExecutionMock(outgoingDirty1).AddStart(
@@ -1592,8 +1589,9 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 				assert.Equal(t, initialState, ctx.ObjectDescriptor.Memory())
 			},
 			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("get dirty info 1"), server.RandomGlobalWithPulse()),
+				Type: execution.Done,
+				Result: requestresult.NewResultBuilder().CallResult([]byte("get dirty info 1")).
+					Class(class).Result(),
 			},
 		)
 		runnerMock.AddExecutionMock(outgoingValidated2).AddStart(
@@ -1602,8 +1600,9 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 				assert.Equal(t, initialState, ctx.ObjectDescriptor.Memory())
 			},
 			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("get validated info 2"), server.RandomGlobalWithPulse()),
+				Type: execution.Done,
+				Result: requestresult.NewResultBuilder().CallResult([]byte("get validated info 2")).
+					Class(class).Result(),
 			},
 		)
 		runnerMock.AddExecutionMock(outgoingDirty2).AddStart(
@@ -1612,8 +1611,9 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 				assert.Equal(t, newState, ctx.ObjectDescriptor.Memory())
 			},
 			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("get dirty info 2"), server.RandomGlobalWithPulse()),
+				Type: execution.Done,
+				Result: requestresult.NewResultBuilder().CallResult([]byte("get dirty info 2")).
+					Class(class).Result(),
 			},
 		)
 		runnerMock.AddExecutionClassify(outgoingValidated1, intolerableFlags(), nil)
@@ -1711,6 +1711,7 @@ func TestVirtual_Method_TwoUnorderedCalls(t *testing.T) {
 	server.Init(ctx)
 
 	var (
+		class        = server.RandomGlobalWithPulse()
 		objectGlobal = server.RandomGlobalWithPulse()
 		prevPulse    = server.GetPulse().PulseNumber
 	)
@@ -1739,8 +1740,9 @@ func TestVirtual_Method_TwoUnorderedCalls(t *testing.T) {
 				synchronizeExecution.Synchronize()
 			},
 			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("first result"), objectGlobal),
+				Type: execution.Done,
+				Result: requestresult.NewResultBuilder().CallResult([]byte("first result")).
+					Class(class).Result(),
 			},
 		)
 
@@ -1752,7 +1754,8 @@ func TestVirtual_Method_TwoUnorderedCalls(t *testing.T) {
 			},
 			&execution.Update{
 				Type:   execution.Done,
-				Result: requestresult.New([]byte("second result"), objectGlobal),
+				Result: requestresult.NewResultBuilder().CallResult([]byte("second result")).
+					Class(class).Result(),
 			},
 		)
 

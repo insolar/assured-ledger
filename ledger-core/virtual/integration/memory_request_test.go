@@ -23,7 +23,6 @@ import (
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
@@ -96,7 +95,7 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 			{
 				cachReq := &rms.VCachedMemoryRequest{
 					Object: rms.NewReference(suite.object),
-					State: stateRef,
+					State:  stateRef,
 				}
 				suite.server.SendPayload(ctx, cachReq)
 			}
@@ -107,7 +106,6 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 			suite.mc.Finish()
 		})
 	}
-
 }
 
 func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
@@ -121,9 +119,8 @@ func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	pl.Callee.Set(s.object)
 	pl.CallSiteMethod = "ordered"
 
-	newObjDescriptor := descriptor.NewObject(reference.Global{}, reference.Local{}, s.server.RandomGlobalWithPulse(), []byte("blabla"), false)
-	result := requestresult.New([]byte("result"), s.object)
-	result.SetAmend(newObjDescriptor, []byte(newState))
+	result := requestresult.NewResultBuilder().CallResult([]byte("result")).
+		Class(s.server.RandomGlobalWithPulse()).Memory([]byte(newState)).Result()
 
 	key := pl.CallOutgoing.GetValue()
 	s.runnerMock.AddExecutionMock(key).AddStart(nil, &execution.Update{
@@ -154,8 +151,8 @@ func constructorPrecondition(s *memoryCacheTest, ctx context.Context, t *testing
 
 	s.object = plWrapper.GetObject()
 
-	result := requestresult.New([]byte("result"), s.object)
-	result.SetActivate(s.class, []byte(newState))
+	result := requestresult.NewResultBuilder().CallResult([]byte("result")).
+		Class(s.class).Activate([]byte(newState)).Result()
 
 	key := plWrapper.GetOutgoing()
 	s.runnerMock.AddExecutionMock(key).AddStart(nil, &execution.Update{
@@ -197,8 +194,8 @@ func (s *memoryCacheTest) initServer(t *testing.T) context.Context {
 
 func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	var (
-		outgoing  = s.server.BuildRandomOutgoingWithPulse()
-		incoming  = reference.NewRecordOf(s.object, outgoing.GetLocal())
+		outgoing = s.server.BuildRandomOutgoingWithPulse()
+		incoming = reference.NewRecordOf(s.object, outgoing.GetLocal())
 	)
 
 	report := s.server.StateReportBuilder().Ready().Object(s.object).OrderedPendings(1).Report()

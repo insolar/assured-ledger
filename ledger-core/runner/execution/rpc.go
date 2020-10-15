@@ -22,13 +22,6 @@ func NewRPCBuilder(request reference.Global, object reference.Global) Builder {
 	return Builder{request: request, object: object}
 }
 
-func (r Builder) Deactivate() Deactivate {
-	return Deactivate{
-		parentObjectReference:  r.object,
-		parentRequestReference: r.request,
-	}
-}
-
 func (r Builder) CallConstructor(class reference.Global, constructor string, arguments []byte) CallConstructor {
 	return CallConstructor{
 		parentRequestReference: r.request,
@@ -56,21 +49,6 @@ func (r Builder) CallMethod(
 		class:     class,
 	}
 }
-
-type Deactivate struct {
-	parentRequestReference reference.Global
-	parentObjectReference  reference.Global
-}
-
-func (e Deactivate) ParentObjectReference() reference.Global {
-	return e.parentObjectReference
-}
-
-func (e Deactivate) ParentRequestReference() reference.Global {
-	return e.parentRequestReference
-}
-
-func (e Deactivate) rpc() {}
 
 type CallConstructor struct {
 	parentRequestReference reference.Global

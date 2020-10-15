@@ -21,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute/shared"
@@ -540,9 +539,9 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 	var (
 		haveFilament  = true
 		isIntolerable = s.Interference == isolation.CallIntolerable
-		isConstructor = s.IncomingResult.Result.Type() == requestresult.SideEffectActivate
-		isDestructor  = s.IncomingResult.Result.Type() == requestresult.SideEffectDeactivate
-		isNone        = s.IncomingResult.Result.Type() == requestresult.SideEffectNone
+		isConstructor = s.IncomingResult.Result.IsActivation()
+		isDestructor  = s.IncomingResult.Result.IsDeactivation()
+		isNone        = !s.IncomingResult.Result.HasEffects()
 		isError       = s.IncomingResult.Error != nil
 	)
 

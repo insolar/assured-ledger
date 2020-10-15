@@ -24,7 +24,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
@@ -449,13 +448,9 @@ func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 	isolation := contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}
 	s.runnerMock.AddExecutionClassify(s.outgoing, isolation, nil)
 
-	newObjDescriptor := descriptor.NewObject(
-		reference.Global{}, reference.Local{}, s.getClass(), []byte(""), false,
-	)
-
 	{
-		methodResult := requestresult.New([]byte("execution"), s.server.RandomGlobalWithPulse())
-		methodResult.SetAmend(newObjDescriptor, []byte("new memory"))
+		methodResult := requestresult.NewResultBuilder().CallResult([]byte("execution")).
+			Class(s.getClass()).Memory([]byte("new memory")).Result()
 
 		executionMock := s.runnerMock.AddExecutionMock(s.outgoing)
 		executionMock.AddStart(func(ctx execution.Context) {
@@ -467,8 +462,8 @@ func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 	}
 
 	{
-		constructorResult := requestresult.New([]byte("exection"), s.getObject())
-		constructorResult.SetActivate(s.getClass(), []byte("new memory"))
+		constructorResult := requestresult.NewResultBuilder().CallResult([]byte("execution")).
+			Class(s.getClass()).Activate([]byte("new memory")).Result()
 
 		executionMock := s.runnerMock.AddExecutionMock("New")
 		executionMock.AddStart(func(ctx execution.Context) {

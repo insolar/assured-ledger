@@ -51,6 +51,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 	var (
 		caller   = slotMachine.GenerateGlobal()
 		callee   = slotMachine.GenerateGlobal()
+		class    = slotMachine.GenerateGlobal()
 		outgoing = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 		tokenKey = DelegationTokenAwaitKey{outgoing}
 		meRef    = gen.UniqueGlobalRef()
@@ -133,7 +134,8 @@ func TestVDelegatedCallRequest(t *testing.T) {
 			nil,
 			&execution.Update{
 				Type:   execution.Done,
-				Result: requestresult.New([]byte("123"), outgoing),
+				Result: requestresult.NewResultBuilder().CallResult([]byte("123")).
+					Class(class).Result(),
 			})
 	}
 

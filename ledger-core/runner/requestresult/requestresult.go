@@ -7,64 +7,97 @@ package requestresult
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type RequestResult struct {
-	SideEffectType     Type             // every
-	RawResult          []byte           // every
-	RawObjectReference reference.Global // every
-
-	ObjectImage reference.Global // amend + activate
-	Memory      []byte           // amend + activate
+	effects Type
+	result  []byte
+	class   reference.Global
+	memory  []byte
 }
 
-func New(result []byte, objectRef reference.Global) *RequestResult {
-	return &RequestResult{
-		SideEffectType:     SideEffectNone,
-		RawResult:          result,
-		RawObjectReference: objectRef,
+func (s RequestResult) Effects() Type {
+	return s.effects
+}
+
+func (s RequestResult) HasEffects() bool {
+	return s.effects != 0
+}
+
+func (s RequestResult) HasMemoryAmend() bool {
+	return s.effects&SideEffectAmend != 0
+}
+
+func (s RequestResult) IsActivation() bool {
+	return s.effects&SideEffectActivate != 0
+}
+
+func (s RequestResult) IsDeactivation() bool {
+	return s.effects&SideEffectDeactivate != 0
+}
+
+func (s RequestResult) CallResult() []byte {
+	return s.result
+}
+
+func (s RequestResult) Memory() []byte {
+	return s.memory
+}
+
+func (s RequestResult) Class() reference.Global {
+	if s.class.IsEmpty() {
+		panic(throw.IllegalState())
 	}
+	return s.class
 }
 
-func (s *RequestResult) Result() []byte {
-	return s.RawResult
+type ResultBuilder struct {
+	res RequestResult
 }
 
-func (s *RequestResult) Activate() (reference.Global, []byte) {
-	return s.ObjectImage, s.Memory
+func NewResultBuilder() *ResultBuilder {
+	return &ResultBuilder{}
 }
 
-func (s *RequestResult) Amend() (reference.Global, []byte) {
-	return s.ObjectImage, s.Memory
+func (s *ResultBuilder) Class(class reference.Global) *ResultBuilder {
+	s.res.class = class
+	return s
 }
 
-func (s *RequestResult) Deactivate() (reference.Global, []byte) {
-	return s.ObjectImage, s.Memory
+func (s *ResultBuilder) CallResult(res []byte) *ResultBuilder {
+	s.res.result = res
+	return s
 }
 
-func (s *RequestResult) SetActivate(image reference.Global, memory []byte) {
-	s.SideEffectType = SideEffectActivate
+func (s *ResultBuilder) Memory(memory []byte) *ResultBuilder {
+	if memory == nil || len(memory) == 0 {
+		panic(throw.IllegalValue())
+	}
 
-	s.ObjectImage = image
-	s.Memory = memory
+	s.res.effects |= SideEffectAmend
+	s.res.memory = memory
+	return s
 }
 
-func (s *RequestResult) SetAmend(object descriptor.Object, memory []byte) {
-	s.SideEffectType = SideEffectAmend
-	s.Memory = memory
-	s.ObjectImage = object.Class()
+func (s *ResultBuilder) Activate(memory []byte) *ResultBuilder {
+	if memory == nil || len(memory) == 0 {
+		panic(throw.IllegalValue())
+	}
+
+	s.res.effects |= SideEffectActivate | SideEffectAmend
+	s.res.memory = memory
+	return s
 }
 
-func (s *RequestResult) SetDeactivate(object descriptor.Object) {
-	s.SideEffectType = SideEffectDeactivate
-	s.ObjectImage = object.Class()
+func (s *ResultBuilder) Deactivate() *ResultBuilder {
+	s.res.effects |= SideEffectDeactivate
+	return s
 }
 
-func (s RequestResult) Type() Type {
-	return s.SideEffectType
-}
-
-func (s *RequestResult) ObjectReference() reference.Global {
-	return s.RawObjectReference
+func (s *ResultBuilder) Result() RequestResult {
+	if s.res.result == nil {
+		panic(throw.IllegalState())
+	}
+	return s.res
 }

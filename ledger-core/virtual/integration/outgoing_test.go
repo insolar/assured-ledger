@@ -67,6 +67,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 
 	var (
 		prevPulse     = server.GetPulse().PulseNumber
+		classA        = server.RandomGlobalWithPulse()
 		objectAGlobal = server.RandomGlobalWithPulse()
 	)
 
@@ -147,8 +148,9 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			logger.Debug("ExecutionContinue [A.Foo]")
 			assert.Equal(t, []byte("finish B.Bar"), result)
 		}, &execution.Update{
-			Type:   execution.Done,
-			Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
+			Type: execution.Done,
+			Result: requestresult.NewResultBuilder().CallResult([]byte("finish A.Foo")).
+				Class(classA).Result(),
 		})
 
 		runnerMock.AddExecutionClassify(outgoingCallRef, fooIsolation, nil)
@@ -336,8 +338,8 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 	// add ExecutionMocks to runnerMock
 	{
 		outgoingCall := execution.NewRPCBuilder(outgoing, objectRef).CallMethod(objectBGlobal, classB, "Bar", []byte("123"))
-		objectAResult := requestresult.New([]byte("finish A.New"), outgoing)
-		objectAResult.SetActivate(classA, []byte("state A"))
+		objectAResult := requestresult.NewResultBuilder().CallResult([]byte("finish A.New")).
+			Class(classA).Activate([]byte("state A")).Result()
 
 		runnerMock.AddExecutionMock(outgoing).AddStart(func(_ execution.Context) {
 			server.IncrementPulse(ctx)
@@ -514,6 +516,7 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 		flags     = contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}
 		callFlags = rms.BuildCallFlags(flags.Interference, flags.State)
 
+		classA          = server.RandomGlobalWithPulse()
 		classB          = server.RandomGlobalWithPulse()
 		outgoingCallRef = server.BuildRandomOutgoingWithPulse()
 	)
@@ -547,8 +550,9 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 				assert.Equal(t, serializedErr, result)
 			},
 			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("finish A.Foo"), objectA),
+				Type: execution.Done,
+				Result: requestresult.NewResultBuilder().CallResult([]byte("finish A.Foo")).
+					Class(classA).Result(),
 			},
 		)
 
@@ -570,7 +574,8 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 			&execution.Update{
 				Type:   execution.Error,
 				Error:  someError,
-				Result: requestresult.New(resultWithErr, objectB),
+				Result: requestresult.NewResultBuilder().CallResult(resultWithErr).
+					Class(classB).Result(),
 			},
 		)
 

@@ -29,7 +29,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
@@ -126,12 +125,10 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 			{
 				runnerMock.AddExecutionClassify(outgoing, test.isolation, nil)
 
-				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
+				requestResult := requestresult.NewResultBuilder().CallResult([]byte("call result")).
+					Class(server.RandomGlobalWithPulse())
 				if test.withSideEffect {
-					newObjDescriptor := descriptor.NewObject(
-						reference.Global{}, reference.Local{}, server.RandomGlobalWithPulse(), []byte(""), false,
-					)
-					requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
+					requestResult.Memory([]byte("new memory"))
 				}
 
 				objectExecutionMock := runnerMock.AddExecutionMock(outgoing)
@@ -142,7 +139,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 					},
 					&execution.Update{
 						Type:   execution.Done,
-						Result: requestResult,
+						Result: requestResult.Result(),
 					},
 				)
 			}
@@ -280,6 +277,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		prevPulse = server.GetPulse().PulseNumber
 		object    = server.RandomGlobalWithPulse()
 		approver  = server.RandomGlobalWithPulse()
+		class     = server.RandomGlobalWithPulse()
 	)
 
 	server.IncrementPulse(ctx)
@@ -363,11 +361,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 	for i := int64(0); i < 4; i++ {
 		var (
 			objectExecutionMock *logicless.ExecutionMock
-			result              *requestresult.RequestResult
-
-			newObjDescriptor = descriptor.NewObject(
-				reference.Global{}, reference.Local{}, server.RandomGlobalWithPulse(), []byte(""), false,
-			)
+			result              requestresult.RequestResult
 		)
 
 		request := utils.GenerateVCallRequestMethod(server)
@@ -380,15 +374,16 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			request.CallFlags = rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 
 			runnerMock.AddExecutionClassify(outgoing, tolerableFlags(), nil)
-			result = requestresult.New([]byte("call result"), object)
-			result.SetAmend(newObjDescriptor, []byte("new memory"))
+			result = requestresult.NewResultBuilder().CallResult([]byte("call result")).
+				Class(class).Memory([]byte("new memory")).Result()
 
 		case 2, 3:
 			request.CallSiteMethod = "unordered" + strconv.FormatInt(i, 10)
 			request.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
 
 			runnerMock.AddExecutionClassify(outgoing, intolerableFlags(), nil)
-			result = requestresult.New([]byte("call result"), object)
+			result = requestresult.NewResultBuilder().CallResult([]byte("call result")).
+				Class(class).Result()
 		default:
 			panic(throw.Impossible())
 		}
@@ -492,7 +487,8 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			// add ExecutionMock to runnerMock
 			{
 				runnerMock.AddExecutionClassify(outgoingP2, test.isolation, nil)
-				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
+				requestResult := requestresult.NewResultBuilder().CallResult([]byte("call result")).
+					Class(class).Result()
 
 				objectExecutionMock := runnerMock.AddExecutionMock(outgoingP2)
 				objectExecutionMock.AddStart(func(ctx execution.Context) {

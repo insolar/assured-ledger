@@ -109,5 +109,4 @@ type UpDeactivateObjectReq struct {
 
 // UpDeactivateObjectResp is response from DeactivateObject RPC in goplugin
 type UpDeactivateObjectResp struct {
-	Result Arguments
 }

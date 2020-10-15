@@ -58,8 +58,8 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 	pl := plWrapper.Get()
 
 	{
-		requestResult := requestresult.New([]byte("123"), server.RandomGlobalWithPulse())
-		requestResult.SetActivate(pl.Callee.GetValue(), []byte("234"))
+		requestResult := requestresult.NewResultBuilder().Class(pl.Callee.GetValue()).
+			CallResult([]byte("123")).Activate([]byte("234")).Result()
 
 		executionMock := runnerMock.AddExecutionMock(pl.CallOutgoing.GetValue())
 		executionMock.AddStart(executionFn, &execution.Update{
@@ -122,8 +122,8 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 	pl := plWrapper.Get()
 
 	{
-		requestResult := requestresult.New([]byte("123"), server.RandomGlobalWithPulse())
-		requestResult.SetActivate(pl.Callee.GetValue(), []byte("234"))
+		requestResult := requestresult.NewResultBuilder().Class(pl.Callee.GetValue()).
+			CallResult([]byte("123")).Activate([]byte("234")).Result()
 
 		executionMock := runnerMock.AddExecutionMock(pl.CallOutgoing.GetValue())
 		executionMock.AddStart(nil, &execution.Update{
@@ -307,8 +307,8 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	}
 
 	if test.ExecutionExpected {
-		requestResult := requestresult.New(ExecutionResultFromExecutor, server.RandomGlobalWithPrevPulse())
-		requestResult.SetActivate(class, []byte(""))
+		requestResult := requestresult.NewResultBuilder().Class(class).
+			CallResult(ExecutionResultFromExecutor).Activate([]byte("")).Result()
 
 		executionMock := test.Runner.AddExecutionMock(outgoing)
 		executionMock.AddStart(nil, &execution.Update{

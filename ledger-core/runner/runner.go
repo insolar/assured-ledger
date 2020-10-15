@@ -168,7 +168,6 @@ func (r *DefaultService) executeMethod(
 	id call.ID,
 	eventSink *execution.EventSink,
 ) (
-	*requestresult.RequestResult,
 	error,
 ) {
 	var (
@@ -185,12 +184,12 @@ func (r *DefaultService) executeMethod(
 
 	classDescriptor, codeDescriptor, err := r.Cache.ByClassRef(ctx, classReference)
 	if err != nil {
-		return nil, throw.W(err, "couldn't get descriptors", ErrorDetail{DetailBadClassRef})
+		return throw.W(err, "couldn't get descriptors", ErrorDetail{DetailBadClassRef})
 	}
 
 	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
 	if err != nil {
-		return nil, throw.W(err, "couldn't get executor")
+		return throw.W(err, "couldn't get executor")
 	}
 
 	logicContext := generateCallContext(ctx, id, executionContext, classDescriptor, codeDescriptor)
@@ -199,32 +198,24 @@ func (r *DefaultService) executeMethod(
 		ctx, logicContext, codeDescriptor.Ref(), objectDescriptor.Memory(), request.CallSiteMethod, request.Arguments.GetBytes(),
 	)
 	if err != nil {
-		return nil, throw.W(err, "execution error")
+		return throw.W(err, "execution error")
 	}
 	if len(result) == 0 {
-		return nil, throw.E("return of method is empty")
+		return throw.E("return of method is empty")
 	}
 	if len(newData) == 0 {
-		return nil, throw.E("object state is empty")
+		return throw.E("object state is empty")
 	}
 
-	// form and return result
-	res := requestresult.New(result, objectDescriptor.HeadRef())
-
+	builder := eventSink.ResultBuilder().Class(classReference).CallResult(result)
 	if !bytes.Equal(objectDescriptor.Memory(), newData) {
-		res.SetAmend(objectDescriptor, newData)
+		builder.Memory(newData)
 	}
 
-	return res, nil
+	return nil
 }
 
-func (r *DefaultService) executeConstructor(
-	ctx context.Context,
-	id call.ID,
-	eventSink *execution.EventSink,
-) (
-	*requestresult.RequestResult, error,
-) {
+func (r *DefaultService) executeConstructor(ctx context.Context, id call.ID, eventSink *execution.EventSink, ) error {
 	var (
 		executionContext = eventSink.Context()
 		request          = executionContext.Request
@@ -232,31 +223,28 @@ func (r *DefaultService) executeConstructor(
 
 	classDescriptor, codeDescriptor, err := r.Cache.ByClassRef(ctx, request.Callee.GetValue())
 	if err != nil {
-		return nil, throw.W(err, "couldn't get descriptors", ErrorDetail{DetailBadClassRef})
+		return throw.W(err, "couldn't get descriptors", ErrorDetail{DetailBadClassRef})
 	}
 
 	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
 	if err != nil {
-		return nil, throw.W(err, "couldn't get executor")
+		return throw.W(err, "couldn't get executor")
 	}
 
 	logicContext := generateCallContext(ctx, id, executionContext, classDescriptor, codeDescriptor)
 
 	newState, executionResult, err := codeExecutor.CallConstructor(ctx, logicContext, codeDescriptor.Ref(), request.CallSiteMethod, request.Arguments.GetBytes())
 	if err != nil {
-		return nil, throw.W(err, "execution error")
+		return throw.W(err, "execution error")
 	}
 	if len(executionResult) == 0 {
-		return nil, throw.E("return of constructor is empty")
+		return throw.E("return of constructor is empty")
 	}
 
-	// form and return executionResult
-	res := requestresult.New(executionResult, executionContext.Object)
-	if newState != nil {
-		res.SetActivate(logicContext.CallerClass, newState)
-	}
+	eventSink.ResultBuilder().Class(classDescriptor.HeadRef()).
+		CallResult(executionResult).Activate(newState)
 
-	return res, nil
+	return nil
 }
 
 func (r *DefaultService) execute(ctx context.Context, id call.ID) {
@@ -266,7 +254,6 @@ func (r *DefaultService) execute(ctx context.Context, id call.ID) {
 	}
 
 	var (
-		result *requestresult.RequestResult
 		err    error
 	)
 
@@ -282,7 +269,7 @@ func (r *DefaultService) execute(ctx context.Context, id call.ID) {
 			// panic was catched
 			err := throw.R(recoveredError, throw.E("ContractRunnerService panic"))
 			executionSink.Error(err)
-		case (result == nil && err == nil) || executionSink.IsAborted():
+		case err == nil || executionSink.IsAborted():
 			// cancellation
 			possibleAbsent = true
 		default:
@@ -295,20 +282,15 @@ func (r *DefaultService) execute(ctx context.Context, id call.ID) {
 
 	switch executionSink.Context().Request.CallType {
 	case rms.CallTypeMethod:
-		result, err = r.executeMethod(ctx, id, executionSink)
+		err = r.executeMethod(ctx, id, executionSink)
 	case rms.CallTypeConstructor:
-		result, err = r.executeConstructor(ctx, id, executionSink)
+		err = r.executeConstructor(ctx, id, executionSink)
 	default:
 		panic(throw.Unsupported())
 	}
 
-	switch {
-	case err != nil:
+	if err != nil {
 		executionSink.Error(err)
-	case result != nil:
-		executionSink.Result(result)
-	default:
-		panic(throw.IllegalValue())
 	}
 }
 

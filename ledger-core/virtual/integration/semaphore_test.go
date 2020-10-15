@@ -47,6 +47,7 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 	var (
 		numObject = 40
 		objects   = make([]reference.Global, 0, numObject)
+		class     = server.RandomGlobalWithPulse()
 	)
 
 	// Create objects
@@ -79,7 +80,8 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 					atomic.AddInt64(&numParallelExecs, -1)
 				}, &execution.Update{
 					Type:   execution.Done,
-					Result: requestresult.New([]byte("345"), objects[0]),
+					Result: requestresult.NewResultBuilder().CallResult([]byte("345")).
+						Class(class).Result(),
 				})
 			runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
 				Interference: interferenceFlag,

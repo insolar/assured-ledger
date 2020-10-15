@@ -24,6 +24,7 @@ type EventSink struct {
 	lock  sync.Mutex
 	id    call.ID
 	state int
+	resBuilder *requestresult.ResultBuilder
 
 	context     Context
 	output      *Update
@@ -58,6 +59,14 @@ func (c *EventSink) provideEvent(event *Update) bool {
 	return true
 }
 
+func (c *EventSink) Done() bool {
+	return c.provideEvent(&Update{
+		Type:   Done,
+		Result: c.resBuilder.Result(),
+	})
+}
+
+
 func (c *EventSink) Error(err error) bool {
 	return c.provideEvent(&Update{
 		Type:  Error,
@@ -71,11 +80,9 @@ func (c *EventSink) ExternalCall(event RPC) bool {
 		Outgoing: event,
 	})
 }
-func (c *EventSink) Result(result *requestresult.RequestResult) bool {
-	return c.provideEvent(&Update{
-		Type:   Done,
-		Result: result,
-	})
+
+func (c *EventSink) ResultBuilder() *requestresult.ResultBuilder {
+	return c.resBuilder
 }
 
 func (c *EventSink) IsAborted() bool {
@@ -176,5 +183,6 @@ func NewEventSink(id call.ID, execution Context) *EventSink {
 		id:      id,
 		context: execution,
 		input:   make(chan requestresult.OutgoingExecutionResult, 1),
+		resBuilder: requestresult.NewResultBuilder(),
 	}
 }
