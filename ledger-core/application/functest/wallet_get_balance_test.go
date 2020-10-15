@@ -8,11 +8,13 @@
 package functest
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/application/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 )
 
@@ -20,26 +22,30 @@ import (
 func TestWalletGetBalance(t *testing.T) {
 	insrail.LogCase(t, "C4855")
 
-	walletRef, err := createSimpleWallet()
+	ctx := context.Background()
+
+	walletRef, err := testutils.CreateSimpleWallet(ctx)
 	require.NoError(t, err, "failed to create wallet")
 
-	getBalanceURL := getURL(walletGetBalancePath, "", "")
-	rawResp, err := sendAPIRequest(getBalanceURL, walletGetBalanceRequestBody{Ref: walletRef})
+	getBalanceURL := testutils.GetURL(testutils.WalletGetBalancePath, "", "")
+	rawResp, err := testutils.SendAPIRequest(ctx, getBalanceURL, testutils.WalletGetBalanceRequestBody{Ref: walletRef})
 	require.NoError(t, err, "failed to send request or get response body")
 
-	resp, err := unmarshalWalletGetBalanceResponse(rawResp)
+	resp, err := testutils.UnmarshalWalletGetBalanceResponse(rawResp)
 	require.NoError(t, err, "failed to unmarshal response")
 
 	require.Empty(t, resp.Err, "problem during execute request")
 	assert.NotEmpty(t, resp.TraceID, "traceID mustn't be empty")
-	assert.Equal(t, startBalance, resp.Amount, "wrong amount")
+	assert.Equal(t, testutils.StartBalance, resp.Amount, "wrong amount")
 }
 
 // Creates wallet and calls /wallet/get_balance concurrently.
 func TestWalletGetBalanceConcurrently(t *testing.T) {
 	insrail.LogCase(t, "C4920")
 
-	walletRef, err := createSimpleWallet()
+	ctx := context.Background()
+
+	walletRef, err := testutils.CreateSimpleWallet(ctx)
 	require.NoError(t, err, "failed to create wallet")
 
 	count := 10 // Number of concurrent requests per node.
@@ -51,20 +57,20 @@ func TestWalletGetBalanceConcurrently(t *testing.T) {
 	outChan := make(chan result)
 
 	for i := 0; i < count; i++ {
-		for _, port := range defaultPorts {
+		for _, port := range testutils.GetPorts() {
 			go func(port string) {
-				getBalanceURL := getURL(walletGetBalancePath, "", port)
-				balance, err := getWalletBalance(getBalanceURL, walletRef)
+				getBalanceURL := testutils.GetURL(testutils.WalletGetBalancePath, "", port)
+				balance, err := testutils.GetWalletBalance(ctx, getBalanceURL, walletRef)
 				// testing.T isn't goroutine safe, so that we will check responses in main goroutine
 				outChan <- result{balance: balance, err: err}
 			}(port)
 		}
 	}
 
-	for i := 0; i < count*len(defaultPorts); i++ {
+	for i := 0; i < count*len(testutils.GetPorts()); i++ {
 		res := <-outChan
 		assert.NoError(t, res.err)
-		assert.Equal(t, startBalance, res.balance, "wrong balance amount")
+		assert.Equal(t, testutils.StartBalance, res.balance, "wrong balance amount")
 	}
 	close(outChan)
 }
