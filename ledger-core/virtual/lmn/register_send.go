@@ -48,7 +48,6 @@ type SubSMRegisterRecordSend struct {
 	// DI
 	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
-	refBuilder    RecordReferenceBuilderService
 }
 
 var dSubSMRegisterRecordSendInstance smachine.StateMachineDeclaration = &dSubSMRegisterRecordSend{}
@@ -192,10 +191,6 @@ func (s *SubSMRegisterRecordSend) stepWaitResponse(ctx smachine.ExecutionContext
 		return ctx.Error(s.sendError)
 	} else if s.sendResult == nil {
 		return ctx.Sleep().ThenRepeat()
-	}
-
-	if s.requiredSafe {
-
 	}
 
 	// TODO: process result (in case of deduplication, for example)

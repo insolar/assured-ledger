@@ -119,7 +119,7 @@ func (s *SubSMRegister) getRecordAnticipatedRef(record SerializableBasicRecord) 
 	return s.refBuilder.AnticipatedRefFromBytes(s.Object, pulseNumber, data)
 }
 
-func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.LRegisterRequest) error {
+func (s *SubSMRegister) registerMessage(_ smachine.ExecutionContext, msg *rms.LRegisterRequest) error {
 	s.Messages = append(s.Messages, msg)
 
 	return nil
