@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -404,7 +405,11 @@ func (s *SMVObjectTranscriptReport) stepValidateIncomingResult(ctx smachine.Exec
 		return ctx.Jump(s.stepValidationFailed)
 	}
 
-	s.validatedState = callResult.ObjectState.GetValue()
+	if s.validatedState.IsEmpty() {
+		s.validatedState = s.lmnLastLifelineRef
+	} else if s.incomingRequest.CallFlags.GetInterference() == isolation.CallTolerable {
+		s.validatedState = s.lmnLastLifelineRef
+	}
 
 	return ctx.Jump(s.stepAdvanceToNextRequest)
 }
@@ -426,6 +431,8 @@ func (s *SMVObjectTranscriptReport) stepAdvanceToNextRequest(ctx smachine.Execut
 
 	s.startIndex++
 	s.entryIndex = 0
+	s.incomingValidated = false
+	s.incomingRegistered = false
 
 	for ind := s.startIndex; ind < len(s.entries); ind++ {
 		entry := s.peekEntry(ind)
