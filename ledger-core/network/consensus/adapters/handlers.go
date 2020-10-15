@@ -197,6 +197,7 @@ func (p *ConsensusProtocolMarshaller) ReceiveSmallPacket(packet *uniproto.Receiv
 }
 
 func (p *ConsensusProtocolMarshaller) ReceiveLargePacket(packet *uniproto.ReceivedPacket, preRead []byte, r io.LimitedReader) error {
+	panic("ConsensusProtocolMarshaller unsupported ReceiveLargePacket")
 	return throw.Unsupported()
 }
 

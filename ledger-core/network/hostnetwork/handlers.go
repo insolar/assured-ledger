@@ -48,18 +48,6 @@ func (s *StreamHandler) HandleStream(ctx context.Context, reader io.Reader) {
 	// get only log level from context, discard TraceID in favor of packet TraceID
 	packetCtx := inslogger.WithLoggerLevel(context.Background(), logLevel)
 
-	// closer := make(chan struct{})
-	// go func() {
-	// 	select {
-	// 	// transport is stopping
-	// 	case <-ctx.Done():
-	// 	// stream end by remote end
-	// 	case <-closer:
-	// 	}
-	//
-	// 	// network.CloseVerbose(reader)
-	// }()
-
 	p, length, err := packet.DeserializePacket(mainLogger, reader)
 	if err != nil {
 		if network.IsConnectionClosed(err) || network.IsClosedPipe(err) {
@@ -109,11 +97,11 @@ func SendPacket(ctx context.Context, pm uniproto.PeerManager, p *rms.Packet) err
 	}
 
 	preparedPacket := &BootstrapPacket{Payload: data}
-	err = peer.SendPacket(uniproto.SmallAny, preparedPacket)
+	err = peer.SendPacket(uniproto.SessionfulSmall, preparedPacket)
 	if err != nil {
 		// retry
 		inslogger.FromContext(ctx).Warn("[ SendPacket ] retry conn.Write")
-		err = peer.SendPacket(uniproto.SmallAny, preparedPacket)
+		err = peer.SendPacket(uniproto.SessionfulSmall, preparedPacket)
 		if err != nil {
 			return errors.W(err, "[ SendPacket ] Failed to write data")
 		}
