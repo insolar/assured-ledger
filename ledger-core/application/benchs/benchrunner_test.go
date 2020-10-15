@@ -15,6 +15,7 @@ import (
 	"github.com/neilotoole/errgroup"
 	"github.com/paulbellamy/ratecounter"
 
+	"github.com/insolar/assured-ledger/ledger-core/application/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -30,12 +31,13 @@ var (
 func (br benchRunner) runBenchOnNetwork(b *testing.B) func(apiAddresses []string) int {
 	return func(apiAddresses []string) int {
 		ctx := context.Background()
-		setAPIAddresses(apiAddresses)
+
+		testutils.SetAPIPortsByAddresses(apiAddresses)
 
 		numWallets := 1000
 		wallets := make([]string, 0, numWallets)
 		for i := 0; i < numWallets; i++ {
-			wallet, err := createSimpleWallet(ctx)
+			wallet, err := testutils.CreateSimpleWallet(ctx)
 			if err != nil {
 				b.Error(err)
 				return int(errCode)
@@ -74,9 +76,9 @@ func runBriefEchoBench(b *testing.B, limiterFactory limiterFactory) int {
 		limiter := limiterFactory(b.N)
 		err := runBench(name, func(ctx context.Context, iterator int) error {
 			walletRef := statemachine.BuiltinTestAPIBriefEcho
-			getBalanceURL := getURL(walletGetBalancePath, "")
+			getBalanceURL := testutils.GetURL(testutils.WalletGetBalancePath, "", "")
 
-			_, err := getWalletBalance(ctx, getBalanceURL, walletRef)
+			_, err := testutils.GetWalletBalance(ctx, getBalanceURL, walletRef)
 
 			return err
 		}, limiter)
@@ -98,9 +100,9 @@ func runEchoBench(b *testing.B, limiterFactory limiterFactory) int {
 		limiter := limiterFactory(b.N)
 		err := runBench(name, func(ctx context.Context, iterator int) error {
 			walletRef := statemachine.BuiltinTestAPIEcho
-			getBalanceURL := getURL(walletGetBalancePath, "")
+			getBalanceURL := testutils.GetURL(testutils.WalletGetBalancePath, "", "")
 
-			_, err := getWalletBalance(ctx, getBalanceURL, walletRef)
+			_, err := testutils.GetWalletBalance(ctx, getBalanceURL, walletRef)
 
 			return err
 		}, limiter)
@@ -121,9 +123,9 @@ func runSetBench(wallets []string, b *testing.B, limiterFactory limiterFactory) 
 		limiter := limiterFactory(b.N)
 		err := runBench("set", func(ctx context.Context, iterator int) error {
 			walletRef := wallets[iterator%len(wallets)]
-			addAmountURL := getURL(walletAddAmountPath, "")
+			addAmountURL := testutils.GetURL(testutils.WalletAddAmountPath, "", "")
 
-			return addAmountToWallet(ctx, addAmountURL, walletRef, 1000)
+			return testutils.AddAmountToWallet(ctx, addAmountURL, walletRef, 1000)
 		}, limiter)
 		if err != nil {
 			b.Error(err)
@@ -143,9 +145,9 @@ func runGetBench(wallets []string, b *testing.B, limiterFactory limiterFactory) 
 		limiter := limiterFactory(b.N)
 		err := runBench(name, func(ctx context.Context, iterator int) error {
 			walletRef := wallets[iterator%len(wallets)]
-			getBalanceURL := getURL(walletGetBalancePath, "")
+			getBalanceURL := testutils.GetURL(testutils.WalletGetBalancePath, "", "")
 
-			_, err := getWalletBalance(ctx, getBalanceURL, walletRef)
+			_, err := testutils.GetWalletBalance(ctx, getBalanceURL, walletRef)
 
 			return err
 		}, limiter)

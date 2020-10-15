@@ -3,14 +3,14 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// +build functest
-
-package functest
+package testutils
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -23,8 +23,30 @@ import (
 
 var (
 	httpClient   *http.Client
-	defaultPorts = [2]string{"32302", "32304"}
+	defaultPorts = []string{"32302", "32304"}
 )
+
+func GetPorts() []string {
+	return defaultPorts[:]
+}
+
+// SetAPIPorts is not thread safe, it is supposed to be called before bench run, right after launchnet is configured
+func SetAPIPorts(ports []string) {
+	defaultPorts = ports
+}
+
+// SetAPIPortsByAddresses is not thread safe, it is supposed to be called before bench run, right after launchnet is configured
+func SetAPIPortsByAddresses(apiAddresses []string) {
+	ports := make([]string, 0, len(apiAddresses))
+	for _, addr := range apiAddresses {
+		_, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			panic(throw.W(err, "failed to split host:port"))
+		}
+		ports = append(ports, port)
+	}
+	defaultPorts = ports
+}
 
 const (
 	requestTimeout = 30 * time.Second
@@ -33,11 +55,11 @@ const (
 	defaultHost = "127.0.0.1"
 	walletPath  = "/wallet"
 
-	walletCreatePath     = walletPath + "/create"
-	walletGetBalancePath = walletPath + "/get_balance"
-	walletAddAmountPath  = walletPath + "/add_amount"
-	walletTransferPath   = walletPath + "/transfer"
-	walletDeletePath     = walletPath + "/delete"
+	WalletCreatePath     = walletPath + "/create"
+	WalletGetBalancePath = walletPath + "/get_balance"
+	WalletAddAmountPath  = walletPath + "/add_amount"
+	WalletTransferPath   = walletPath + "/transfer"
+	WalletDeletePath     = walletPath + "/delete"
 )
 
 func init() {
@@ -56,13 +78,13 @@ func createHTTPClient() *http.Client {
 }
 
 // Creates http.Request with all necessary fields.
-func prepareReq(url string, body interface{}) (*http.Request, error) {
+func prepareReq(ctx context.Context, url string, body interface{}) (*http.Request, error) {
 	jsonValue, err := jsoniter.Marshal(body)
 	if err != nil {
 		return nil, throw.W(err, "problem with marshaling params")
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonValue))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		return nil, throw.W(err, "problem with creating request")
 	}
@@ -96,7 +118,7 @@ func doReq(req *http.Request) ([]byte, error) {
 }
 
 // Creates full URL for http request.
-func getURL(path, host, port string) string {
+func GetURL(path, host, port string) string {
 	if host == "" {
 		host = defaultHost
 	}
@@ -113,8 +135,8 @@ func getURL(path, host, port string) string {
 	return res
 }
 
-func sendAPIRequest(url string, body interface{}) ([]byte, error) {
-	req, err := prepareReq(url, body)
+func SendAPIRequest(ctx context.Context, url string, body interface{}) ([]byte, error) {
+	req, err := prepareReq(ctx, url, body)
 	if err != nil {
 		return nil, throw.W(err, "problem with preparing request")
 	}
@@ -123,14 +145,14 @@ func sendAPIRequest(url string, body interface{}) ([]byte, error) {
 }
 
 // Creates wallet and returns it's reference.
-func createSimpleWallet() (string, error) {
-	createURL := getURL(walletCreatePath, "", "")
-	rawResp, err := sendAPIRequest(createURL, nil)
+func CreateSimpleWallet(ctx context.Context) (string, error) {
+	createURL := GetURL(WalletCreatePath, "", "")
+	rawResp, err := SendAPIRequest(ctx, createURL, nil)
 	if err != nil {
 		return "", throw.W(err, "failed to send request or get response body")
 	}
 
-	resp, err := unmarshalWalletCreateResponse(rawResp)
+	resp, err := UnmarshalWalletCreateResponse(rawResp)
 	if err != nil {
 		return "", throw.W(err, "failed to unmarshal response")
 	}
@@ -143,13 +165,13 @@ func createSimpleWallet() (string, error) {
 }
 
 // Returns wallet balance.
-func getWalletBalance(url, ref string) (uint, error) {
-	rawResp, err := sendAPIRequest(url, walletGetBalanceRequestBody{Ref: ref})
+func GetWalletBalance(ctx context.Context, url, ref string) (uint, error) {
+	rawResp, err := SendAPIRequest(ctx, url, WalletGetBalanceRequestBody{Ref: ref})
 	if err != nil {
 		return 0, throw.W(err, "failed to send request or get response body")
 	}
 
-	resp, err := unmarshalWalletGetBalanceResponse(rawResp)
+	resp, err := UnmarshalWalletGetBalanceResponse(rawResp)
 	if err != nil {
 		return 0, throw.W(err, "failed to unmarshal response")
 	}
@@ -163,13 +185,13 @@ func getWalletBalance(url, ref string) (uint, error) {
 }
 
 // Adds amount to wallet.
-func addAmountToWallet(url, ref string, amount uint) error {
-	rawResp, err := sendAPIRequest(url, walletAddAmountRequestBody{To: ref, Amount: amount})
+func AddAmountToWallet(ctx context.Context, url, ref string, amount uint) error {
+	rawResp, err := SendAPIRequest(ctx, url, WalletAddAmountRequestBody{To: ref, Amount: amount})
 	if err != nil {
 		return throw.W(err, "failed to send request or get response body")
 	}
 
-	resp, err := unmarshalWalletAddAmountResponse(rawResp)
+	resp, err := UnmarshalWalletAddAmountResponse(rawResp)
 	if err != nil {
 		return throw.W(err, "failed to unmarshal response")
 	}
