@@ -17,6 +17,9 @@ import (
 	"go.opencensus.io/stats"
 
 	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
@@ -27,52 +30,35 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/future"
 	"github.com/insolar/assured-ledger/ledger-core/network/sequence"
-	"github.com/insolar/assured-ledger/ledger-core/network/transport"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type distributor struct {
-	Factory  transport.Factory                       `inject:""`
 	Scheme   cryptography.PlatformCryptographyScheme `inject:""`
 	KeyStore cryptography.KeyStore                   `inject:""`
 
 	digester    cryptkit.DataDigester
 	signer      cryptkit.DigestSigner
-	transport   transport.DatagramTransport
 	idGenerator sequence.Generator
 
 	pulseRequestTimeout time.Duration
 
-	publicAddress   string
-	pulsarHost      *legacyhost.Host
-	bootstrapHosts  []string
-	futureManager   future.Manager
-	responseHandler future.PacketHandler
-}
-
-type handlerThatPanics struct{}
-
-func (handlerThatPanics) HandleDatagram(context.Context, string, []byte) {
-	panic(throw.Impossible())
+	publicAddress  string
+	bootstrapHosts []string
+	unifiedServer  *uniserver.UnifiedServer
 }
 
 // NewDistributor creates a new distributor object of pulses
-func NewDistributor(conf configuration.PulseDistributor) (pulsar.PulseDistributor, error) {
-	futureManager := future.NewManager()
+func NewDistributor(conf configuration.PulseDistributor, unifiedServer *uniserver.UnifiedServer) (pulsar.PulseDistributor, error) {
 
 	result := &distributor{
 		idGenerator: sequence.NewGenerator(),
 
 		pulseRequestTimeout: time.Duration(conf.PulseRequestTimeout) * time.Millisecond,
 
-		bootstrapHosts:  conf.BootstrapHosts,
-		futureManager:   futureManager,
-		responseHandler: future.NewPacketHandler(futureManager),
+		bootstrapHosts: conf.BootstrapHosts,
+		unifiedServer:  unifiedServer,
 	}
 
 	return result, nil
@@ -80,10 +66,6 @@ func NewDistributor(conf configuration.PulseDistributor) (pulsar.PulseDistributo
 
 func (d *distributor) Init(context.Context) error {
 	var err error
-	d.transport, err = d.Factory.CreateDatagramTransport(handlerThatPanics{})
-	if err != nil {
-		return errors.W(err, "Failed to create transport")
-	}
 	transportCryptographyFactory := adapters.NewTransportCryptographyFactory(d.Scheme)
 
 	d.digester = transportCryptographyFactory.GetDigestFactory().CreateDataDigester()
@@ -99,25 +81,14 @@ func (d *distributor) Init(context.Context) error {
 }
 
 func (d *distributor) Start(ctx context.Context) error {
+	d.unifiedServer.StartListen()
 
-	err := d.transport.Start(ctx)
-	if err != nil {
-		return err
-	}
-	d.publicAddress = d.transport.Address()
-
-	pulsarHost, err := legacyhost.NewHost(d.publicAddress)
-	if err != nil {
-		return errors.W(err, "[ NewDistributor ] failed to create pulsar host")
-	}
-	pulsarHost.NodeID = reference.Global{}
-
-	d.pulsarHost = pulsarHost
 	return nil
 }
 
 func (d *distributor) Stop(ctx context.Context) error {
-	return d.transport.Stop(ctx)
+	d.unifiedServer.Stop()
+	return nil
 }
 
 // Distribute starts a fire-and-forget process of pulse distribution to bootstrap hosts
@@ -169,10 +140,6 @@ func (d *distributor) Distribute(ctx context.Context, puls pulsar.PulsePacket) {
 
 }
 
-// func (d *distributor) generateID() types.RequestID {
-// 	return types.RequestID(d.idGenerator.Generate())
-// }
-
 func (d *distributor) sendPulseToHost(ctx context.Context, p *pulsar.PulsePacket, host string) error {
 	logger := inslogger.FromContext(ctx)
 	defer func() {
@@ -203,7 +170,13 @@ func (d *distributor) sendRequestToHost(ctx context.Context, p *serialization.Pa
 		return errors.W(err, "Failed to serialize packet")
 	}
 
-	err = d.transport.SendDatagram(ctx, rcv, buffer.Bytes())
+	peer, err := d.unifiedServer.PeerManager().Manager().ConnectPeer(nwapi.NewHostPort(rcv, false))
+	if err != nil || peer == nil {
+		return errors.W(err, "Failed to connect to peer: ")
+	}
+
+	packet := &adapters.ConsensusPacket{Payload: buffer.Bytes()}
+	err = peer.SendPacket(uniproto.SessionlessNoQuota, packet)
 	if err != nil {
 		return errors.W(err, "[SendDatagram] Failed to write data")
 	}

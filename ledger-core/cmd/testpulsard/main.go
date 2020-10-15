@@ -21,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/pulsenetwork"
-	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar/entropygenerator"
 	"github.com/insolar/assured-ledger/ledger-core/version"
@@ -99,7 +98,7 @@ func initPulsar(ctx context.Context, cfg configuration.PulsarConfiguration) *pul
 	cryptographyService := platformpolicy.NewCryptographyService()
 	keyProcessor := platformpolicy.NewKeyProcessor()
 
-	pulseDistributor, err := pulsenetwork.NewDistributor(cfg.Pulsar.PulseDistributor)
+	pulseDistributor, err := pulsenetwork.NewDistributor(cfg.Pulsar.PulseDistributor, pulsenetwork.NewPulsarUniserver())
 	if err != nil {
 		panic(err)
 	}
@@ -107,7 +106,7 @@ func initPulsar(ctx context.Context, cfg configuration.PulsarConfiguration) *pul
 	cm := component.NewManager(nil)
 	cm.SetLogger(global.Logger())
 
-	cm.Register(cryptographyScheme, keyStore, keyProcessor, transport.NewFactory(cfg.Pulsar.DistributionTransport))
+	cm.Register(cryptographyScheme, keyStore, keyProcessor)
 	cm.Inject(cryptographyService, pulseDistributor)
 
 	if err = cm.Init(ctx); err != nil {
