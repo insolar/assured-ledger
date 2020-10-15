@@ -8,11 +8,13 @@
 package functest
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/application/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 )
 
@@ -22,28 +24,30 @@ func TestWalletTransfer(t *testing.T) {
 
 	var transferAmount uint = 100
 
-	walletRefFrom, err := createSimpleWallet()
+	ctx := context.Background()
+
+	walletRefFrom, err := testutils.CreateSimpleWallet(ctx)
 	require.NoError(t, err, "failed to create wallet")
 
-	walletRefTo, err := createSimpleWallet()
+	walletRefTo, err := testutils.CreateSimpleWallet(ctx)
 	require.NoError(t, err, "failed to create wallet")
 
-	transferURL := getURL(walletTransferPath, "", "")
-	rawResp, err := sendAPIRequest(transferURL, walletTransferRequestBody{From: walletRefFrom, To: walletRefTo, Amount: transferAmount})
+	transferURL := testutils.GetURL(testutils.WalletTransferPath, "", "")
+	rawResp, err := testutils.SendAPIRequest(ctx, transferURL, testutils.WalletTransferRequestBody{From: walletRefFrom, To: walletRefTo, Amount: transferAmount})
 	require.NoError(t, err, "failed to send request or get response body")
 
-	resp, err := unmarshalWalletTransferResponse(rawResp)
+	resp, err := testutils.UnmarshalWalletTransferResponse(rawResp)
 	require.NoError(t, err, "failed to unmarshal response")
 	require.Empty(t, resp.Err, "problem during execute request")
 	assert.NotEmpty(t, resp.TraceID, "traceID mustn't be empty")
 
-	getBalanceURL := getURL(walletGetBalancePath, "", "")
+	getBalanceURL := testutils.GetURL(testutils.WalletGetBalancePath, "", "")
 
-	walletFromBalance, err := getWalletBalance(getBalanceURL, walletRefFrom)
+	walletFromBalance, err := testutils.GetWalletBalance(ctx, getBalanceURL, walletRefFrom)
 	require.NoError(t, err, "failed to get balance")
-	require.Equal(t, startBalance-transferAmount, walletFromBalance, "wrong balance")
+	require.Equal(t, testutils.StartBalance-transferAmount, walletFromBalance, "wrong balance")
 
-	walletToBalance, err := getWalletBalance(getBalanceURL, walletRefTo)
+	walletToBalance, err := testutils.GetWalletBalance(ctx, getBalanceURL, walletRefTo)
 	require.NoError(t, err, "failed to get balance")
-	require.Equal(t, startBalance+transferAmount, walletToBalance, "wrong balance")
+	require.Equal(t, testutils.StartBalance+transferAmount, walletToBalance, "wrong balance")
 }
