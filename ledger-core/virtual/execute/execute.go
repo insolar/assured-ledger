@@ -911,12 +911,14 @@ func (s *SMExecute) stepTranscribeOutgoingRequest(ctx smachine.ExecutionContext)
 		},
 	})
 
-	action := func(state *object.SharedState) {
-		state.Transcript.Add(entries...)
-		s.outgoingAddedToTranscript = true
-	}
-	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
-		return stepUpdate
+	if !s.migrationHappened {
+		action := func(state *object.SharedState) {
+			state.Transcript.Add(entries...)
+			s.outgoingAddedToTranscript = true
+		}
+		if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+			return stepUpdate
+		}
 	}
 
 	s.incomingAddedToTranscript = true
