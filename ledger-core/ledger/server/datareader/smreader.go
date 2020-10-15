@@ -8,18 +8,16 @@ package datareader
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/dataextractor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/readersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/readersvc/readbundle"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func NewReader(request *rms.LReadRequest) smachine.SubroutineStateMachine {
-	if request == nil {
-		panic(throw.IllegalValue())
-	}
-	return &SMLineReader{ request: request}
+func NewReader(cfg dataextractor.Config) smachine.SubroutineStateMachine {
+	cfg.Ensure()
+	return &SMLineReader{cfg: cfg}
 }
 
 var _ smachine.SubroutineStateMachine = &SMLineReader{}
@@ -27,7 +25,7 @@ type SMLineReader struct {
 	smachine.StateMachineDeclTemplate
 
 	// input
-	request *rms.LReadRequest
+	cfg dataextractor.Config
 
 	// inject
 	readAdapter readersvc.Adapter
@@ -64,10 +62,10 @@ func (p *SMLineReader) stepInit(ctx smachine.InitializationContext) smachine.Sta
 }
 
 func (p *SMLineReader) stepDirectRead(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	pn := p.request.TargetStartRef.GetPulseOfLocal()
+	cfg := p.cfg
 
 	return p.readAdapter.PrepareAsync(ctx, func(svc readersvc.Service) smachine.AsyncResultFunc {
-		cab, err := svc.FindCabinet(pn)
+		cab, err := svc.FindCabinet(cfg.Target)
 		switch {
 		case err != nil:
 			panic(err)

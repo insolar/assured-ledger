@@ -7,6 +7,7 @@ package tests
 
 import (
 	"context"
+	"math"
 	"strconv"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -115,11 +116,18 @@ func (p *generatorNewLifeline) registerNewLine(reasonRef reference.Holder) ([]cr
 	return p.callRegister(recordSet)
 }
 
-func (p *generatorNewLifeline) callRead(ref reference.Holder) (*rms.LReadResponse, error) {
+func (p *generatorNewLifeline) callRead(ref reference.Holder, pastToPresent bool) (*rms.LReadResponse, error) {
 	pn := p.recBuilder.RefTemplate.LocalHeader().Pulse()
 
 	request := &rms.LReadRequest{}
 	request.TargetStartRef.Set(ref)
+	request.LimitRecordWithPayloadCount = math.MaxUint32
+	request.LimitRecordWithExtensionsCount = math.MaxUint32
+	if pastToPresent {
+		request.Flags |= rms.ReadFlags_PastToPresent
+	} else {
+		request.Flags |= rms.ReadFlags_PresentToPast
+	}
 
 	ch := make(chan smachine.TerminationData, 1)
 	err := p.conv.AddInputExt(pn,

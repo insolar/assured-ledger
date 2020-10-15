@@ -79,13 +79,15 @@ enum ReadFlags {
     PastToPresent = 0;
     PresentToPast = 1;
 
-    FullEntryData = 2;
+    ExcludeStart = 2;
+    ExcludeStop  = 4;
 
-    ExcludeStart = 4;
-    ExcludeStop  = 8;
+    IgnoreBranch = 8;
+    FollowBranch = 16;
+    IncludeBranch = 24; // 8 + 16
 
-    IncludePrevReport = 16;
-    IncludeNextReport = 32;
+    IncludePrevReport = 32;
+    IncludeNextReport = 64;
 
 //    TransparentRedirection = 0;
 //    ExplicitRedirection = 8;
@@ -108,26 +110,12 @@ message LReadRequest {
     Reference TargetStopRef = 1804;
     Reference TargetReasonRef = 1805;
 
-    /*
-    Filament selection modes:
-    1. RootRef and ReasonRef are empty - then Start (or Stop when Start is empty) defines a filament.
-    2. RootRef is not empty - then a local filament is picked for the given RootRef.
-    3. RootRef and ReasonRef are not empty - filament is selected by RootRef and ReasonRef.
-    4. ReasonRef is not empty - filament is selected by Start or Stop and is checked for ReasonRef.
-
-    Traversal always goes from Start to Stop.
-    When PastToPresent and empty Start then it starts with the earliest (in pulse) record of the filament.
-    When PresentToPast and empty Start then it starts with the latest (in pulse) record of the filament.
-
-    When Start is not found or doesn't match the filament then nothing will be taken.
-    When Stop is not found then all entries after Start will be taken.
-    */
-
-    uint32 LimitSize = 1810;
+    uint64 LimitSize = 1810;
     uint32 LimitCount = 1811;
-    uint32 LimitRecordWithBodyCount = 1812;
-    uint32 LimitRecordWithPayloadCount = 1813;
-    uint32 LimitRecordWithExtensionsCount = 1814;
+    uint32 LimitRecordWithExcerptCount = 1812;
+    uint32 LimitRecordWithBodyCount = 1813;
+    uint32 LimitRecordWithPayloadCount = 1814;
+    uint32 LimitRecordWithExtensionsCount = 1815;
 }
 
 message LReadResponse {

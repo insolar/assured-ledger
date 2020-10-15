@@ -126,18 +126,39 @@ func TestAddRecords(t *testing.T) {
 	// repeat the same sequence
 	genNewLine.seqNo.Store(0)
 
-	t.Run("read", func(t *testing.T) {
+	t.Run("read toPast", func(t *testing.T) {
 		for N := 20; N > 0; N-- {
 			recordSet := genNewLine.makeSet(reasonRef)
 
 			// take the last and read to first
-			resp, err := genNewLine.callRead(recordSet.Requests[2].AnticipatedRef.Get())
+			resp, err := genNewLine.callRead(recordSet.Requests[2].AnticipatedRef.Get(), false)
 			require.NoError(t, err)
 			require.NotNil(t, resp)
 			require.Len(t, resp.Entries, 3)
 
 			for i := range resp.Entries {
 				expected := recordSet.Requests[2-i]
+				actual := &resp.Entries[i]
+				require.Equal(t, expected.AnticipatedRef.GetValue(), actual.EntryData.RecordRef.GetValue(), i)
+				require.True(t, expected.AnyRecordLazy.TryGetLazy().EqualBytes(actual.RecordBinary.GetBytes()))
+			}
+		}
+	})
+
+	// repeat the same sequence
+	genNewLine.seqNo.Store(0)
+
+	t.Run("read toPresent", func(t *testing.T) {
+		for N := 20; N > 0; N-- {
+			recordSet := genNewLine.makeSet(reasonRef)
+
+			resp, err := genNewLine.callRead(recordSet.Requests[0].AnticipatedRef.Get(), true)
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.Len(t, resp.Entries, 3)
+
+			for i := range resp.Entries {
+				expected := recordSet.Requests[i]
 				actual := &resp.Entries[i]
 				require.Equal(t, expected.AnticipatedRef.GetValue(), actual.EntryData.RecordRef.GetValue(), i)
 				require.True(t, expected.AnyRecordLazy.TryGetLazy().EqualBytes(actual.RecordBinary.GetBytes()))
@@ -319,7 +340,7 @@ func benchmarkWriteRead(b *testing.B, bodySize int, parallel bool) {
 			b.RunParallel(func(pb *testing.PB) {
 				idx := rand.Intn(len(refs))
 				for pb.Next() {
-					resp, _ := genNewLine.callRead(refs[idx])
+					resp, _ := genNewLine.callRead(refs[idx], false)
 					genNewLine.sumUpRead(resp)
 					idx++
 					idx %= len(refs)
@@ -329,7 +350,7 @@ func benchmarkWriteRead(b *testing.B, bodySize int, parallel bool) {
 		} else {
 			idx := rand.Intn(len(refs))
 			for i := b.N; i > 0; i-- {
-				resp, _ := genNewLine.callRead(refs[idx])
+				resp, _ := genNewLine.callRead(refs[idx], false)
 				genNewLine.sumUpRead(resp)
 				idx++
 				idx %= len(refs)

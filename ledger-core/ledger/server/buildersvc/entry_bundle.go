@@ -258,7 +258,7 @@ func prepareCatalogEntry(entry *catalog.Entry, dropOrdinal ledger.DropOrdinal, l
 ) {
 	entry.BodyLoc = loc[0]
 	entry.DropOrdinal =	dropOrdinal
-	entry.BodyPayloadSizes = uint64(preparedPayloads[0].size)
+	entry.SetBodyAndPayloadSizes(int(preparedPayloads[0].size), 0)
 
 	n := len(loc)
 	if n == 1 {
@@ -266,7 +266,7 @@ func prepareCatalogEntry(entry *catalog.Entry, dropOrdinal ledger.DropOrdinal, l
 	}
 
 	entry.PayloadLoc = loc[1]
-	entry.BodyPayloadSizes |= uint64(preparedPayloads[1].size)<<32
+	entry.SetPayloadSize(int(preparedPayloads[1].size))
 
 	if n == 2 {
 		return

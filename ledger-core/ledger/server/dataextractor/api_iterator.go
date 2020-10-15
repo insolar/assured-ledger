@@ -10,19 +10,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-
 type Iterator interface {
-	RootRef() reference.Holder
-	CurrentRef() reference.Holder
-	CurrentLoc() ledger.StorageLocator
+	Direction() Direction
+	CurrentEntry() ledger.DirectoryIndex
+	ExtraEntries() []ledger.DirectoryIndex
 
-	Next() bool
+	// Next retrieves a next entry in a sequence. Arg (prevRef) should be provided irrelevant of direction
+	Next(prevRef reference.Holder) (bool, error)
 }
 
-type forwardIterator struct {
-	// anti-PrevRef
-}
-
-type backwardIterator struct {
-	// PrefRef
-}

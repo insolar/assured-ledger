@@ -11,6 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/dataextractor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -286,15 +287,35 @@ func (p *LineSharedData) FindWithTracker(ref reference.Holder) (bool, *buildersv
 	}
 }
 
-func (p *LineSharedData) FindSequence(ref reference.Holder, findFn func(record lineage.ReadRecord) bool) (bool, *buildersvc.Future) {
+func (p *LineSharedData) FindSequence(selector dataextractor.Selector, findFn func(record lineage.ReadRecord) bool) (bool, *buildersvc.Future) {
 	p.ensureDataAccess()
 
 	p.data.RegisterRead()
-	ok, fut := p.data.FindSequence(ref, findFn)
-	if fut == nil {
-		return ok, nil
+
+	switch {
+	case !selector.StartRef.IsEmpty():
+		ok, fut := p.data.ScanFilamentFrom(selector.StartRef, selector.Direction.IsToPast(), findFn)
+		if fut == nil {
+			return ok, nil
+		}
+		return ok, fut.(*buildersvc.Future)
+
+	case !selector.StopRef.IsEmpty():
+		panic(throw.NotImplemented()) // TODO
+		// ok, fut := p.data.ScanFilamentTill(selector.StopRef, selector.Direction.IsToPast(), findFn)
+		// if fut == nil {
+		// 	return ok, nil
+		// }
+		// return ok, fut.(*buildersvc.Future)
+
+	case !selector.RootRef.IsEmpty():
+		panic(throw.NotImplemented()) // TODO
+		// return p.data.ScanFilamentAll(selector.RootRef, selector.Direction.IsToPast(), findFn), nil
+	case !selector.ReasonRef.IsEmpty():
+		panic(throw.Unsupported()) // ReasonRef must be resolved before this call
+	default:
+		panic(throw.IllegalValue())
 	}
-	return ok, fut.(*buildersvc.Future)
 }
 
 func (p *LineSharedData) DropID() jet.DropID {

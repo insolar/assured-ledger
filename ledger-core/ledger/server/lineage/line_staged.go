@@ -651,21 +651,27 @@ func (p *LineStages) FindWithTracker(ref reference.Holder) (found bool, tracker 
 	return false, nil, ReadRecord{}
 }
 
-func (p *LineStages) FindSequence(ref reference.Holder, findFn func(ReadRecord) bool) (found bool, tracker StageTracker) {
+func (p *LineStages) ScanFilamentFrom(from reference.Holder, toPast bool, findFn func(ReadRecord) bool) (found bool, tracker StageTracker) {
 	if findFn == nil {
 		panic(throw.IllegalValue())
 	}
 
-	if rn, ok := p.recordRefs[ref.GetLocal().IdentityHash()]; ok {
-		if stage := p.findStage(rn); stage != nil && stage.tracker != nil {
-			return false, stage.tracker
-		}
-		return p.scanSequence(rn, findFn), nil
+	rn, ok := p.recordRefs[from.GetLocal().IdentityHash()]
+	if !ok {
+		return false, nil
 	}
-	return false, nil
+
+	if stage := p.findStage(rn); stage != nil && stage.tracker != nil {
+		return false, stage.tracker
+	}
+
+	if toPast {
+		return p.scanSequenceToPast(rn, findFn), nil
+	}
+	return p.scanSequenceToPresent(rn, findFn), nil
 }
 
-func (p *LineStages) scanSequence(rn recordNo, findFn func(ReadRecord) bool) bool {
+func (p *LineStages) scanSequenceToPast(rn recordNo, findFn func(ReadRecord) bool) bool {
 	for rn != 0 {
 		switch r := p.get(rn); {
 		case r == nil:
@@ -674,6 +680,23 @@ func (p *LineStages) scanSequence(rn recordNo, findFn func(ReadRecord) bool) boo
 			return true
 		default:
 			rn = r.prev
+		}
+	}
+	return false
+}
+
+func (p *LineStages) scanSequenceToPresent(rn recordNo, findFn func(ReadRecord) bool) bool {
+	for rn != 0 {
+		switch r := p.get(rn); {
+		case r == nil:
+			return false
+		case r.storageIndex == 0:
+			// present can have pending updates, so we have to stop on first pending
+			return false
+		case findFn(ReadRecord{ r.Record, r.storageIndex }):
+			return true
+		default:
+			rn = r.next
 		}
 	}
 	return false
