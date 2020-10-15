@@ -17,32 +17,32 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
-	transport2 "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap"
+	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
+	"github.com/insolar/assured-ledger/ledger-core/network/rules"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
-
-	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
-	"github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
-	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/network/rules"
-	"github.com/insolar/assured-ledger/ledger-core/network/transport"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
 const (
@@ -65,11 +65,11 @@ type Base struct {
 	BootstrapRequester  bootstrap.Requester                     `inject:""`
 	KeyProcessor        cryptography.KeyProcessor               `inject:""`
 	Aborter             network.Aborter                         `inject:""`
-	TransportFactory    transport.Factory                       `inject:""`
+	UnifiedServer       *uniserver.UnifiedServer
+	Dispatcher          *uniserver.Dispatcher
 
-	transportCrypt    transport2.CryptographyAssistant
-	datagramHandler   *adapters.DatagramHandler
-	datagramTransport transport.DatagramTransport
+	transportCrypt  transport.CryptographyAssistant
+	datagramHandler *adapters.DatagramHandler
 
 	ConsensusMode       consensus.Mode
 	consensusInstaller  consensus.Installer
@@ -146,36 +146,37 @@ func (g *Base) Init(ctx context.Context) error {
 	g.isJoinAssistant = network.OriginIsJoinAssistant(cert)
 	g.joinAssistant = network.JoinAssistant(cert)
 
-	return g.initConsensus(ctx)
+	return nil
 }
 
 func (g *Base) Stop(ctx context.Context) error {
-	err := g.datagramTransport.Stop(ctx)
-	if err != nil {
-		return throw.W(err, "failed to stop datagram transport")
-	}
-
+	g.UnifiedServer.Stop()
 	g.pulseWatchdog.Stop()
 	return nil
 }
 
-func (g *Base) initConsensus(ctx context.Context) error {
-	g.ConsensusMode = consensus.Joiner
+func (g *Base) InitConsensusProtocolMarshaller() {
 	g.datagramHandler = adapters.NewDatagramHandler()
-	datagramTransport, err := g.TransportFactory.CreateDatagramTransport(g.datagramHandler)
-	if err != nil {
-		return throw.W(err, "failed to create datagramTransport")
+
+	// todo: use uniproto.ProtocolTypeGlobulaConsensus
+	var desc = uniproto.Descriptor{
+		SupportedPackets: uniproto.PacketDescriptors{
+			uniproto.ProtocolTypePulsar:        {Flags: uniproto.NoSourceID | uniproto.OptionalTarget | uniproto.DatagramAllowed, LengthBits: 16},
+			uniproto.ProtocolTypeJoinCandidate: {Flags: uniproto.NoSourceID | uniproto.OptionalTarget | uniproto.DatagramAllowed, LengthBits: 16},
+		},
 	}
-	g.datagramTransport = datagramTransport
+
+	marshaller := &adapters.ConsensusProtocolMarshaller{HandlerAdapter: g.datagramHandler}
+	g.Dispatcher.SetMode(uniproto.NewConnectionMode(uniproto.AllowUnknownPeer, uniproto.ProtocolTypePulsar, uniproto.ProtocolTypeJoinCandidate))
+	g.Dispatcher.RegisterProtocol(uniproto.ProtocolTypePulsar, desc, marshaller, marshaller)
+	g.Dispatcher.RegisterProtocol(uniproto.ProtocolTypeJoinCandidate, desc, &uniproto.NoopReceiver{}, g.HostNetwork)
+}
+
+func (g *Base) InitConsensus(ctx context.Context) error {
+	g.ConsensusMode = consensus.Joiner
+
 	g.transportCrypt = adapters.NewTransportCryptographyFactory(g.CryptographyScheme)
-
-	// transport start should be here because of TestComponents tests, couldn't localNodeAsCandidate with 0 port
-	err = g.datagramTransport.Start(ctx)
-	if err != nil {
-		return throw.W(err, "failed to start datagram transport")
-	}
-
-	err = g.localNodeAsCandidate()
+	err := g.localNodeAsCandidate()
 	if err != nil {
 		return throw.W(err, "failed to localNodeAsCandidate")
 	}
@@ -190,7 +191,7 @@ func (g *Base) initConsensus(ctx context.Context) error {
 		StateGetter:           proxy,
 		PulseChanger:          proxy,
 		StateUpdater:          proxy,
-		DatagramTransport:     g.datagramTransport,
+		UnifiedServer:         g.UnifiedServer,
 		EphemeralController:   g,
 		TransportCryptography: g.transportCrypt,
 	})
@@ -202,7 +203,7 @@ func (g *Base) localNodeAsCandidate() error {
 	cert := g.CertificateManager.GetCertificate()
 
 	staticProfile, err := CreateLocalNodeProfile(g.NodeKeeper, cert,
-		g.datagramTransport.Address(),
+		g.UnifiedServer.PeerManager().Local().GetPrimary().String(),
 		g.KeyProcessor, g.CryptographyService, g.CryptographyScheme)
 
 	if err != nil {
@@ -378,7 +379,7 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 
 	err := bootstrap.ValidatePermit(data.Permit, g.CertificateManager.GetCertificate(), g.CryptographyService)
 	if err != nil {
-		inslogger.FromContext(ctx).Warnf("Rejected bootstrap request from node %s: %s", request.GetSender(), err.Error())
+		inslogger.FromContext(ctx).Warnf("Rejected bootstrap request from node %s: %s", request.GetSenderHost().String(), err.Error())
 		return g.HostNetwork.BuildResponse(ctx, request, &rms.BootstrapResponse{Code: rms.BootstrapResponseCode_Reject}), nil
 	}
 
@@ -391,7 +392,7 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 
 	err = g.ConsensusController.AddJoinCandidate(candidate{profile, profile.GetExtension()})
 	if err != nil {
-		inslogger.FromContext(ctx).Warnf("Retry Failed to AddJoinCandidate  %s: %s", request.GetSender(), err.Error())
+		inslogger.FromContext(ctx).Warnf("Retry Failed to AddJoinCandidate  %s: %s", request.GetSenderHost().String(), err.Error())
 		return g.HostNetwork.BuildResponse(ctx, request, &rms.BootstrapResponse{Code: rms.BootstrapResponseCode_Retry}), nil
 	}
 
@@ -418,35 +419,24 @@ func (g *Base) getDiscoveryCount() int {
 	return len(network.FindDiscoveriesInNodeList(nodes, g.CertificateManager.GetCertificate()))
 }
 
-func (g *Base) reconnectToLocal() (*legacyhost.Host, error) {
-	return legacyhost.NewHostNS(
-		g.localStatic.GetDefaultEndpoint().GetIPAddress().String(),
-		g.localStatic.GetExtension().GetReference(),
-		g.localStatic.GetStaticNodeID(),
-	)
-}
-
-func (g *Base) getReconnectHost() (*legacyhost.Host, error) {
+func (g *Base) getReconnectHost() (nwapi.Address, error) {
 	var (
-		reconnectHost *legacyhost.Host
+		reconnectHost nwapi.Address
 		err           error
 	)
 
-	ch := make(chan *legacyhost.Host)
+	ch := make(chan nwapi.Address)
 	go func() {
-		var h *legacyhost.Host
+		var h nwapi.Address
 		var n profiles.ActiveNode
 
 		g.mu.Lock()
 		defer g.mu.Unlock()
 		if len(g.reconnectNodes) > 0 {
 			n, g.reconnectNodes = g.reconnectNodes[0], g.reconnectNodes[1:]
-			h, err = legacyhost.NewHostNS(nodeinfo.NodeAddr(n), nodeinfo.NodeRef(n), n.GetNodeID())
-
-			fmt.Printf("AuthRedirect: %s\n", h)
+			h = nwapi.NewHostPort(nodeinfo.NodeAddr(n), false)
 		} else if !g.localRedirect {
-			h, err = g.reconnectToLocal()
-			fmt.Printf("AuthRedirect local: %s\n", h)
+			h = nwapi.NewHostPort(g.localStatic.GetDefaultEndpoint().GetIPAddress().String(), false)
 			g.localRedirect = true
 		}
 
@@ -463,7 +453,7 @@ func (g *Base) getReconnectHost() (*legacyhost.Host, error) {
 	return reconnectHost, err
 }
 
-func (g *Base) getPermit(reconnectHost *legacyhost.Host) (*rms.Permit, error) {
+func (g *Base) getPermit(reconnectHost nwapi.Address) (*rms.Permit, error) {
 	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(adapters.ECDSAPublicKeyOfProfile(g.localStatic))
 	if err != nil {
 		return nil, err
@@ -509,9 +499,13 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	}
 
 	reconnectHost, err := g.getReconnectHost()
-	if err != nil || reconnectHost == nil {
-		inslogger.FromContext(ctx).Warn("AuthorizeRequest: failed to get reconnectHost")
+	switch {
+	case err != nil:
+		inslogger.FromContext(ctx).Warnf("AuthorizeRequest: failed to get reconnectHost: %s", err)
 		return nil, err
+	case !reconnectHost.CanConnect():
+		inslogger.FromContext(ctx).Warnf("AuthorizeRequest: failed to get valid reconnectHost")
+		return nil, throw.New("failed to get valid reconnectHost")
 	}
 
 	discoveryCount := g.getDiscoveryCount()

@@ -12,7 +12,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/msgdelivery"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/watermill"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -25,10 +29,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/controller"
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway"
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork"
-	"github.com/insolar/assured-ledger/ledger-core/network/routing"
 	"github.com/insolar/assured-ledger/ledger-core/network/termination"
-	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
@@ -53,6 +54,10 @@ type ServiceNetwork struct {
 	BaseGateway *gateway.Base
 
 	router watermill.Router
+
+	unifiedServer      *uniserver.UnifiedServer
+	dispatcher         uniserver.Dispatcher
+	msgdeliveryService msgdelivery.Service
 }
 
 func (n *ServiceNetwork) GetBeatHistory() beat.History {
@@ -75,12 +80,6 @@ func NewServiceNetwork(conf configuration.Configuration, rootCm *component.Manag
 
 // Init implements component.Initer
 func (n *ServiceNetwork) Init(ctx context.Context) error {
-	hostNetwork, err := hostnetwork.NewHostNetwork(n.CertificateManager.GetCertificate().GetNodeRef().String())
-	if err != nil {
-		return throw.W(err, "failed to create hostnetwork")
-	}
-	n.HostNetwork = hostNetwork
-
 	options := network.ConfigureOptions(n.cfg)
 
 	cert := n.CertificateManager.GetCertificate()
@@ -90,24 +89,42 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 		return throw.W(err, "failed to create NodeNetwork")
 	}
 
-	n.BaseGateway = &gateway.Base{Options: options}
+	n.initUniproto(ctx)
+
+	hostNetwork, err := hostnetwork.NewHostNetwork(n.unifiedServer.PeerManager().Manager())
+	if err != nil {
+		return throw.W(err, "failed to create hostnetwork")
+	}
+	n.HostNetwork = hostNetwork
+
+	n.BaseGateway = &gateway.Base{Options: options, UnifiedServer: n.unifiedServer, Dispatcher: &n.dispatcher}
 	n.Gatewayer = gateway.NewGatewayer(n.BaseGateway.NewGateway(ctx, network.NoNetworkState))
 
-	table := &routing.Table{}
-
 	n.cm.Inject(n,
-		table,
 		cert,
-		transport.NewFactory(n.cfg.Host.Transport),
 		hostNetwork,
 		nodeNetwork,
-		controller.NewRPCController(options),
+		controller.NewRPCController(options), // todo remove
 		bootstrap.NewRequester(options),
 		memstor.NewMemoryStorage(),
 		n.BaseGateway,
 		n.Gatewayer,
 		termination.NewHandler(n),
 	)
+
+	n.BaseGateway.InitConsensusProtocolMarshaller() // must before unifiedServer.StartListen() coz Seal issue
+	n.unifiedServer.StartListen()
+	n.dispatcher.SetMode(uniproto.AllowAll)
+	pm := n.unifiedServer.PeerManager() // todo ?
+	_, err = pm.AddHostID(pm.Local().GetPrimary(), 0)
+	if err != nil {
+		panic(err)
+	}
+
+	err = n.BaseGateway.InitConsensus(ctx)
+	if err != nil {
+		return throw.W(err, "failed to init consensus")
+	}
 
 	err = n.cm.Init(ctx)
 	if err != nil {

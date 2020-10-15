@@ -12,9 +12,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/opentracing/opentracing-go/log"
-
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
@@ -24,11 +23,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
 const bootstrapRetryCount = 2
@@ -39,7 +36,7 @@ type Requester interface {
 	Authorize(context.Context, nodeinfo.Certificate) (*rms.Permit, error)
 	Bootstrap(context.Context, *rms.Permit, adapters.Candidate) (*rms.BootstrapResponse, error)
 	UpdateSchedule(context.Context, *rms.Permit, pulse.Number) (*rms.UpdateScheduleResponse, error)
-	Reconnect(context.Context, *legacyhost.Host, *rms.Permit) (*rms.ReconnectResponse, error)
+	Reconnect(context.Context, nwapi.Address, *rms.Permit) (*rms.ReconnectResponse, error)
 }
 
 func NewRequester(options *network.Options) Requester {
@@ -73,12 +70,7 @@ func (ac *requester) Authorize(ctx context.Context, cert nodeinfo.Certificate) (
 	bestResult := &rms.AuthorizeResponse{}
 
 	for _, n := range discoveryNodes {
-		h, err := legacyhost.NewHostN(n.GetHost(), n.GetNodeRef())
-		if err != nil {
-			logger.Warnf("Error authorizing to mallformed host %s[%s]: %s",
-				n.GetHost(), n.GetNodeRef(), err.Error())
-			continue
-		}
+		h := nwapi.NewHostPort(n.GetHost(), false)
 
 		logger.Infof("Trying to authorize to node: %s", h.String())
 		res, err := ac.authorize(ctx, h, cert)
@@ -125,12 +117,7 @@ func (ac *requester) authorizeDiscovery(ctx context.Context, nodes []nodeinfo.Di
 
 	logger := inslogger.FromContext(ctx)
 	for _, n := range nodes {
-		h, err := legacyhost.NewHostN(n.GetHost(), n.GetNodeRef())
-		if err != nil {
-			logger.Warnf("Error authorizing to mallformed host %s[%s]: %s",
-				n.GetHost(), n.GetNodeRef(), err.Error())
-			continue
-		}
+		h := nwapi.NewHostPort(n.GetHost(), false)
 
 		logger.Infof("Trying to authorize to node: %s", h.String())
 		res, err := ac.authorize(ctx, h, cert)
@@ -145,21 +132,21 @@ func (ac *requester) authorizeDiscovery(ctx context.Context, nodes []nodeinfo.Di
 	return nil, throw.New("failed to authorize to any discovery node")
 }
 
-func (ac *requester) authorize(ctx context.Context, host *legacyhost.Host, cert nodeinfo.AuthorizationCertificate) (*rms.AuthorizeResponse, error) {
-	inslogger.FromContext(ctx).Infof("Authorizing on host: %s", host.String())
+func (ac *requester) authorize(ctx context.Context, address nwapi.Address, cert nodeinfo.AuthorizationCertificate) (*rms.AuthorizeResponse, error) {
+	inslogger.FromContext(ctx).Infof("Authorizing on address: %s", address.String())
 
-	ctx, span := instracer.StartSpan(ctx, "AuthorizationController.Authorize")
-	span.LogFields(
-		log.String("node", host.NodeID.String()),
-	)
-	defer span.Finish()
+	// ctx, span := instracer.StartSpan(ctx, "AuthorizationController.Authorize")
+	// span.LogFields(
+	// 	log.String("node", host.NodeID.String()),
+	// )
+	// defer span.Finish()
 	serializedCert, err := mandates.Serialize(cert)
 	if err != nil {
 		return nil, throw.W(err, "Error serializing certificate")
 	}
 
 	authData := &rms.AuthorizeData{Certificate: serializedCert, Version: version.Version}
-	response, err := ac.authorizeWithTimestamp(ctx, host, authData, time.Now().Unix())
+	response, err := ac.authorizeWithTimestamp(ctx, address, authData, time.Now().Unix())
 	if err != nil {
 		return nil, err
 	}
@@ -175,11 +162,11 @@ func (ac *requester) authorize(ctx context.Context, host *legacyhost.Host, cert 
 
 	// retry with received timestamp
 	// TODO: change one retry to many
-	response, err = ac.authorizeWithTimestamp(ctx, host, authData, response.Timestamp)
+	response, err = ac.authorizeWithTimestamp(ctx, address, authData, response.Timestamp)
 	return response, err
 }
 
-func (ac *requester) authorizeWithTimestamp(ctx context.Context, h *legacyhost.Host, authData *rms.AuthorizeData, timestamp int64) (*rms.AuthorizeResponse, error) {
+func (ac *requester) authorizeWithTimestamp(ctx context.Context, h nwapi.Address, authData *rms.AuthorizeData, timestamp int64) (*rms.AuthorizeResponse, error) {
 
 	authData.Timestamp = timestamp
 
@@ -222,7 +209,7 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *rms.Permit, candidat
 		Permit:           permit,
 	}
 
-	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Bootstrap, req, &permit.Payload.ReconnectTo)
+	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Bootstrap, req, permit.Payload.ReconnectTo)
 	if err != nil {
 		return nil, throw.W(err, "Error sending Bootstrap request")
 	}
@@ -268,7 +255,7 @@ func (ac *requester) UpdateSchedule(ctx context.Context, permit *rms.Permit, pul
 		Permit:        permit,
 	}
 
-	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.UpdateSchedule, req, &permit.Payload.ReconnectTo)
+	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.UpdateSchedule, req, permit.Payload.ReconnectTo)
 	if err != nil {
 		return nil, throw.W(err, "Error sending UpdateSchedule request")
 	}
@@ -281,7 +268,7 @@ func (ac *requester) UpdateSchedule(ctx context.Context, permit *rms.Permit, pul
 	return resp.GetResponse().GetUpdateSchedule(), nil
 }
 
-func (ac *requester) Reconnect(ctx context.Context, h *legacyhost.Host, permit *rms.Permit) (*rms.ReconnectResponse, error) {
+func (ac *requester) Reconnect(ctx context.Context, h nwapi.Address, permit *rms.Permit) (*rms.ReconnectResponse, error) {
 	req := &rms.ReconnectRequest{
 		ReconnectTo: permit.Payload.ReconnectTo,
 		Permit:      permit,

@@ -11,9 +11,9 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
 // RequesterMock implements Requester
@@ -32,8 +32,8 @@ type RequesterMock struct {
 	beforeBootstrapCounter uint64
 	BootstrapMock          mRequesterMockBootstrap
 
-	funcReconnect          func(ctx context.Context, hp1 *legacyhost.Host, pp1 *rms.Permit) (rp1 *rms.ReconnectResponse, err error)
-	inspectFuncReconnect   func(ctx context.Context, hp1 *legacyhost.Host, pp1 *rms.Permit)
+	funcReconnect          func(ctx context.Context, a1 nwapi.Address, pp1 *rms.Permit) (rp1 *rms.ReconnectResponse, err error)
+	inspectFuncReconnect   func(ctx context.Context, a1 nwapi.Address, pp1 *rms.Permit)
 	afterReconnectCounter  uint64
 	beforeReconnectCounter uint64
 	ReconnectMock          mRequesterMockReconnect
@@ -522,7 +522,7 @@ type RequesterMockReconnectExpectation struct {
 // RequesterMockReconnectParams contains parameters of the Requester.Reconnect
 type RequesterMockReconnectParams struct {
 	ctx context.Context
-	hp1 *legacyhost.Host
+	a1  nwapi.Address
 	pp1 *rms.Permit
 }
 
@@ -533,7 +533,7 @@ type RequesterMockReconnectResults struct {
 }
 
 // Expect sets up expected params for Requester.Reconnect
-func (mmReconnect *mRequesterMockReconnect) Expect(ctx context.Context, hp1 *legacyhost.Host, pp1 *rms.Permit) *mRequesterMockReconnect {
+func (mmReconnect *mRequesterMockReconnect) Expect(ctx context.Context, a1 nwapi.Address, pp1 *rms.Permit) *mRequesterMockReconnect {
 	if mmReconnect.mock.funcReconnect != nil {
 		mmReconnect.mock.t.Fatalf("RequesterMock.Reconnect mock is already set by Set")
 	}
@@ -542,7 +542,7 @@ func (mmReconnect *mRequesterMockReconnect) Expect(ctx context.Context, hp1 *leg
 		mmReconnect.defaultExpectation = &RequesterMockReconnectExpectation{}
 	}
 
-	mmReconnect.defaultExpectation.params = &RequesterMockReconnectParams{ctx, hp1, pp1}
+	mmReconnect.defaultExpectation.params = &RequesterMockReconnectParams{ctx, a1, pp1}
 	for _, e := range mmReconnect.expectations {
 		if minimock.Equal(e.params, mmReconnect.defaultExpectation.params) {
 			mmReconnect.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmReconnect.defaultExpectation.params)
@@ -553,7 +553,7 @@ func (mmReconnect *mRequesterMockReconnect) Expect(ctx context.Context, hp1 *leg
 }
 
 // Inspect accepts an inspector function that has same arguments as the Requester.Reconnect
-func (mmReconnect *mRequesterMockReconnect) Inspect(f func(ctx context.Context, hp1 *legacyhost.Host, pp1 *rms.Permit)) *mRequesterMockReconnect {
+func (mmReconnect *mRequesterMockReconnect) Inspect(f func(ctx context.Context, a1 nwapi.Address, pp1 *rms.Permit)) *mRequesterMockReconnect {
 	if mmReconnect.mock.inspectFuncReconnect != nil {
 		mmReconnect.mock.t.Fatalf("Inspect function is already set for RequesterMock.Reconnect")
 	}
@@ -577,7 +577,7 @@ func (mmReconnect *mRequesterMockReconnect) Return(rp1 *rms.ReconnectResponse, e
 }
 
 //Set uses given function f to mock the Requester.Reconnect method
-func (mmReconnect *mRequesterMockReconnect) Set(f func(ctx context.Context, hp1 *legacyhost.Host, pp1 *rms.Permit) (rp1 *rms.ReconnectResponse, err error)) *RequesterMock {
+func (mmReconnect *mRequesterMockReconnect) Set(f func(ctx context.Context, a1 nwapi.Address, pp1 *rms.Permit) (rp1 *rms.ReconnectResponse, err error)) *RequesterMock {
 	if mmReconnect.defaultExpectation != nil {
 		mmReconnect.mock.t.Fatalf("Default expectation is already set for the Requester.Reconnect method")
 	}
@@ -592,14 +592,14 @@ func (mmReconnect *mRequesterMockReconnect) Set(f func(ctx context.Context, hp1 
 
 // When sets expectation for the Requester.Reconnect which will trigger the result defined by the following
 // Then helper
-func (mmReconnect *mRequesterMockReconnect) When(ctx context.Context, hp1 *legacyhost.Host, pp1 *rms.Permit) *RequesterMockReconnectExpectation {
+func (mmReconnect *mRequesterMockReconnect) When(ctx context.Context, a1 nwapi.Address, pp1 *rms.Permit) *RequesterMockReconnectExpectation {
 	if mmReconnect.mock.funcReconnect != nil {
 		mmReconnect.mock.t.Fatalf("RequesterMock.Reconnect mock is already set by Set")
 	}
 
 	expectation := &RequesterMockReconnectExpectation{
 		mock:   mmReconnect.mock,
-		params: &RequesterMockReconnectParams{ctx, hp1, pp1},
+		params: &RequesterMockReconnectParams{ctx, a1, pp1},
 	}
 	mmReconnect.expectations = append(mmReconnect.expectations, expectation)
 	return expectation
@@ -612,15 +612,15 @@ func (e *RequesterMockReconnectExpectation) Then(rp1 *rms.ReconnectResponse, err
 }
 
 // Reconnect implements Requester
-func (mmReconnect *RequesterMock) Reconnect(ctx context.Context, hp1 *legacyhost.Host, pp1 *rms.Permit) (rp1 *rms.ReconnectResponse, err error) {
+func (mmReconnect *RequesterMock) Reconnect(ctx context.Context, a1 nwapi.Address, pp1 *rms.Permit) (rp1 *rms.ReconnectResponse, err error) {
 	mm_atomic.AddUint64(&mmReconnect.beforeReconnectCounter, 1)
 	defer mm_atomic.AddUint64(&mmReconnect.afterReconnectCounter, 1)
 
 	if mmReconnect.inspectFuncReconnect != nil {
-		mmReconnect.inspectFuncReconnect(ctx, hp1, pp1)
+		mmReconnect.inspectFuncReconnect(ctx, a1, pp1)
 	}
 
-	mm_params := &RequesterMockReconnectParams{ctx, hp1, pp1}
+	mm_params := &RequesterMockReconnectParams{ctx, a1, pp1}
 
 	// Record call args
 	mmReconnect.ReconnectMock.mutex.Lock()
@@ -637,7 +637,7 @@ func (mmReconnect *RequesterMock) Reconnect(ctx context.Context, hp1 *legacyhost
 	if mmReconnect.ReconnectMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmReconnect.ReconnectMock.defaultExpectation.Counter, 1)
 		mm_want := mmReconnect.ReconnectMock.defaultExpectation.params
-		mm_got := RequesterMockReconnectParams{ctx, hp1, pp1}
+		mm_got := RequesterMockReconnectParams{ctx, a1, pp1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmReconnect.t.Errorf("RequesterMock.Reconnect got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -649,9 +649,9 @@ func (mmReconnect *RequesterMock) Reconnect(ctx context.Context, hp1 *legacyhost
 		return (*mm_results).rp1, (*mm_results).err
 	}
 	if mmReconnect.funcReconnect != nil {
-		return mmReconnect.funcReconnect(ctx, hp1, pp1)
+		return mmReconnect.funcReconnect(ctx, a1, pp1)
 	}
-	mmReconnect.t.Fatalf("Unexpected call to RequesterMock.Reconnect. %v %v %v", ctx, hp1, pp1)
+	mmReconnect.t.Fatalf("Unexpected call to RequesterMock.Reconnect. %v %v %v", ctx, a1, pp1)
 	return
 }
 
