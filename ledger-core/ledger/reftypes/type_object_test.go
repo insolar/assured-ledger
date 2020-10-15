@@ -100,4 +100,7 @@ func TestTypeObject_BadInput(t *testing.T) {
 
 	_, err = UnpackObjectLocalRef(reference.Empty().GetLocal())
 	require.Contains(t, err.Error(), ErrIllegalRefValue.Error())
+
+	_, err = tDefObject.RefFrom(reference.Empty().GetBase(), reference.Empty().GetLocal())
+	require.Contains(t, err.Error(), ErrIllegalRefValue.Error())
 }

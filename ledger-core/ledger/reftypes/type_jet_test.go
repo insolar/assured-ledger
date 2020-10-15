@@ -46,7 +46,7 @@ func TestJetLocalRef(t *testing.T) {
 	assert.Equal(t, jet.ID(77), jetId)
 
 	hash := jetLocalRef2.IdentityHash()
-	hash[len(hash) - 1] = 1
+	hash[len(hash)-1] = 1
 	jetLocalRef3 := jetLocalRef2.WithHash(hash)
 
 	jetId, err = unpackJetLocalRef(jetLocalRef3, true)
@@ -116,6 +116,9 @@ func TestJetRefFrom(t *testing.T) {
 	jetRefFrom, err = tDefJet.RefFrom(jetLegRef1.GetBase(), jetLegRef1.GetLocal())
 	require.NoError(t, err)
 	assert.Equal(t, jetRef1, jetRefFrom)
+
+	_, err = tDefJet.RefFrom(reference.Empty().GetBase(), reference.Empty().GetLocal())
+	require.Contains(t, err.Error(), ErrIllegalRefValue.Error())
 }
 
 func TestJetLegLocalRef(t *testing.T) {
@@ -240,7 +243,6 @@ func TestJetDropLocalRef(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, unpackedJetID, id2)
 }
-
 
 func TestJetDropRef(t *testing.T) {
 	id1 := jet.ID(0x6677).AsDrop(pulse.MaxTimePulse)

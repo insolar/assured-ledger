@@ -110,4 +110,7 @@ func TestTypeNode_RefFrom(t *testing.T) {
 	tDefNodeContract.RefFrom(nodeRef.GetBase(), nodeRef.GetLocal())
 	require.NoError(t, err)
 	require.Equal(t, nodeRef, newNodeRef)
+
+	_, err = tDefNodeContract.RefFrom(reference.Empty().GetBase(), reference.Empty().GetLocal())
+	require.Contains(t, err.Error(), ErrIllegalRefValue.Error())
 }

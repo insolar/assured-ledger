@@ -27,6 +27,7 @@ func TestJetRecordRef(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, dropID, newDropID)
 		require.Equal(t, ref.GetLocal(), newRef)
+		require.Equal(t, JetRecord, tDefJet.DetectSubType(jetRecordRef.GetBase(), jetRecordRef.GetLocal()))
 	}
 	{
 		jetRecordRef := JetRecordRefByDrop(dropID, ref)

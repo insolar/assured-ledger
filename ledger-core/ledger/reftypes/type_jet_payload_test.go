@@ -12,6 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
@@ -64,6 +65,9 @@ func TestTypeDefRecPayload_RefFrom(t *testing.T) {
 	newRecord, err := tDefRecPayload.RefFrom(recPayloadRef.GetBase(), recPayloadRef.GetLocal())
 	require.NoError(t, err)
 	require.Equal(t, recPayloadRef, newRecord)
+
+	_, err = tDefRecPayload.RefFrom(reference.Empty().GetBase(), reference.Empty().GetLocal())
+	require.Contains(t, err.Error(), ErrIllegalRefValue.Error())
 }
 
 func TestRecordPayloadRef_BadInput(t *testing.T) {
