@@ -58,6 +58,8 @@ type Header struct {
 // 1) "POST /", "HEAD /" - Protocol=2, Packet=0 must have PacketFlags[5:] = 0
 // 2) "GET /", "PUT /" Protocol=2, Packet=0x0F is forbidden
 // 3) "OPTION" - Protocol=4, Packet=0xF must have PacketFlags[6:] = 0
+
+//go:generate stringer -type=ProtocolType
 type ProtocolType uint8
 
 const (
