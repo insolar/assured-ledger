@@ -43,7 +43,7 @@ func TestFuture_Actor(t *testing.T) {
 	m := &rms.Packet{}
 	f := NewFuture(types.RequestID(1), n, m, cb)
 
-	require.Equal(t, f.Receiver(), &n)
+	require.Equal(t, f.Receiver(), n)
 }
 
 func TestFuture_Result(t *testing.T) {
@@ -108,7 +108,7 @@ func TestFuture_WaitResponse_Cancel(t *testing.T) {
 	c := make(chan network.ReceivedPacket)
 	var f Future = &future{
 		response:       c,
-		receiver:       &n,
+		receiver:       n,
 		request:        &rms.Packet{},
 		requestID:      types.RequestID(1),
 		cancelCallback: func(f Future) {},
@@ -127,7 +127,7 @@ func TestFuture_WaitResponse_Timeout(t *testing.T) {
 	cancelled := false
 	var f Future = &future{
 		response:       c,
-		receiver:       &n,
+		receiver:       n,
 		request:        &rms.Packet{},
 		requestID:      types.RequestID(1),
 		cancelCallback: func(f Future) { cancelled = true },
@@ -143,7 +143,7 @@ func TestFuture_WaitResponse_Success(t *testing.T) {
 	c := make(chan network.ReceivedPacket, 1)
 	var f Future = &future{
 		response:       c,
-		receiver:       &n,
+		receiver:       n,
 		request:        &rms.Packet{},
 		requestID:      types.RequestID(1),
 		cancelCallback: func(f Future) {},

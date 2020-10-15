@@ -32,7 +32,7 @@ func TestFutureManager_Create(t *testing.T) {
 
 	require.EqualValues(t, future.ID(), p.RequestID)
 	require.Equal(t, future.Request(), p)
-	require.Equal(t, future.Receiver(), &receiver)
+	require.Equal(t, future.Receiver(), receiver)
 }
 
 func TestFutureManager_Get(t *testing.T) {
