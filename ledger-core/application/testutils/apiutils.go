@@ -27,7 +27,7 @@ var (
 )
 
 func GetPorts() []string {
-	return defaultPorts[:]
+	return defaultPorts
 }
 
 // SetAPIPorts is not thread safe, it is supposed to be called before bench run, right after launchnet is configured
