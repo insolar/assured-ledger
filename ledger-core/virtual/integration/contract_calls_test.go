@@ -784,7 +784,7 @@ func TestVirtual_CheckSortInTranscript(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	var (
 		flags   = contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallValidated}
