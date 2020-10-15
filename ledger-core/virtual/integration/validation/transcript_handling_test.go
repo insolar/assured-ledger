@@ -294,7 +294,71 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 
+	recordService := checker.NewTypedReferenceBuilder(ctx, t)
+	server.ReplaceRecordReferenceBuilderService(recordService)
+
 	server.Init(ctx)
+
+	prevPulse := server.GetPulse().PulseNumber
+
+	// VObjectTranscriptReport is always from previous pulse
+	server.IncrementPulse(ctx)
+	curPulse := server.GetPulse().PulseNumber
+
+	// initialize values
+	var (
+		rLineStart       = server.RandomGlobalWithPulse()
+		inboundResponse  = server.RandomGlobalWithPulse()
+		outboundRequest  = server.RandomGlobalWithPulse()
+		outboundResponse = server.RandomGlobalWithPulse()
+		rLineMemory      = server.RandomGlobalWithPulse()
+		rLineActivate    = server.RandomGlobalWithPulse()
+	)
+	// add RecordReferenceBuilderMock
+	{
+		counter := 0
+		// todo: add more checks
+		recordService.ROutboundRequest.AnticipatedRefFromBytesMock(func(object reference.Global, pn pulse.Number, record *rms.ROutboundRequest) reference.Global {
+			switch counter {
+			// todo: so many times? wtf?
+			case 0, 1, 2, 3:
+				assert.Equal(t, rms.CallTypeConstructor, record.CallType)
+
+				counter++
+				return rLineStart
+			case 4:
+				assert.Equal(t, rms.CallTypeMethod, record.CallType)
+
+				counter++
+				return outboundRequest
+			default:
+				t.Fatal("unexpected case")
+				return reference.Global{}
+			}
+			// fixme: different refs
+			// switch record.Polymorph {
+			// case rms.TypeRInboundRequestPolymorphID:
+			// 	return inboundRequest
+			// case rms.TypeROutboundRequestPolymorphID:
+			// 	return outboundRequest
+			// default:
+			// 	t.Fatalf("unexpected type: %v", record.Polymorph)
+			// 	return reference.Global{}
+			// }
+		})
+		recordService.RInboundResponse.AnticipatedRefFromBytesMock(func(object reference.Global, pn pulse.Number, record *rms.RInboundResponse) reference.Global {
+			return inboundResponse
+		})
+		recordService.ROutboundResponse.AnticipatedRefFromBytesMock(func(object reference.Global, pn pulse.Number, record *rms.ROutboundResponse) reference.Global {
+			return outboundResponse
+		})
+		recordService.RLineActivate.AnticipatedRefFromBytesMock(func(object reference.Global, pn pulse.Number, record *rms.RLineActivate) reference.Global {
+			return rLineActivate
+		})
+		recordService.RLineMemory.AnticipatedRefFromBytesMock(func(object reference.Global, pn pulse.Number, record *rms.RLineMemory) reference.Global {
+			return rLineMemory
+		})
+	}
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
@@ -303,11 +367,7 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 	outgoing := callRequest.CallOutgoing.GetValue()
 	objectRef := plWrapper.GetObject()
 	class := callRequest.Caller.GetValue()
-	p := server.GetPulse().PulseNumber
 
-	stateRef := reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
-
-	outgoingRefFromConstructor := reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
 	calledObjectRef := server.RandomGlobalWithPulse()
 
 	// add runnerMock
@@ -319,7 +379,7 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 		requestResult.SetActivate(server.RandomGlobalWithPulse(), []byte("init state"))
 		runnerMock.AddExecutionMock(outgoing).AddStart(func(ctx execution.Context) {
 			assert.Empty(t, ctx.ObjectDescriptor)
-			assertExecutionContext(t, ctx, &callRequest, objectRef, p)
+			assertExecutionContext(t, ctx, &callRequest, objectRef, curPulse)
 		}, &execution.Update{
 			Type:     execution.OutgoingCall,
 			Error:    nil,
@@ -337,8 +397,8 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 	{
 		typedChecker.VObjectValidationReport.Set(func(report *rms.VObjectValidationReport) bool {
 			require.Equal(t, objectRef, report.Object.GetValue())
-			require.Equal(t, p, report.In)
-			require.Equal(t, stateRef, report.Validated.GetValue())
+			require.Equal(t, curPulse, report.In)
+			require.Equal(t, rLineActivate, report.Validated.GetValue())
 
 			return false
 		})
@@ -347,7 +407,7 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 	// send VObjectTranscriptReport
 	{
 		pl := rms.VObjectTranscriptReport{
-			AsOf:   p,
+			AsOf:   prevPulse,
 			Object: rms.NewReference(objectRef),
 			ObjectTranscript: rms.Transcript{
 				Entries: []rms.Any{{}, {}, {}, {}},
@@ -355,23 +415,25 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 		}
 		pl.ObjectTranscript.Entries[0].Set(
 			&rms.Transcript_TranscriptEntryIncomingRequest{
-				Request: callRequest,
+				Request:  callRequest,
+				Incoming: rms.NewReference(rLineStart),
 			},
 		)
 		pl.ObjectTranscript.Entries[1].Set(
 			&rms.Transcript_TranscriptEntryOutgoingRequest{
-				Request: rms.NewReference(outgoingRefFromConstructor),
+				Request: rms.NewReference(outboundRequest),
 				Reason:  callRequest.CallOutgoing,
 			},
 		)
 		pl.ObjectTranscript.Entries[2].Set(
 			&rms.Transcript_TranscriptEntryOutgoingResult{
+				OutgoingResult: rms.NewReference(outboundResponse),
 				CallResult: rms.VCallResult{
 					CallType:        rms.CallTypeMethod,
 					CallFlags:       rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 					Caller:          rms.NewReference(objectRef),
 					Callee:          rms.NewReference(class),
-					CallOutgoing:    rms.NewReference(outgoingRefFromConstructor),
+					CallOutgoing:    rms.NewReference(outboundRequest),
 					ReturnArguments: rms.NewBytes([]byte("finish B.Bar")),
 				},
 				Reason: callRequest.CallOutgoing,
@@ -379,8 +441,9 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 		)
 		pl.ObjectTranscript.Entries[3].Set(
 			&rms.Transcript_TranscriptEntryIncomingResult{
-				ObjectState: rms.NewReference(stateRef),
-				Reason:      callRequest.CallOutgoing,
+				IncomingResult: rms.NewReference(inboundResponse),
+				ObjectState:    rms.NewReference(rLineActivate),
+				Reason:         callRequest.CallOutgoing,
 			},
 		)
 

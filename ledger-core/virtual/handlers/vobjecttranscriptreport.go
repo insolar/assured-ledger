@@ -68,6 +68,7 @@ type SMVObjectTranscriptReport struct {
 	lmnLastLifelineRef    reference.Global
 	lmnIncomingRequestRef reference.Global
 	incomingRegistered    bool
+	incomingValidated     bool
 
 	validatedState reference.Global
 
@@ -358,6 +359,9 @@ func (s *SMVObjectTranscriptReport) stepInboundResponseRecord(ctx smachine.Execu
 		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
 		s.lmnIncomingRequestRef = subroutineSM.IncomingRequestRef
 
+		if s.incomingValidated {
+			return ctx.Jump(s.stepValidateIncomingResult)
+		}
 		return ctx.Jump(s.stepValidateIncomingRequest)
 	})
 }
@@ -368,6 +372,8 @@ func (s *SMVObjectTranscriptReport) stepValidateIncomingRequest(ctx smachine.Exe
 		ctx.Log().Warn("validation failed: wrong IncomingRequest record ref")
 		return ctx.Jump(s.stepValidationFailed)
 	}
+
+	s.incomingValidated = true
 
 	if s.outgoingRequest != nil {
 		return ctx.Jump(s.stepValidateOutgoingRequest)
