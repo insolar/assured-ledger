@@ -174,6 +174,10 @@ func TestJetLegLocalRef(t *testing.T) {
 	unpackedJetID, err = UnpackJetLegLocalRef(jetLegLocalRef2)
 	assert.NoError(t, err)
 	assert.Equal(t, unpackedJetID, id2)
+
+	require.Panics(t, func() { JetLegLocalRef(jet.LegID(0)) })
+	_, err = UnpackJetLegLocalRef(reference.Empty().GetLocal())
+	require.Contains(t, err.Error(), ErrIllegalRefValue.Error())
 }
 
 func TestJetLegRef(t *testing.T) {
@@ -208,6 +212,9 @@ func TestJetLegRef(t *testing.T) {
 	unpackedJetID, err = UnpackJetLegRef(jetLegRef2)
 	assert.NoError(t, err)
 	assert.Equal(t, unpackedJetID, id2)
+
+	_, err = UnpackJetLegRef(reference.Empty())
+	require.Contains(t, err.Error(), ErrIllegalRefValue.Error())
 }
 
 func TestJetDropLocalRef(t *testing.T) {
@@ -247,6 +254,8 @@ func TestJetDropLocalRef(t *testing.T) {
 	unpackedJetID, err = UnpackJetDropLocalRef(jetDropLocalRef2)
 	assert.NoError(t, err)
 	assert.Equal(t, unpackedJetID, id2)
+
+	require.Panics(t, func() { JetDropLocalRef(jet.DropID(0)) })
 }
 
 func TestJetDropRef(t *testing.T) {
@@ -280,4 +289,22 @@ func TestJetDropRef(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, pulse.Number(pulse.MaxTimePulse), pn)
 	assert.Equal(t, jet.ExactID(0x6677), exactID)
+
+	_, err = UnpackJetDropRef(reference.Empty())
+	require.Contains(t, err.Error(), ErrIllegalRefValue.Error())
+
+	newJetDropRef1, err := tDefJetDrop.RefFrom(jetDropRef1.GetBase(), jetDropRef1.GetLocal())
+	require.NoError(t, err)
+	require.Equal(t, jetDropRef1, newJetDropRef1)
+}
+
+func TestDetectSubType(t *testing.T) {
+	rType := tDefJet.DetectSubType(reference.Empty().GetBase(), reference.Empty().GetLocal())
+	require.Equal(t, Invalid, rType)
+
+	rType = tDefJet.DetectSubType(reference.Empty().GetBase(), JetDropLocalRefOf(JetDropRef(jet.ID(0x6677).AsDrop(pulse.MaxTimePulse))))
+	require.Equal(t, JetDrop, rType)
+
+	rType = tDefJet.DetectSubType(NodeRef(reference.LocalHash{1, 2, 3, 4}).GetBase(), reference.Empty().GetLocal())
+	require.Equal(t, Invalid, rType)
 }
