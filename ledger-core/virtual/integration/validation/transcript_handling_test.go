@@ -301,10 +301,6 @@ func TestValidation_ObjectTranscriptReport_AfterDeactivate(t *testing.T) {
 
 	prevPulse := server.GetPulse().PulseNumber
 
-	// VObjectTranscriptReport is always from previous pulse
-	server.IncrementPulse(ctx)
-	curPulse := server.GetPulse().PulseNumber
-
 	// initialize values
 	var (
 		inboundRequest  = server.RandomGlobalWithPulse()
@@ -334,6 +330,10 @@ func TestValidation_ObjectTranscriptReport_AfterDeactivate(t *testing.T) {
 	classRef := server.RandomGlobalWithPulse()
 
 	objDescriptor := descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), classRef, []byte("init state"), false)
+
+	// VObjectTranscriptReport is always from previous pulse
+	server.IncrementPulse(ctx)
+	curPulse := server.GetPulse().PulseNumber
 
 	// add typedChecker
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
@@ -371,7 +371,7 @@ func TestValidation_ObjectTranscriptReport_AfterDeactivate(t *testing.T) {
 		runnerMock.AddExecutionMock(callRequest.CallOutgoing.GetValue()).AddStart(
 			func(ctx execution.Context) {
 				assert.Equal(t, objDescriptor.State().GetLocal(), ctx.ObjectDescriptor.State().GetLocal())
-				assertDescriptor(t, ctx, curPulse)
+				assertDescriptor(t, ctx, prevPulse)
 				assertExecutionContext(t, ctx, callRequest, objectRef, curPulse)
 			},
 			&execution.Update{
