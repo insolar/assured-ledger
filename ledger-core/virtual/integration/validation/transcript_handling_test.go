@@ -795,37 +795,73 @@ func TestValidation_ObjectTranscriptReport_AfterTwoSequential(t *testing.T) {
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 
+	recordService := checker.NewTypedReferenceBuilder(ctx, t)
+	server.ReplaceRecordReferenceBuilderService(recordService)
+
 	server.Init(ctx)
+
+	prevPulse := server.GetPulse().PulseNumber
 
 	callRequest1 := utils.GenerateVCallRequestMethod(server)
 	outgoing1 := callRequest1.CallOutgoing.GetValue()
 	objectRef := callRequest1.Callee.GetValue()
 	classRef := server.RandomGlobalWithPulse()
-	p := server.GetPulse().PulseNumber
 
-	callRequest2 := &rms.VCallRequest{
-		CallType:       rms.CallTypeMethod,
-		CallFlags:      rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
-		Caller:         rms.NewReference(server.GlobalCaller()),
-		Callee:         rms.NewReference(objectRef),
-		CallSiteMethod: "GetMethod",
-		CallSequence:   1,
-		CallOutgoing:   rms.NewReference(server.BuildRandomOutgoingWithPulse()),
-		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
-	}
+	callRequest2 := utils.GenerateVCallRequestMethodImmutable(server)
+	callRequest2.Callee = rms.NewReference(objectRef)
 	outgoing2 := callRequest2.CallOutgoing.GetValue()
 
 	stateId := server.RandomLocalWithPulse()
 	stateRef := reference.NewRecordOf(objectRef, stateId)
 	objDescriptor := descriptor.NewObject(objectRef, stateId, classRef, []byte("init state"), false)
 
-	newStateRef := reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
+	// initialize values
+	var (
+		inboundRequest1  = server.RandomGlobalWithPulse()
+		inboundRequest2  = server.RandomGlobalWithPulse()
+		inboundResponse1 = server.RandomGlobalWithPulse()
+		inboundResponse2 = server.RandomGlobalWithPulse()
+		rLineMemory      = server.RandomGlobalWithPulse()
+	)
+	// add RecordReferenceBuilderMock
+	{
+		// todo: add more checks
+		recordService.ROutboundRequest.AnticipatedRefFromBytesMock(func(object reference.Global, pn pulse.Number, record *rms.ROutboundRequest) reference.Global {
+			assert.Equal(t, prevPulse, pn)
+
+			switch record.CallFlags.GetInterference() {
+			case isolation.CallTolerable:
+				return inboundRequest1
+			case isolation.CallIntolerable:
+				return inboundRequest2
+			}
+			return reference.Global{}
+		})
+		recordService.RInboundResponse.AnticipatedRefFromBytesMock(func(object reference.Global, pn pulse.Number, record *rms.RInboundResponse) reference.Global {
+			switch record.PrevRef.GetValue() {
+			case inboundRequest1:
+				return inboundResponse1
+			case inboundRequest2:
+				return inboundResponse2
+			default:
+				t.Fatal("unexpected ref")
+				return reference.Global{}
+			}
+		})
+		recordService.RLineMemory.AnticipatedRefFromBytesMock(func(object reference.Global, pn pulse.Number, record *rms.RLineMemory) reference.Global {
+			return rLineMemory
+		})
+	}
+
+	// VObjectTranscriptReport is always from previous pulse
+	server.IncrementPulse(ctx)
+	curPulse := server.GetPulse().PulseNumber
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
 		typedChecker.VCachedMemoryRequest.Set(func(req *rms.VCachedMemoryRequest) bool {
 			require.Equal(t, objectRef, req.Object.GetValue())
-			require.Equal(t, objDescriptor.State(), req.State.GetValue())
+			require.Equal(t, objDescriptor.State().GetLocal(), req.State.GetValue().GetLocal())
 
 			pl := &rms.VCachedMemoryResponse{
 				CallStatus: rms.CachedMemoryStateFound,
@@ -841,8 +877,8 @@ func TestValidation_ObjectTranscriptReport_AfterTwoSequential(t *testing.T) {
 		})
 		typedChecker.VObjectValidationReport.Set(func(report *rms.VObjectValidationReport) bool {
 			require.Equal(t, objectRef, report.Object.GetValue())
-			require.Equal(t, p, report.In)
-			require.Equal(t, newStateRef, report.Validated.GetValue())
+			require.Equal(t, curPulse, report.In)
+			require.Equal(t, rLineMemory, report.Validated.GetValue())
 
 			return false
 		})
@@ -855,8 +891,8 @@ func TestValidation_ObjectTranscriptReport_AfterTwoSequential(t *testing.T) {
 		runnerMock.AddExecutionMock(outgoing1).AddStart(
 			func(ctx execution.Context) {
 				assert.Equal(t, stateRef, ctx.ObjectDescriptor.State())
-				assertDescriptor(t, ctx, p)
-				assertExecutionContext(t, ctx, callRequest1, objectRef, p)
+				assertDescriptor(t, ctx, prevPulse)
+				assertExecutionContext(t, ctx, callRequest1, objectRef, curPulse)
 			},
 			&execution.Update{
 				Type:   execution.Done,
@@ -866,8 +902,8 @@ func TestValidation_ObjectTranscriptReport_AfterTwoSequential(t *testing.T) {
 		runnerMock.AddExecutionMock(outgoing2).AddStart(
 			func(ctx execution.Context) {
 				assert.Equal(t, stateRef, ctx.ObjectDescriptor.State())
-				assertDescriptor(t, ctx, p)
-				assertExecutionContext(t, ctx, callRequest2, objectRef, p)
+				assertDescriptor(t, ctx, prevPulse)
+				assertExecutionContext(t, ctx, callRequest2, objectRef, curPulse)
 			},
 			&execution.Update{
 				Type:   execution.Done,
@@ -879,7 +915,7 @@ func TestValidation_ObjectTranscriptReport_AfterTwoSequential(t *testing.T) {
 	// send VObjectTranscriptReport
 	{
 		pl := rms.VObjectTranscriptReport{
-			AsOf:   p,
+			AsOf:   prevPulse,
 			Object: rms.NewReference(objectRef),
 			ObjectTranscript: rms.Transcript{
 				Entries: []rms.Any{{}, {}, {}, {}},
@@ -887,26 +923,30 @@ func TestValidation_ObjectTranscriptReport_AfterTwoSequential(t *testing.T) {
 		}
 		pl.ObjectTranscript.Entries[0].Set(
 			&rms.Transcript_TranscriptEntryIncomingRequest{
+				Incoming:     rms.NewReference(inboundRequest1),
 				ObjectMemory: rms.NewReference(stateRef),
 				Request:      *callRequest1,
 			},
 		)
 		pl.ObjectTranscript.Entries[1].Set(
 			&rms.Transcript_TranscriptEntryIncomingResult{
-				ObjectState: rms.NewReference(newStateRef),
-				Reason:      callRequest1.CallOutgoing,
+				IncomingResult: rms.NewReference(inboundResponse1),
+				ObjectState:    rms.NewReference(rLineMemory),
+				Reason:         callRequest1.CallOutgoing,
 			},
 		)
 		pl.ObjectTranscript.Entries[2].Set(
 			&rms.Transcript_TranscriptEntryIncomingRequest{
+				Incoming:     rms.NewReference(inboundRequest2),
 				ObjectMemory: rms.NewReference(stateRef),
 				Request:      *callRequest2,
 			},
 		)
 		pl.ObjectTranscript.Entries[3].Set(
 			&rms.Transcript_TranscriptEntryIncomingResult{
-				ObjectState: rms.NewReference(stateRef),
-				Reason:      callRequest2.CallOutgoing,
+				IncomingResult: rms.NewReference(inboundResponse2),
+				ObjectState:    rms.NewReference(stateRef),
+				Reason:         callRequest2.CallOutgoing,
 			},
 		)
 
@@ -918,6 +958,9 @@ func TestValidation_ObjectTranscriptReport_AfterTwoSequential(t *testing.T) {
 
 	assert.Equal(t, 1, typedChecker.VCachedMemoryRequest.Count())
 	assert.Equal(t, 1, typedChecker.VObjectValidationReport.Count())
+	assert.Equal(t, 2, recordService.ROutboundRequest.Count())
+	assert.Equal(t, 1, recordService.RLineMemory.Count())
+	assert.Equal(t, 2, recordService.RInboundResponse.Count())
 
 	mc.Finish()
 }
@@ -936,7 +979,12 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 
+	recordService := checker.NewTypedReferenceBuilder(ctx, t)
+	server.ReplaceRecordReferenceBuilderService(recordService)
+
 	server.Init(ctx)
+
+	pendingPulse := server.GetPulse().PulseNumber
 
 	var (
 		callRequest     *rms.VCallRequest
@@ -944,13 +992,13 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 		pendingRequest  *rms.VCallRequest
 		pendingOutgoing rms.Reference
 
-		objectRef                                                      reference.Global
-		classRef                                                       reference.Global
-		objDescriptor                                                  descriptor.Object
-		initStateRef, pendingFinishedStateRef, requestFinishedStateRef reference.Global
+		objectRef     reference.Global
+		classRef      reference.Global
+		objDescriptor descriptor.Object
+		initStateRef  reference.Global
 	)
 
-	// prepare requests and memory
+	// prepare requests and memory + increment pulse
 	{
 		pendingRequest = utils.GenerateVCallRequestMethod(server)
 		objectRef = pendingRequest.Callee.GetValue()
@@ -961,17 +1009,66 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 		initStateRef = reference.NewRecordOf(objectRef, stateId)
 		objDescriptor = descriptor.NewObject(objectRef, stateId, classRef, []byte("init state"), false)
 
-		pendingFinishedStateRef = reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
-
 		server.IncrementPulse(ctx)
 
 		callRequest = utils.GenerateVCallRequestMethod(server)
 		callRequest.Callee.Set(objectRef)
 		outgoing = callRequest.CallOutgoing
-
-		requestFinishedStateRef = reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
 	}
 
+	prevPulse := server.GetPulse().PulseNumber
+
+	// initialize values
+	var (
+		pendingInboundRequest  = server.RandomGlobalWithPrevPulse()
+		pendingInboundResponse = server.RandomGlobalWithPrevPulse()
+		pendingMemory          = server.RandomGlobalWithPrevPulse()
+		pendingStateRef        = reference.NewRecordOf(objectRef, pendingMemory.GetLocal())
+
+		inboundRequest  = server.RandomGlobalWithPulse()
+		inboundResponse = server.RandomGlobalWithPulse()
+		rLineMemory     = server.RandomGlobalWithPulse()
+	)
+	// add RecordReferenceBuilderMock
+	{
+		// todo: add more checks
+		recordService.ROutboundRequest.AnticipatedRefFromBytesMock(func(object reference.Global, pn pulse.Number, record *rms.ROutboundRequest) reference.Global {
+			switch record.PrevRef.GetValue() {
+			case initStateRef:
+				return pendingInboundRequest
+			case pendingStateRef:
+				return inboundRequest
+			default:
+				t.Fatal("unexpected PrevRef")
+				return reference.Global{}
+			}
+		})
+		recordService.RInboundResponse.AnticipatedRefFromBytesMock(func(object reference.Global, pn pulse.Number, record *rms.RInboundResponse) reference.Global {
+			switch record.PrevRef.GetValue() {
+			case pendingInboundRequest:
+				return pendingInboundResponse
+			case inboundRequest:
+				return inboundResponse
+			default:
+				t.Fatal("unexpected PrevRef")
+				return reference.Global{}
+			}
+		})
+		recordService.RLineMemory.AnticipatedRefFromBytesMock(func(object reference.Global, pn pulse.Number, record *rms.RLineMemory) reference.Global {
+			switch record.PrevRef.GetValue() {
+			case pendingInboundRequest:
+				return pendingMemory
+			case inboundRequest:
+				return rLineMemory
+			default:
+				t.Fatal("unexpected PrevRef")
+				return reference.Global{}
+			}
+		})
+	}
+
+	// VObjectTranscriptReport is always from previous pulse
+	server.IncrementPulse(ctx)
 	currentPulse := server.GetPulse().PulseNumber
 
 	// add typedChecker
@@ -981,10 +1078,10 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 			assert.Equal(t, objectRef, req.Object.GetValue())
 
 			var memory []byte
-			switch req.State.GetValue() {
-			case initStateRef:
+			switch req.State.GetValue().GetLocal() {
+			case initStateRef.GetLocal():
 				memory = []byte("init state")
-			case pendingFinishedStateRef:
+			case pendingMemory.GetLocal():
 				memory = []byte("after pending state")
 			default:
 				t.Fatalf("unexpected stateRef")
@@ -1003,7 +1100,7 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 		typedChecker.VObjectValidationReport.Set(func(report *rms.VObjectValidationReport) bool {
 			assert.Equal(t, objectRef, report.Object.GetValue())
 			assert.Equal(t, currentPulse, report.In)
-			assert.Equal(t, requestFinishedStateRef, report.Validated.GetValue())
+			assert.Equal(t, rLineMemory, report.Validated.GetValue())
 
 			return false
 		})
@@ -1012,13 +1109,13 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 	// add runnerMock
 	{
 		requestResult := requestresult.New([]byte("call result"), objectRef)
-		requestResult.SetAmend(objDescriptor, []byte("latest state"))
+		newObjectDescriptor := descriptor.NewObject(objectRef, pendingMemory.GetLocal(), classRef, []byte("after pending state"), false)
+		requestResult.SetAmend(newObjectDescriptor, []byte("latest state"))
 		runnerMock.AddExecutionMock(outgoing.GetValue()).AddStart(
 			func(ctx execution.Context) {
 				assert.Equal(t, []byte("after pending state"), ctx.ObjectDescriptor.Memory())
-				assert.Equal(t, pendingFinishedStateRef, ctx.ObjectDescriptor.State())
-				pulseOfState := pendingFinishedStateRef.GetLocal().Pulse()
-				assertDescriptor(t, ctx, pulseOfState)
+				assert.Equal(t, pendingMemory.GetLocal(), ctx.ObjectDescriptor.State().GetLocal())
+				assertDescriptor(t, ctx, pendingPulse)
 				assertExecutionContext(t, ctx, callRequest, objectRef, currentPulse)
 			},
 			&execution.Update{
@@ -1032,9 +1129,7 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 			func(ctx execution.Context) {
 				assert.Equal(t, []byte("init state"), ctx.ObjectDescriptor.Memory())
 				assert.Equal(t, initStateRef, ctx.ObjectDescriptor.State())
-				pulseOfState := initStateRef.GetLocal().Pulse()
-
-				assertDescriptor(t, ctx, pulseOfState)
+				assertDescriptor(t, ctx, pendingPulse)
 				assertExecutionContext(t, ctx, pendingRequest, objectRef, currentPulse)
 			},
 			&execution.Update{
@@ -1047,7 +1142,7 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 	// send VObjectTranscriptReport
 	{
 		pl := rms.VObjectTranscriptReport{
-			AsOf:   currentPulse,
+			AsOf:   prevPulse,
 			Object: rms.NewReference(objectRef),
 			PendingTranscripts: []rms.Transcript{
 				{
@@ -1060,26 +1155,30 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 		}
 		pl.PendingTranscripts[0].Entries[0].Set(
 			&rms.Transcript_TranscriptEntryIncomingRequest{
+				Incoming:     rms.NewReference(pendingInboundRequest),
 				ObjectMemory: rms.NewReference(initStateRef),
 				Request:      *pendingRequest,
 			},
 		)
 		pl.PendingTranscripts[0].Entries[1].Set(
 			&rms.Transcript_TranscriptEntryIncomingResult{
-				ObjectState: rms.NewReference(pendingFinishedStateRef),
-				Reason:      pendingRequest.CallOutgoing,
+				IncomingResult: rms.NewReference(pendingInboundResponse),
+				ObjectState:    rms.NewReference(pendingMemory),
+				Reason:         pendingRequest.CallOutgoing,
 			},
 		)
 		pl.ObjectTranscript.Entries[0].Set(
 			&rms.Transcript_TranscriptEntryIncomingRequest{
-				ObjectMemory: rms.NewReference(pendingFinishedStateRef),
+				Incoming:     rms.NewReference(inboundRequest),
+				ObjectMemory: rms.NewReference(pendingStateRef),
 				Request:      *callRequest,
 			},
 		)
 		pl.ObjectTranscript.Entries[1].Set(
 			&rms.Transcript_TranscriptEntryIncomingResult{
-				ObjectState: rms.NewReference(requestFinishedStateRef),
-				Reason:      callRequest.CallOutgoing,
+				IncomingResult: rms.NewReference(inboundResponse),
+				ObjectState:    rms.NewReference(rLineMemory),
+				Reason:         callRequest.CallOutgoing,
 			},
 		)
 
@@ -1090,6 +1189,9 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 
 		assert.Equal(t, 2, typedChecker.VCachedMemoryRequest.Count())
 		assert.Equal(t, 1, typedChecker.VObjectValidationReport.Count())
+		assert.Equal(t, 2, recordService.ROutboundRequest.Count())
+		assert.Equal(t, 2, recordService.RLineMemory.Count())
+		assert.Equal(t, 2, recordService.RInboundResponse.Count())
 	}
 
 	mc.Finish()

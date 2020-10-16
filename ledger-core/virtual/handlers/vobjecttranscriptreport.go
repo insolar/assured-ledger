@@ -164,6 +164,7 @@ func (s *SMVObjectTranscriptReport) stepGetMemory(ctx smachine.ExecutionContext)
 		}
 		s.objDesc = subSM.Result
 		s.lmnLastLifelineRef = s.objDesc.State()
+		s.lmnLastFilamentRef = reference.Global{}
 		return ctx.Jump(s.stepPrepareExecutionContext)
 	})
 }
