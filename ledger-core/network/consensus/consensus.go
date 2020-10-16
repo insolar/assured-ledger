@@ -24,8 +24,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core/coreapi"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
@@ -71,15 +71,15 @@ type Dep struct {
 	KeyStore              cryptography.KeyStore
 	TransportCryptography transport2.CryptographyAssistant
 
-	NodeKeeper        beat.NodeKeeper
-	DatagramTransport transport.DatagramTransport
+	NodeKeeper    beat.NodeKeeper
+	UnifiedServer *uniserver.UnifiedServer
 
 	StateGetter         adapters.NodeStater
 	PulseChanger        adapters.BeatChanger
 	StateUpdater        adapters.StateUpdater
 	EphemeralController adapters.EphemeralController
 
-	LocalNodeProfile    profiles.StaticProfile
+	LocalNodeProfile profiles.StaticProfile
 }
 
 func (cd *Dep) verify() {
@@ -134,7 +134,7 @@ func newConstructor(ctx context.Context, dep *Dep) *constructor {
 		c.transportCryptographyFactory,
 		c.localNodeConfiguration,
 	)
-	c.packetSender = adapters.NewPacketSender(dep.DatagramTransport)
+	c.packetSender = adapters.NewPacketSender(dep.UnifiedServer)
 	c.transportFactory = adapters.NewTransportFactory(
 		c.transportCryptographyFactory,
 		c.packetBuilder,
