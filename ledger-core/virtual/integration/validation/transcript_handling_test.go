@@ -280,6 +280,145 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 	mc.Finish()
 }
 
+func TestValidation_ObjectTranscriptReport_AfterDeactivate(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	authService := authentication.NewServiceMock(t)
+	authService.CheckMessageFromAuthorizedVirtualMock.Return(false, nil)
+	server.ReplaceAuthenticationService(authService)
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
+	server.ReplaceRunner(runnerMock)
+
+	recordService := checker.NewTypedReferenceBuilder(ctx, t)
+	server.ReplaceRecordReferenceBuilderService(recordService)
+
+	server.Init(ctx)
+
+	prevPulse := server.GetPulse().PulseNumber
+
+	// initialize values
+	var (
+		inboundRequest  = server.RandomGlobalWithPulse()
+		inboundResponse = server.RandomGlobalWithPulse()
+		rLineMemory     = server.RandomGlobalWithPulse()
+		rLineDeactivate = server.RandomGlobalWithPulse()
+	)
+	// add RecordReferenceBuilderMock
+	{
+		// todo: add more checks
+		recordService.ROutboundRequest.AnticipatedRefFromBytesMock(func(object reference.Global, pn pulse.Number, record *rms.ROutboundRequest) reference.Global {
+			return inboundRequest
+		})
+		recordService.RInboundResponse.AnticipatedRefFromBytesMock(func(object reference.Global, pn pulse.Number, record *rms.RInboundResponse) reference.Global {
+			return inboundResponse
+		})
+		recordService.RLineMemory.AnticipatedRefFromBytesMock(func(object reference.Global, pn pulse.Number, record *rms.RLineMemory) reference.Global {
+			return rLineMemory
+		})
+		recordService.RLineDeactivate.AnticipatedRefFromBytesMock(func(object reference.Global, pn pulse.Number, record *rms.RLineDeactivate) reference.Global {
+			return rLineDeactivate
+		})
+	}
+
+	callRequest := utils.GenerateVCallRequestMethod(server)
+	objectRef := callRequest.Callee.GetValue()
+	classRef := server.RandomGlobalWithPulse()
+
+	objDescriptor := descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), classRef, []byte("init state"), false)
+
+	// VObjectTranscriptReport is always from previous pulse
+	server.IncrementPulse(ctx)
+	curPulse := server.GetPulse().PulseNumber
+
+	// add typedChecker
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	{
+		typedChecker.VCachedMemoryRequest.Set(func(req *rms.VCachedMemoryRequest) bool {
+			require.Equal(t, objectRef, req.Object.GetValue())
+			require.Equal(t, objDescriptor.State().GetLocal(), req.State.GetValue().GetLocal())
+
+			pl := &rms.VCachedMemoryResponse{
+				CallStatus: rms.CachedMemoryStateFound,
+				State: rms.ObjectState{
+					Reference: req.State,
+					Class:     rms.NewReference(classRef),
+					Memory:    rms.NewBytes([]byte("init state")),
+				},
+			}
+			server.SendPayload(ctx, pl)
+			return false
+		})
+
+		typedChecker.VObjectValidationReport.Set(func(report *rms.VObjectValidationReport) bool {
+			require.Equal(t, objectRef, report.Object.GetValue())
+			require.Equal(t, curPulse, report.In)
+			require.Equal(t, rLineDeactivate, report.Validated.GetValue())
+
+			return false
+		})
+	}
+
+	// add runnerMock
+	{
+		requestResult := requestresult.New([]byte("Deactivate"), objectRef)
+		requestResult.SetDeactivate(descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), objDescriptor.Class(), insolar.MustSerialize(123), false))
+
+		runnerMock.AddExecutionMock(callRequest.CallOutgoing.GetValue()).AddStart(
+			func(ctx execution.Context) {
+				assert.Equal(t, objDescriptor.State().GetLocal(), ctx.ObjectDescriptor.State().GetLocal())
+				assertDescriptor(t, ctx, prevPulse)
+				assertExecutionContext(t, ctx, callRequest, objectRef, curPulse)
+			},
+			&execution.Update{
+				Type:     execution.OutgoingCall,
+				Result:   requestResult,
+				Outgoing: execution.NewRPCBuilder(callRequest.CallOutgoing.GetValue(), objectRef).Deactivate(),
+			},
+		)
+	}
+
+	// send VObjectTranscriptReport
+	{
+		pl := rms.VObjectTranscriptReport{
+			AsOf:   prevPulse,
+			Object: rms.NewReference(objectRef),
+			ObjectTranscript: rms.Transcript{
+				Entries: []rms.Any{
+					rms.NewAny(
+						&rms.Transcript_TranscriptEntryIncomingRequest{
+							Incoming:     rms.NewReference(inboundRequest),
+							ObjectMemory: rms.NewReference(objDescriptor.State()),
+							Request:      *callRequest,
+						},
+					),
+					rms.NewAny(
+						&rms.Transcript_TranscriptEntryIncomingResult{
+							IncomingResult: rms.NewReference(inboundResponse),
+							ObjectState:    rms.NewReference(rLineDeactivate),
+							Reason:         callRequest.CallOutgoing,
+						},
+					),
+				},
+			},
+		}
+
+		done := server.Journal.WaitStopOf(&handlers.SMVObjectTranscriptReport{}, 1)
+		server.SendPayload(ctx, &pl)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, done)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+		assert.Equal(t, 1, typedChecker.VCachedMemoryRequest.Count())
+		assert.Equal(t, 1, typedChecker.VObjectValidationReport.Count())
+	}
+
+	mc.Finish()
+}
+
 func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 	mc := minimock.NewController(t)

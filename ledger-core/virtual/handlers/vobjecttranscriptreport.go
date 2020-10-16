@@ -250,7 +250,22 @@ func (s *SMVObjectTranscriptReport) stepExecuteDecideNextStep(ctx smachine.Execu
 func (s *SMVObjectTranscriptReport) stepOutboundRecord(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	switch outgoing := s.executionNewState.Outgoing.(type) {
 	case execution.Deactivate:
-		panic(throw.NotImplemented())
+		if s.execution.Isolation.Interference == isolation.CallIntolerable {
+			panic(throw.NotImplemented())
+		}
+
+		if s.executionNewState.Result.SideEffectType != requestresult.SideEffectDeactivate {
+			panic(throw.NotImplemented())
+		}
+
+		oldRequestResult := s.executionNewState.Result
+
+		// we should overwrite old side effect with new one - deactivation of object
+		s.executionNewState.Result = requestresult.New(oldRequestResult.Result(), oldRequestResult.ObjectReference())
+		s.executionNewState.Result.SetDeactivate(s.execution.ObjectDescriptor)
+		s.executionNewState.Type = execution.Done
+
+		return ctx.Jump(s.stepInboundResponseRecord)
 	case execution.CallConstructor:
 		s.outgoingRequest = outgoing.ConstructVCallRequest(s.execution)
 	case execution.CallMethod:
