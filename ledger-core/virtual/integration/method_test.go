@@ -19,6 +19,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
@@ -1050,12 +1051,14 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 			var (
-				class     = server.RandomGlobalWithPulse()
-				objectRef = server.RandomGlobalWithPulse()
-				p1        = server.GetPulse().PulseNumber
+				class       = server.RandomGlobalWithPulse()
+				objectRef   = server.RandomGlobalWithPulse()
+				p1          = server.GetPulse().PulseNumber
+				callRequest *rms.VCallRequest
 			)
 
 			server.IncrementPulseAndWaitIdle(ctx)
+			p2 := server.GetPulse().PulseNumber
 			outgoing := server.BuildRandomOutgoingWithPulse()
 
 			// add ExecutionMock to runnerMock
@@ -1124,17 +1127,42 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 					}
 					return false
 				})
+				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+					assert.Equal(t, objectRef, report.Object.GetValue())
+					assert.Equal(t, p2, report.AsOf)
+					assert.NotEmpty(t, report.ObjectTranscript.Entries)
+
+					transcript := report.ObjectTranscript
+					assert.Equal(t, 2, len(transcript.Entries))
+
+					request1, ok := transcript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
+					require.True(t, ok)
+					require.Equal(t, outgoing, request1.Request.CallOutgoing.GetValue())
+
+					result1, ok := transcript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+					require.True(t, ok)
+					if testCase.isolation.Interference == isolation.CallIntolerable {
+						require.Equal(t, p1, result1.ObjectState.GetValue().GetLocal().Pulse())
+					} else {
+						require.Equal(t, p2, result1.ObjectState.GetValue().GetLocal().Pulse())
+					}
+					require.Equal(t, outgoing, result1.Reason.GetValue())
+
+					utils.AssertVCallRequestEqual(t, callRequest, &request1.Request)
+
+					return false
+				})
 			}
 
 			// VCallRequest
 			{
-				pl := utils.GenerateVCallRequestMethod(server)
-				pl.CallFlags = rms.BuildCallFlags(testCase.isolation.Interference, testCase.isolation.State)
-				pl.Callee.Set(objectRef)
-				pl.CallSiteMethod = "SomeMethod"
-				pl.CallOutgoing.Set(outgoing)
+				callRequest = utils.GenerateVCallRequestMethod(server)
+				callRequest.CallFlags = rms.BuildCallFlags(testCase.isolation.Interference, testCase.isolation.State)
+				callRequest.Callee.Set(objectRef)
+				callRequest.CallSiteMethod = "SomeMethod"
+				callRequest.CallOutgoing.Set(outgoing)
 
-				server.SendPayload(ctx, pl)
+				server.SendPayload(ctx, callRequest)
 			}
 
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -1301,7 +1329,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				objectRef   = server.RandomGlobalWithPulse()
+				objectRef = server.RandomGlobalWithPulse()
 			)
 
 			{ // send object state to server
@@ -1512,6 +1540,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		initialState = []byte("initial state")
 		newState     = []byte("updated state")
 		dStateID     = reference.NewRecordOf(objectGlobal, server.RandomLocalWithPulse())
+		prevPulse    pulse.Number
 	)
 
 	// add typedChecker mock
@@ -1534,6 +1563,17 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 			}
 			return false
 		})
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			assert.Equal(t, objectGlobal, report.Object.GetValue())
+			assert.Equal(t, prevPulse, report.AsOf)
+			assert.NotEmpty(t, report.ObjectTranscript.Entries)
+
+			transcript := report.ObjectTranscript
+			assert.Equal(t, 10, len(transcript.Entries))
+			// todo: check requests
+
+			return false
+		})
 	}
 
 	// initial object state
@@ -1541,6 +1581,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		report := server.StateReportBuilder().Object(objectGlobal).Ready().Memory(initialState).Report()
 		// need for correct handle state report (should from prev pulse)
 		server.IncrementPulse(ctx)
+		prevPulse = server.GetPulseNumber()
 
 		waitReport := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 		server.SendPayload(ctx, &report)

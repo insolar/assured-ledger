@@ -66,7 +66,6 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 				server.SendPayload(ctx, &report)
 				commontestutils.WaitSignalsTimed(t, 10*time.Second, waitReport)
 			}
-			currentPulse := server.GetPulse().PulseNumber
 
 			// add checker
 			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
@@ -78,12 +77,6 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 					assert.Equal(t, initRef, report.ProvidedContent.LatestValidatedState.Reference.GetValue())
 					assert.Equal(t, initState, report.ProvidedContent.LatestDirtyState.Memory.GetBytes())
 					assert.Equal(t, initState, report.ProvidedContent.LatestValidatedState.Memory.GetBytes())
-					return false
-				})
-				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-					assert.Equal(t, objectGlobal, report.Object.GetValue())
-					assert.Equal(t, currentPulse, report.AsOf)
-					assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 					return false
 				})
 			}
@@ -113,10 +106,8 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 			{
 				server.IncrementPulse(ctx)
 				commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
-				commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
 
 				assert.Equal(t, 1, typedChecker.VStateReport.Count())
-				assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 			}
 
 			mc.Finish()
