@@ -8,8 +8,9 @@
 package lmn
 
 import (
+	"fmt"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -17,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
@@ -28,6 +28,7 @@ type SerializableBasicRecord interface {
 }
 
 func mustRecordToAnyRecordLazy(rec SerializableBasicRecord) rms.AnyRecordLazy {
+	fmt.Printf("%#v\n", rec)
 	if rec == nil {
 		panic(throw.IllegalValue())
 	}
@@ -38,11 +39,7 @@ func mustRecordToAnyRecordLazy(rec SerializableBasicRecord) rms.AnyRecordLazy {
 	return rv
 }
 
-func isConstructor(request *rms.VCallRequest) bool {
-	return request.CallType == rms.CallTypeConstructor
-}
-
-type SubSMRegister struct {
+type RegisterRecordBuilder struct {
 	// input arguments
 	Incoming          *rms.VCallRequest
 	Outgoing          *rms.VCallRequest
@@ -56,8 +53,7 @@ type SubSMRegister struct {
 	LastFilamentRef reference.Global
 	LastLifelineRef reference.Global
 
-	SafeResponseCounter smachine.SharedDataLink
-	PulseNumber         pulse.Number
+	PulseNumber pulse.Number
 
 	// internal data
 
@@ -68,89 +64,34 @@ type SubSMRegister struct {
 	Messages           []SerializableBasicMessage
 
 	// DI
-	pulseSlot  *conveyor.PulseSlot
-	refBuilder RecordReferenceBuilderService
+	PulseSlot        *conveyor.PulseSlot
+	ReferenceBuilder RecordReferenceBuilderService
 }
 
-var dSubSMRegisterInstance smachine.StateMachineDeclaration = &dSubSMRegister{}
-
-type dSubSMRegister struct {
-	smachine.StateMachineDeclTemplate
-}
-
-func (*dSubSMRegister) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
-	s := sm.(*SubSMRegister)
-
-	injector.MustInject(&s.pulseSlot)
-	injector.MustInject(&s.refBuilder)
-}
-
-func (*dSubSMRegister) GetInitStateFor(_ smachine.StateMachine) smachine.InitFunc {
-	return nil
-}
-
-func (s *SubSMRegister) GetSubroutineInitState(ctx smachine.SubroutineStartContext) smachine.InitFunc {
-	ctx.SetSubroutineCleanupMode(smachine.SubroutineCleanupAliasesAndShares)
-
-	return s.Init
-}
-
-func (s *SubSMRegister) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
-	return dSubSMRegisterInstance
-}
-
-func (s *SubSMRegister) getRecordAnticipatedRef(record SerializableBasicRecord) reference.Global {
+func (s *RegisterRecordBuilder) getRecordAnticipatedRef(record SerializableBasicRecord) reference.Global {
 	var (
 		data        = make([]byte, record.ProtoSize())
 		pulseNumber = s.PulseNumber
 	)
 
 	if pulseNumber == pulse.Unknown {
-		if s.pulseSlot == nil {
+		if s.PulseSlot == nil {
 			panic(throw.IllegalState())
 		}
-		pulseNumber = s.pulseSlot.CurrentPulseNumber()
+		pulseNumber = s.PulseSlot.CurrentPulseNumber()
 	}
 
 	_, err := record.MarshalTo(data)
 	if err != nil {
 		panic(throw.W(err, "Fail to serialize record"))
 	}
-	return s.refBuilder.AnticipatedRefFromBytes(s.Object, pulseNumber, data)
+	return s.ReferenceBuilder.AnticipatedRefFromBytes(s.Object, pulseNumber, data)
 }
 
-func (s *SubSMRegister) registerMessage(_ smachine.ExecutionContext, msg *rms.LRegisterRequest) error {
+func (s *RegisterRecordBuilder) registerMessage(msg SerializableBasicMessage) error {
 	s.Messages = append(s.Messages, msg)
 
 	return nil
-}
-
-func (s *SubSMRegister) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	// do not do anything on migration, let parent SM to decide what needs to be done
-	ctx.SetDefaultMigration(func(ctx smachine.MigrationContext) smachine.StateUpdate { return ctx.Stop() })
-
-	// possible variants here:
-	// all
-	// CTConstructor -> Register (RLifelineStart and RInboundRequest) in one message (??)
-	// Register (RInboundRequest + ROutboundRequest) in two separate messages
-	// Register ROutboundRequest
-	// Register ROutboundResponse
-	// Register *InboundResult* (all possible variants, different step, one message)
-	// Register (RInboundRequest + *InboundResult*) in two separate messages
-	switch {
-	case s.Incoming != nil && isConstructor(s.Incoming) && s.Object.IsEmpty(): // we need to register lifeline
-		return ctx.Jump(s.stepRegisterLifeline)
-	case s.Incoming != nil: // we need to register incoming
-		return ctx.Jump(s.stepRegisterIncoming)
-	case s.OutgoingResult != nil: // we need to register outgoing result
-		return ctx.Jump(s.stepRegisterOutgoingResult)
-	case s.Outgoing != nil: // we need to register outgoing
-		return ctx.Jump(s.stepRegisterOutgoing)
-	case s.IncomingResult != nil: // we need to register incoming result
-		return ctx.Jump(s.stepRegisterIncomingResult)
-	default:
-		panic(throw.IllegalState())
-	}
 }
 
 func GetLifelineAnticipatedReference(
@@ -166,10 +107,10 @@ func GetLifelineAnticipatedReference(
 		panic(throw.IllegalValue())
 	}
 
-	sm := SubSMRegister{
-		PulseNumber: request.CallOutgoing.GetPulseOfLocal(),
-		Incoming:    request,
-		refBuilder:  builder,
+	sm := RegisterRecordBuilder{
+		PulseNumber:      request.CallOutgoing.GetPulseOfLocal(),
+		Incoming:         request,
+		ReferenceBuilder: builder,
 	}
 	return sm.getRecordAnticipatedRef(sm.getLifelineRecord())
 }
@@ -180,17 +121,17 @@ func GetOutgoingAnticipatedReference(
 	previousRef reference.Global,
 	pn pulse.Number,
 ) reference.Global {
-	sm := SubSMRegister{
-		PulseNumber:     pn,
-		Object:          request.Callee.GetValue(),
-		Outgoing:        request,
-		refBuilder:      builder,
-		LastLifelineRef: previousRef,
+	sm := RegisterRecordBuilder{
+		PulseNumber:      pn,
+		Object:           request.Callee.GetValue(),
+		Outgoing:         request,
+		ReferenceBuilder: builder,
+		LastLifelineRef:  previousRef,
 	}
 	return sm.getRecordAnticipatedRef(sm.getOutboundRecord())
 }
 
-func (s *SubSMRegister) getOutboundRecord() *rms.ROutboundRequest {
+func (s *RegisterRecordBuilder) getOutboundRecord() *rms.ROutboundRequest {
 	if s.Outgoing == nil {
 		panic(throw.IllegalState())
 	}
@@ -207,15 +148,15 @@ func (s *SubSMRegister) getOutboundRecord() *rms.ROutboundRequest {
 	return s.getCommonOutboundRecord(s.Outgoing, prevRef)
 }
 
-func (s *SubSMRegister) getOutboundRetryableRequest() *rms.ROutboundRetryableRequest {
+func (s *RegisterRecordBuilder) getOutboundRetryableRequest() *rms.ROutboundRetryableRequest {
 	return s.getOutboundRecord()
 }
 
-func (s *SubSMRegister) getOutboundRetryRequest() *rms.ROutboundRetryRequest {
+func (s *RegisterRecordBuilder) getOutboundRetryRequest() *rms.ROutboundRetryRequest {
 	return s.getOutboundRecord()
 }
 
-func (s *SubSMRegister) getLifelineRecord() *rms.RLifelineStart {
+func (s *RegisterRecordBuilder) getLifelineRecord() *rms.RLifelineStart {
 	if s.Incoming == nil {
 		panic(throw.IllegalState())
 	}
@@ -223,7 +164,7 @@ func (s *SubSMRegister) getLifelineRecord() *rms.RLifelineStart {
 	return s.getCommonOutboundRecord(s.Incoming, reference.Global{})
 }
 
-func (s *SubSMRegister) getCommonOutboundRecord(msg *rms.VCallRequest, prevRef reference.Global) *rms.ROutboundRequest {
+func (s *RegisterRecordBuilder) getCommonOutboundRecord(msg *rms.VCallRequest, prevRef reference.Global) *rms.ROutboundRequest {
 	record := &rms.ROutboundRequest{
 		CallType:            msg.CallType,
 		CallFlags:           msg.CallFlags,
@@ -254,7 +195,7 @@ func (s *SubSMRegister) getCommonOutboundRecord(msg *rms.VCallRequest, prevRef r
 	return record
 }
 
-func (s *SubSMRegister) getInboundRecord() *rms.RInboundRequest {
+func (s *RegisterRecordBuilder) getInboundRecord() *rms.RInboundRequest {
 	switch {
 	case s.Incoming == nil:
 		panic(throw.IllegalState())
@@ -267,7 +208,7 @@ func (s *SubSMRegister) getInboundRecord() *rms.RInboundRequest {
 	return s.getCommonOutboundRecord(s.Incoming, s.LastFilamentRef)
 }
 
-func (s *SubSMRegister) getLineInboundRecord() *rms.RLineInboundRequest {
+func (s *RegisterRecordBuilder) getLineInboundRecord() *rms.RLineInboundRequest {
 	switch {
 	case s.Incoming == nil:
 		panic(throw.IllegalState())
@@ -280,7 +221,7 @@ func (s *SubSMRegister) getLineInboundRecord() *rms.RLineInboundRequest {
 	return s.getCommonOutboundRecord(s.Incoming, s.LastLifelineRef)
 }
 
-func (s *SubSMRegister) stepRegisterLifeline(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *RegisterRecordBuilder) BuildLifeline() error {
 	if !s.Object.IsEmpty() {
 		panic(throw.IllegalValue())
 	} else if !s.LastFilamentRef.IsEmpty() {
@@ -299,7 +240,7 @@ func (s *SubSMRegister) stepRegisterLifeline(ctx smachine.ExecutionContext) smac
 	s.Object = anticipatedRef
 	s.LastLifelineRef = anticipatedRef
 
-	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
+	if err := s.registerMessage(&rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
 		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // it should be based on
@@ -310,13 +251,17 @@ func (s *SubSMRegister) stepRegisterLifeline(ctx smachine.ExecutionContext) smac
 		// OverrideRootRef:    NewReference(reference.Global{}), // must be empty
 		// OverrideReasonRef:  NewReference(<reference to outgoing>),
 	}); err != nil {
-		return ctx.Error(err)
+		panic(throw.W(err, "failed to register message"))
 	}
 
-	return ctx.Jump(s.stepUpdateFilaments)
+	s.NewLastLifelineRef = s.LastLifelineRef
+	s.NewLastFilamentRef = s.LastFilamentRef
+	s.NewObjectRef = s.Object
+
+	return nil
 }
 
-func (s *SubSMRegister) stepRegisterIncoming(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *RegisterRecordBuilder) BuildRegisterIncomingRequest() error {
 	var record SerializableBasicRecord
 
 	switch s.Interference {
@@ -335,12 +280,12 @@ func (s *SubSMRegister) stepRegisterIncoming(ctx smachine.ExecutionContext) smac
 		flags = rms.RegistrationFlags_Safe
 	}
 
-	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
+	if err := s.registerMessage(&rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          flags,
 		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
 	}); err != nil {
-		return ctx.Error(err)
+		panic(throw.W(err, "failed to register message"))
 	}
 
 	switch s.Interference {
@@ -350,17 +295,24 @@ func (s *SubSMRegister) stepRegisterIncoming(ctx smachine.ExecutionContext) smac
 		s.LastFilamentRef = anticipatedRef
 	}
 
-	switch {
-	case s.Outgoing != nil:
-		return ctx.Jump(s.stepRegisterOutgoing)
-	case s.IncomingResult != nil:
-		return ctx.Jump(s.stepRegisterIncomingResult)
-	default:
-		panic(throw.Unsupported())
-	}
+	// switch {
+	// case s.Outgoing != nil:
+	// 	return s.BuildRegisterOutgoingRequest()
+	// case s.IncomingResult != nil:
+	// 	return s.BuildRegisterIncomingResult()
+	// default:
+	// 	panic(throw.Unsupported())
+	// }
+	return nil
 }
 
-func (s *SubSMRegister) stepRegisterOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *RegisterRecordBuilder) BuildRegisterOutgoingRequest() error {
+	if s.Incoming != nil {
+		if err := s.BuildRegisterIncomingRequest(); err != nil {
+			return err
+		}
+	}
+
 	var record SerializableBasicRecord
 	switch {
 	case s.Outgoing.CallType == rms.CallTypeConstructor && s.OutgoingRepeat:
@@ -373,20 +325,25 @@ func (s *SubSMRegister) stepRegisterOutgoing(ctx smachine.ExecutionContext) smac
 
 	var anticipatedRef = s.getRecordAnticipatedRef(record)
 
-	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
+	if err := s.registerMessage(&rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
 		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
 	}); err != nil {
-		return ctx.Error(err)
+		panic(throw.W(err, "failed to register message"))
 	}
 
 	s.LastFilamentRef = anticipatedRef
 
-	return ctx.Jump(s.stepUpdateFilaments)
+	s.NewLastLifelineRef = s.LastLifelineRef
+	s.NewLastFilamentRef = s.LastFilamentRef
+	s.NewObjectRef = s.Object
+
+	return nil
 }
 
-func (s *SubSMRegister) stepRegisterOutgoingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *RegisterRecordBuilder) BuildRegisterOutgoingResult() error {
+
 	if s.LastFilamentRef.IsEmpty() {
 		panic(throw.IllegalState())
 	}
@@ -398,20 +355,30 @@ func (s *SubSMRegister) stepRegisterOutgoingResult(ctx smachine.ExecutionContext
 
 	var anticipatedRef = s.getRecordAnticipatedRef(record)
 
-	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
+	if err := s.registerMessage(&rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
 		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
 	}); err != nil {
-		return ctx.Error(err)
+		panic(throw.W(err, "failed to register message"))
 	}
 
 	s.LastFilamentRef = anticipatedRef
 
-	return ctx.Jump(s.stepUpdateFilaments)
+	s.NewLastLifelineRef = s.LastLifelineRef
+	s.NewLastFilamentRef = s.LastFilamentRef
+	s.NewObjectRef = s.Object
+
+	return nil
 }
 
-func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
+	if s.Incoming != nil {
+		if err := s.BuildRegisterIncomingRequest(); err != nil {
+			return err
+		}
+	}
+
 	if s.IncomingResult.Type != execution.Done && s.IncomingResult.Type != execution.Error {
 		panic(throw.IllegalState())
 	}
@@ -442,12 +409,12 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 
 		var anticipatedRef = s.getRecordAnticipatedRef(record)
 
-		if err := s.registerMessage(ctx, &rms.LRegisterRequest{
+		if err := s.registerMessage(&rms.LRegisterRequest{
 			AnticipatedRef: rms.NewReference(anticipatedRef),
 			Flags:          rms.RegistrationFlags_Safe,
 			AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
 		}); err != nil {
-			return ctx.Error(err)
+			panic(throw.W(err, "failed to register message"))
 		}
 
 		s.LastFilamentRef = anticipatedRef
@@ -490,12 +457,12 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 		if record != nil {
 			var anticipatedRef = s.getRecordAnticipatedRef(record)
 
-			if err := s.registerMessage(ctx, &rms.LRegisterRequest{
+			if err := s.registerMessage(&rms.LRegisterRequest{
 				AnticipatedRef: rms.NewReference(anticipatedRef),
 				Flags:          rms.RegistrationFlags_Safe,
 				AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
 			}); err != nil {
-				return ctx.Error(err)
+				panic(throw.W(err, "failed to register message"))
 			}
 
 			s.LastLifelineRef = anticipatedRef
@@ -524,26 +491,21 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 		if record != nil {
 			var anticipatedRef = s.getRecordAnticipatedRef(record)
 
-			if err := s.registerMessage(ctx, &rms.LRegisterRequest{
+			if err := s.registerMessage(&rms.LRegisterRequest{
 				AnticipatedRef: rms.NewReference(anticipatedRef),
 				Flags:          rms.RegistrationFlags_Safe,
 				AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
 			}); err != nil {
-				return ctx.Error(err)
+				panic(throw.W(err, "failed to register message"))
 			}
 
 			s.LastLifelineRef = anticipatedRef
 		}
 	}
 
-	return ctx.Jump(s.stepUpdateFilaments)
-}
-
-func (s *SubSMRegister) stepUpdateFilaments(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	// save new intermediate state
 	s.NewLastLifelineRef = s.LastLifelineRef
 	s.NewLastFilamentRef = s.LastFilamentRef
 	s.NewObjectRef = s.Object
 
-	return ctx.Stop()
+	return nil
 }

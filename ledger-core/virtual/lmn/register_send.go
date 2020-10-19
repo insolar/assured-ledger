@@ -9,6 +9,7 @@ package lmn
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -155,6 +156,8 @@ func (s *SubSMRegisterRecordSend) stepSendRequest(ctx smachine.ExecutionContext)
 	case rms.RegistrationFlags_Fast, rms.RegistrationFlags_Safe:
 		bargeIn := ctx.NewBargeInWithParam(s.bargeInHandler)
 		bargeInKey = NewResultAwaitKey(anticipatedRef, waitFlag)
+
+		fmt.Println(bargeInKey.String())
 
 		if !ctx.PublishGlobalAliasAndBargeIn(bargeInKey, bargeIn) {
 			return ctx.Error(throw.E("failed to publish bargeIn callback"))

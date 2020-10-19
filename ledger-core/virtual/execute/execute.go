@@ -9,6 +9,7 @@ package execute
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -93,7 +94,6 @@ type SMExecute struct {
 	lmnSafeResponseCounterLink smachine.SharedDataLink
 	incomingRegistered         bool
 	referenceBuilder           lmn.RecordReferenceBuilderService
-	lmnMessages                []lmn.SerializableBasicMessage
 }
 
 /* -------- Declaration ------------- */
@@ -534,44 +534,26 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 }
 
 func (s *SMExecute) stepRegisterObjectLifeLine(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	subroutineSM := s.constructSubSMRegister(RegisterLifeLine)
-	subroutineSM.Incoming = s.Payload
+	builder := s.constructRegisterRecordBuilder(RegisterLifeLine)
+	builder.Incoming = s.Payload
+
+	if err := builder.BuildLifeline(); err != nil {
+		ctx.Error(err)
+	}
+
+	fmt.Println(s.execution.Object.String(), builder.NewLastLifelineRef.GetLocal())
+	s.lmnLastLifelineRef = reference.NewRecordOf(s.execution.Object, builder.NewLastLifelineRef.GetLocal())
 
 	ctx.Release(s.globalSemaphore.PartialLink())
 
-	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
-		if subroutineSM.NewObjectRef != s.execution.Object {
-			// TODO: do nothing for now, later we should replace that mechanism
-			panic(throw.NotImplemented())
-		}
-
-		s.lmnLastLifelineRef = reference.NewRecordOf(s.execution.Object, subroutineSM.NewLastLifelineRef.GetLocal())
-		s.lmnMessages = subroutineSM.Messages
-
-		return ctx.Jump(s.stepRegisterObjectLifeLineSend)
-	})
-}
-
-func (s *SMExecute) stepRegisterObjectLifeLineSend(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.lmnMessages == nil {
-		return ctx.Sleep().ThenRepeat()
-	}
-
-	subroutineSM := s.constructSubSMRegisterSend(s.lmnMessages)
-
+	subroutineSM := s.constructSubSMRegisterSend(builder.Messages)
 	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		if ctx.GetError() != nil {
 			// TODO: we should understand here what's happened, but for now we'll drop request execution here
 			return ctx.Error(ctx.GetError())
 		}
 
-		return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-			if ctx.Acquire(s.globalSemaphore.PartialLink()).IsNotPassed() {
-				return ctx.Sleep().ThenRepeat()
-			}
-
-			return ctx.Jump(s.stepRegisterObjectLifelineAfter)
-		})
+		return ctx.Jump(s.stepRegisterObjectLifelineAfter)
 	})
 }
 
@@ -591,7 +573,13 @@ func (s *SMExecute) stepRegisterObjectLifelineAfter(ctx smachine.ExecutionContex
 		return stepUpdate
 	}
 
-	return ctx.Jump(s.stepStartRequestProcessing)
+	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
+		if ctx.Acquire(s.globalSemaphore.PartialLink()).IsNotPassed() {
+			return ctx.Sleep().ThenRepeat()
+		}
+
+		return ctx.Jump(s.stepStartRequestProcessing)
+	})
 }
 
 func (s *SMExecute) getDescriptor(state *object.SharedState) descriptor.Object {
@@ -603,7 +591,6 @@ func (s *SMExecute) getDescriptor(state *object.SharedState) descriptor.Object {
 	default:
 		panic(throw.IllegalState())
 	}
-
 }
 
 func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -823,30 +810,24 @@ func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.S
 }
 
 func (s *SMExecute) stepRegisterOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	builder := s.constructRegisterRecordBuilder(RegisterOutgoingRequest)
+	builder.Outgoing = s.outgoing
+
+	if err := builder.BuildRegisterOutgoingRequest(); err != nil {
+		ctx.Error(err)
+	}
+
+	s.lmnLastLifelineRef = builder.NewLastLifelineRef
+	s.lmnLastFilamentRef = builder.NewLastFilamentRef
+
+	s.outgoing.CallOutgoing = rms.NewReference(s.lmnLastFilamentRef)
+
+	ctx.Release(s.globalSemaphore.PartialLink())
+
 	// someone else can process other requests while we registering outgoing and waiting for outgoing result
 	ctx.Release(s.globalSemaphore.PartialLink())
 
-	subroutineSM := s.constructSubSMRegister(RegisterOutgoingRequest)
-	subroutineSM.Outgoing = s.outgoing
-
-	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
-		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
-		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
-
-		s.outgoing.CallOutgoing = rms.NewReference(s.lmnLastFilamentRef)
-		s.lmnMessages = subroutineSM.Messages
-
-		return ctx.Jump(s.stepRegisterOutgoingSend)
-	})
-}
-
-func (s *SMExecute) stepRegisterOutgoingSend(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.lmnMessages == nil {
-		return ctx.Sleep().ThenRepeat()
-	}
-
-	subroutineSM := s.constructSubSMRegisterSend(s.lmnMessages)
-
+	subroutineSM := s.constructSubSMRegisterSend(builder.Messages)
 	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		if ctx.GetError() != nil {
 			// TODO: we should understand here what's happened, but for now we'll drop request execution here
@@ -916,24 +897,20 @@ func (s *SMExecute) stepWaitAndRegisterOutgoingResult(ctx smachine.ExecutionCont
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	subroutineSM := s.constructSubSMRegister(RegisterOutgoingResult)
-	subroutineSM.OutgoingResult = s.outgoingVCallResult
+	builder := s.constructRegisterRecordBuilder(RegisterOutgoingResult)
+	{
+		builder.OutgoingResult = s.outgoingVCallResult
 
-	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
-		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
-		s.lmnMessages = subroutineSM.Messages
+		if err := builder.BuildRegisterOutgoingResult(); err != nil {
+			ctx.Error(err)
+		}
 
-		return ctx.Jump(s.stepRegisterOutgoingResultSend)
-	})
-}
-
-func (s *SMExecute) stepRegisterOutgoingResultSend(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.lmnMessages == nil {
-		return ctx.Sleep().ThenRepeat()
+		s.lmnLastFilamentRef = builder.NewLastFilamentRef
 	}
 
-	subroutineSM := s.constructSubSMRegisterSend(s.lmnMessages)
+	ctx.Release(s.globalSemaphore.PartialLink())
 
+	subroutineSM := s.constructSubSMRegisterSend(builder.Messages)
 	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 			// parent semaphore was released in stepSendOutgoing
@@ -1003,26 +980,19 @@ func (s *SMExecute) stepWaitSafeAnswers(ctx smachine.ExecutionContext) smachine.
 }
 
 func (s *SMExecute) stepSaveExecutionResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	subroutineSM := s.constructSubSMRegister(RegisterIncomingResult)
-	subroutineSM.IncomingResult = s.executionNewState
+	builder := s.constructRegisterRecordBuilder(RegisterIncomingResult)
+	builder.IncomingResult = s.executionNewState
 
-	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
-		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
-		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
-
-		s.lmnMessages = subroutineSM.Messages
-
-		return ctx.Jump(s.stepSaveExecutionResultSend)
-	})
-}
-
-func (s *SMExecute) stepSaveExecutionResultSend(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.lmnMessages == nil {
-		return ctx.Sleep().ThenRepeat()
+	if err := builder.BuildRegisterIncomingResult(); err != nil {
+		ctx.Error(err)
 	}
 
-	subroutineSM := s.constructSubSMRegisterSend(s.lmnMessages)
+	s.lmnLastLifelineRef = builder.NewLastLifelineRef
+	s.lmnLastFilamentRef = builder.NewLastFilamentRef
 
+	ctx.Release(s.globalSemaphore.PartialLink())
+
+	subroutineSM := s.constructSubSMRegisterSend(builder.Messages)
 	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		if ctx.GetError() != nil {
 			// TODO: we should understand here what's happened, but for now we'll drop request execution here
@@ -1331,10 +1301,12 @@ const (
 	RegisterIncomingResult
 )
 
-func (s *SMExecute) constructSubSMRegister(v RegisterVariant) lmn.SubSMRegister {
-	subroutineSM := lmn.SubSMRegister{
-		SafeResponseCounter: s.lmnSafeResponseCounterLink,
-		Interference:        s.methodIsolation.Interference,
+func (s *SMExecute) constructRegisterRecordBuilder(v RegisterVariant) lmn.RegisterRecordBuilder {
+	subroutineSM := lmn.RegisterRecordBuilder{
+		Interference: s.methodIsolation.Interference,
+
+		PulseSlot:        s.pulseSlot,
+		ReferenceBuilder: s.referenceBuilder,
 	}
 
 	switch v {
