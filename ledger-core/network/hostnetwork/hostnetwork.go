@@ -161,8 +161,6 @@ func (hn *hostNetwork) ReceiveSmallPacket(packet *uniproto.ReceivedPacket, b []b
 }
 
 func (hn *hostNetwork) ReceiveLargePacket(rp *uniproto.ReceivedPacket, preRead []byte, r io.LimitedReader) error {
-	// fn := rp.NewLargePayloadDeserializer(preRead, r)
-	// rp.
 	panic("(hn *hostNetwork) ReceiveLargePacket")
-	return errors.Unsupported()
+	// return errors.Unsupported()
 }

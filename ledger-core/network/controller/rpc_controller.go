@@ -77,22 +77,22 @@ func (rpc *rpcController) SendBytes(ctx context.Context, nodeID reference.Global
 
 }
 
-func (rpc *rpcController) processMessage(context.Context, network.ReceivedPacket) (network.Packet, error) {
-	// if request.GetRequest() == nil || request.GetRequest().GetRPC() == nil {
-	// 	inslogger.FromContext(ctx).Warnf("process RPC: got invalid request protobuf message: %s", request)
-	// }
-	//
-	// ctx = insmetrics.InsertTag(ctx, tagPacketType, request.GetType().String())
-	// stats.Record(ctx, statPacketsReceived.M(1))
-	//
-	// payload := request.GetRequest().GetRPC()
-	// result, err := rpc.invoke(ctx, payload.Method, payload.Data)
-	// if err != nil {
-	// 	return rpc.Network.BuildResponse(ctx, request, &rms.RPCResponse{Error: err.Error()}), nil
-	// }
-	// return rpc.Network.BuildResponse(ctx, request, &rms.RPCResponse{Result: result}), nil
-	return nil, throw.Unsupported()
-}
+// func (rpc *rpcController) processMessage(context.Context, network.ReceivedPacket) (network.Packet, error) {
+// 	if request.GetRequest() == nil || request.GetRequest().GetRPC() == nil {
+// 		inslogger.FromContext(ctx).Warnf("process RPC: got invalid request protobuf message: %s", request)
+// 	}
+//
+// 	ctx = insmetrics.InsertTag(ctx, tagPacketType, request.GetType().String())
+// 	stats.Record(ctx, statPacketsReceived.M(1))
+//
+// 	payload := request.GetRequest().GetRPC()
+// 	result, err := rpc.invoke(ctx, payload.Method, payload.Data)
+// 	if err != nil {
+// 		return rpc.Network.BuildResponse(ctx, request, &rms.RPCResponse{Error: err.Error()}), nil
+// 	}
+// 	return rpc.Network.BuildResponse(ctx, request, &rms.RPCResponse{Result: result}), nil
+// 	return nil, throw.Unsupported()
+// }
 
 func (rpc *rpcController) Init(ctx context.Context) error {
 	// rpc.Network.RegisterRequestHandler(types.RPC, rpc.processMessage)

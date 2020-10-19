@@ -29,7 +29,7 @@ func NewPacketSender(unifiedServer *uniserver.UnifiedServer) *PacketSender {
 func (ps *PacketSender) SendPacketToTransport(ctx context.Context, to transport2.TargetProfile, sendOptions transport2.PacketSendOptions, payload interface{}) {
 	addr := to.GetStatic().GetDefaultEndpoint().GetIPAddress().String()
 
-	ctx, logger := inslogger.WithFields(ctx, map[string]interface{}{
+	_, logger := inslogger.WithFields(ctx, map[string]interface{}{
 		"receiver_addr": addr,
 	})
 

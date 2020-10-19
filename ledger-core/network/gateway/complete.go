@@ -74,6 +74,7 @@ func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Glob
 }
 
 // requestCertSign method requests sign from single discovery node
+// nolint
 func (g *Complete) requestCertSign(ctx context.Context, discoveryNode nodeinfo.DiscoveryNode, registeredNodeRef reference.Global) ([]byte, error) {
 	// currentNodeCert := g.CertificateManager.GetCertificate()
 	//

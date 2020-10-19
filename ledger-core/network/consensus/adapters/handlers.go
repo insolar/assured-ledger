@@ -166,9 +166,9 @@ func (p *ConsensusProtocolMarshaller) ReceiveSmallPacket(packet *uniproto.Receiv
 	p.HandlerAdapter.HandleDatagram(context.Background(), packet.From.String(), b[packet.GetPayloadOffset():len(b)-packet.GetSignatureSize()])
 }
 
+// nolint
 func (p *ConsensusProtocolMarshaller) ReceiveLargePacket(packet *uniproto.ReceivedPacket, preRead []byte, r io.LimitedReader) error {
 	panic("ConsensusProtocolMarshaller unsupported ReceiveLargePacket")
-	return throw.Unsupported()
 }
 
 func (p *ConsensusProtocolMarshaller) SerializeMsg(pt uniproto.ProtocolType, pkt uint8, pn pulse.Number, msg string) []byte {
