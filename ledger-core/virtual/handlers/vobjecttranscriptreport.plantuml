@@ -52,11 +52,13 @@ T01_S024 : SMVObjectTranscriptReport
 T01_S024 --> T01_S025 : CallSubroutine
 state "stepInboundResponseRecord.2" as T01_S026
 T01_S026 : SMVObjectTranscriptReport
+T01_S026 --> T01_S028 : [s.incomingValidated]
 T01_S026 --> T01_S027
 state "stepInboundResponseRecord.subroutineSM.1" as T01_S025 <<sdlreceive>>
 T01_S025 --> T01_S026
 state "stepOutboundRecord" as T01_S015
 T01_S015 : SMVObjectTranscriptReport
+T01_S015 --> T01_S024 : [execution.Deactivate]
 T01_S015 --> T01_S016 : CallSubroutine
 state "stepOutboundRecord.2" as T01_S017
 T01_S017 : SMVObjectTranscriptReport

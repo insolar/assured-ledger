@@ -20,8 +20,6 @@ func (m *VObjectValidationReport) Validate(currentPulse PulseNumber) error {
 		return throw.New("In should be valid time pulse before or equal current pulse")
 	case !objectPulse.IsBefore(m.In):
 		return throw.New("Object pulse should be before In pulse")
-	case !validated.IsRecordScope():
-		return throw.New("Validated should be record of Object")
 	case !validated.GetBase().Equal(object.GetBase()):
 		return throw.New("Validated should be record of Object")
 	}
