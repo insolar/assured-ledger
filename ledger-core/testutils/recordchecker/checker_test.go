@@ -49,197 +49,270 @@ func TestChecker_HappyPath(t *testing.T) {
 		outgoingResponseB = rms.NewReference(gen.UniqueGlobalRef())
 	)
 
-	checker := NewLMNMessageChecker(mc)
+	checker := NewChecker(mc)
 	{ // object A
-		chain := checker.NewChain(objARef)
-		lineInboundConstructor := chain.AddRootMessage(
-			&rms.RLifelineStart{},
+		lineInboundConstructor := checker.NewChainFromRLifeline(
+			rms.LRegisterRequest{
+				AnyRecordLazy:  recordToAnyRecordLazy(&rms.RLifelineStart{}),
+				AnticipatedRef: objARef,
+			},
 			nil,
-		).AddChild(
-			&rms.RLineInboundRequest{},
-			nil,
-		)
-		lineInboundConstructor.AddChild(
-			&rms.ROutboundRequest{},
-			nil,
-		).AddChild(
-			&rms.ROutboundResponse{},
-			nil,
-		).AddChild(
-			&rms.RInboundResponse{},
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: recordToAnyRecordLazy(&rms.RLineInboundRequest{}),
+			},
 			nil,
 		)
-		lineInbound := lineInboundConstructor.AddChild(
-			&rms.RLineMemory{},
+		lineInboundConstructor.AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: recordToAnyRecordLazy(&rms.ROutboundRequest{}),
+			},
 			nil,
-		).AddChild(
-			&rms.RLineActivate{},
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: recordToAnyRecordLazy(&rms.ROutboundResponse{}),
+			},
 			nil,
-		).AddChild(
-			&rms.RLineInboundRequest{},
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: recordToAnyRecordLazy(&rms.RInboundResponse{}),
+			},
 			nil,
 		)
-		lineInbound.AddChild(
-			&rms.RInboundResponse{},
+		lineInbound := lineInboundConstructor.AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: recordToAnyRecordLazy(&rms.RLineMemory{}),
+			},
+			nil,
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: recordToAnyRecordLazy(&rms.RLineActivate{}),
+			},
+			nil,
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: recordToAnyRecordLazy(&rms.RLineInboundRequest{}),
+			},
 			nil,
 		)
-		lineInbound.AddChild(
-			&rms.RLineMemory{},
+		lineInbound.AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: recordToAnyRecordLazy(&rms.RInboundResponse{}),
+			},
+			nil,
+		)
+		lineInbound.AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: recordToAnyRecordLazy(&rms.RLineMemory{}),
+			},
 			nil,
 		)
 	}
 	{ // object B
-		chain := checker.NewChain(objBRef)
-		lineInboundConstructor := chain.AddRootMessage(
-			&rms.RLifelineStart{},
+		lineInboundConstructor := checker.NewChainFromRLifeline(
+			rms.LRegisterRequest{
+				AnyRecordLazy:  recordToAnyRecordLazy(&rms.RLifelineStart{}),
+				AnticipatedRef: objBRef,
+			},
 			nil,
-		).AddChild(
-			&rms.RLineInboundRequest{},
-			nil,
-		)
-		lineInboundConstructor.AddChild(
-			&rms.ROutboundRequest{},
-			nil,
-		).AddChild(
-			&rms.ROutboundResponse{},
-			nil,
-		).AddChild(
-			&rms.RInboundResponse{},
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: recordToAnyRecordLazy(&rms.RLineInboundRequest{}),
+			},
 			nil,
 		)
-		lineInboundConstructor.AddChild(
-			&rms.RLineMemory{},
+		lineInboundConstructor.AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: recordToAnyRecordLazy(&rms.ROutboundRequest{}),
+			},
+			nil,
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: recordToAnyRecordLazy(&rms.ROutboundResponse{}),
+			},
+			nil,
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: recordToAnyRecordLazy(&rms.RInboundResponse{}),
+			},
+			nil,
+		)
+		lineInboundConstructor.AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: recordToAnyRecordLazy(&rms.RLineMemory{}),
+			},
 			nil,
 		)
 	}
 
 	{ // constructor A with outgoing
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy:  recordToAnyRecordLazy(&rms.RLifelineStart{}),
-			AnticipatedRef: objARef,
-		}))
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy: recordToAnyRecordLazy(
-				&rms.RLineInboundRequest{
-					RootRef: objARef,
-					PrevRef: objARef,
-				}),
-			AnticipatedRef: constructorA,
-		}))
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy: recordToAnyRecordLazy(
-				&rms.ROutboundRequest{
-					RootRef: objARef,
-					PrevRef: constructorA,
-				}),
-			AnticipatedRef: outgoingA,
-		}))
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy: recordToAnyRecordLazy(
-				&rms.ROutboundResponse{
-					RootRef: objARef,
-					PrevRef: outgoingA,
-				}),
-			AnticipatedRef: outgoingResponseA,
-		}))
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy: recordToAnyRecordLazy(
-				&rms.RInboundResponse{
-					RootRef: objARef,
-					PrevRef: outgoingResponseA,
-				}),
-			AnticipatedRef: rms.NewReference(gen.UniqueGlobalRef()),
-		}))
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy: recordToAnyRecordLazy(
-				&rms.RLineMemory{
-					RootRef: objARef,
-					PrevRef: constructorA,
-				}),
-			AnticipatedRef: lineMemARef,
-		}))
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy: recordToAnyRecordLazy(
-				&rms.RLineActivate{
-					RootRef: objARef,
-					PrevRef: lineMemARef,
-				}),
-			AnticipatedRef: lineActivateARef,
-		}))
+		var (
+			chainAChecker = checker.GetReadView().GetObjectByReference(objARef.GetValue())
+			err           error
+			messages      = []rms.LRegisterRequest{
+				{
+					AnyRecordLazy:  recordToAnyRecordLazy(&rms.RLifelineStart{}),
+					AnticipatedRef: objARef,
+				},
+				{
+					AnyRecordLazy: recordToAnyRecordLazy(
+						&rms.RLineInboundRequest{
+							RootRef: objARef,
+							PrevRef: objARef,
+						}),
+					AnticipatedRef: constructorA,
+				},
+				{
+					AnyRecordLazy: recordToAnyRecordLazy(
+						&rms.ROutboundRequest{
+							RootRef: objARef,
+							PrevRef: constructorA,
+						}),
+					AnticipatedRef: outgoingA,
+				},
+				{
+					AnyRecordLazy: recordToAnyRecordLazy(
+						&rms.ROutboundResponse{
+							RootRef: objARef,
+							PrevRef: outgoingA,
+						}),
+					AnticipatedRef: outgoingResponseA,
+				},
+				{
+					AnyRecordLazy: recordToAnyRecordLazy(
+						&rms.RInboundResponse{
+							RootRef: objARef,
+							PrevRef: outgoingResponseA,
+						}),
+					AnticipatedRef: rms.NewReference(gen.UniqueGlobalRef()),
+				},
+				{
+					AnyRecordLazy: recordToAnyRecordLazy(
+						&rms.RLineMemory{
+							RootRef: objARef,
+							PrevRef: constructorA,
+						}),
+					AnticipatedRef: lineMemARef,
+				},
+				{
+					AnyRecordLazy: recordToAnyRecordLazy(
+						&rms.RLineActivate{
+							RootRef: objARef,
+							PrevRef: lineMemARef,
+						}),
+					AnticipatedRef: lineActivateARef,
+				},
+			}
+		)
+
+		for _, msg := range messages {
+			_, err = chainAChecker.Feed(msg)
+			require.NoError(t, err)
+		}
 	}
 	{ // constructor B with call A method
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy:  recordToAnyRecordLazy(&rms.RLifelineStart{}),
-			AnticipatedRef: objBRef,
-		}))
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy: recordToAnyRecordLazy(
-				&rms.RLineInboundRequest{
-					RootRef: objBRef,
-					PrevRef: objBRef,
-				}),
-			AnticipatedRef: constructorB,
-		}))
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy: recordToAnyRecordLazy(
-				&rms.ROutboundRequest{
-					RootRef: objBRef,
-					PrevRef: constructorB,
-				}),
-			AnticipatedRef: outgoingB,
-		}))
+		var (
+			chainBChecker = checker.GetReadView().GetObjectByReference(objBRef.GetValue())
+			err           error
+			messages      = []rms.LRegisterRequest{
+				{
+					AnyRecordLazy:  recordToAnyRecordLazy(&rms.RLifelineStart{}),
+					AnticipatedRef: objBRef,
+				},
+				{
+					AnyRecordLazy: recordToAnyRecordLazy(
+						&rms.RLineInboundRequest{
+							RootRef: objBRef,
+							PrevRef: objBRef,
+						}),
+					AnticipatedRef: constructorB,
+				},
+				{
+					AnyRecordLazy: recordToAnyRecordLazy(
+						&rms.ROutboundRequest{
+							RootRef: objBRef,
+							PrevRef: constructorB,
+						}),
+					AnticipatedRef: outgoingB,
+				},
+			}
+		)
+		for _, msg := range messages {
+			chainBChecker, err = chainBChecker.Feed(msg)
+			require.NoError(t, err)
+		}
 	}
 	{ // call A method
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy: recordToAnyRecordLazy(
-				&rms.RLineInboundRequest{
-					RootRef: objARef,
-					PrevRef: lineActivateARef,
-				}),
-			AnticipatedRef: methodA,
-		}))
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy: recordToAnyRecordLazy(
-				&rms.RInboundResponse{
-					RootRef: objARef,
-					PrevRef: methodA,
-				}),
-			AnticipatedRef: rms.NewReference(gen.UniqueGlobalRef()),
-		}))
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy: recordToAnyRecordLazy(
-				&rms.RLineMemory{
-					RootRef: objARef,
-					PrevRef: methodA,
-				}),
-			AnticipatedRef: rms.NewReference(gen.UniqueGlobalRef()),
-		}))
+		var (
+			chainAChecker = checker.GetReadView().GetObjectByReference(objARef.GetValue())
+			err           error
+			messages      = []rms.LRegisterRequest{
+				{
+					AnyRecordLazy: recordToAnyRecordLazy(
+						&rms.RLineInboundRequest{
+							RootRef: objARef,
+							PrevRef: lineActivateARef,
+						}),
+					AnticipatedRef: methodA,
+				},
+				{
+					AnyRecordLazy: recordToAnyRecordLazy(
+						&rms.RInboundResponse{
+							RootRef: objARef,
+							PrevRef: methodA,
+						}),
+					AnticipatedRef: rms.NewReference(gen.UniqueGlobalRef()),
+				},
+				{
+					AnyRecordLazy: recordToAnyRecordLazy(
+						&rms.RLineMemory{
+							RootRef: objARef,
+							PrevRef: methodA,
+						}),
+					AnticipatedRef: rms.NewReference(gen.UniqueGlobalRef()),
+				},
+			}
+		)
+		for _, msg := range messages {
+			_, err = chainAChecker.Feed(msg)
+			require.NoError(t, err)
+		}
 	}
 	{ // done constructor B
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy: recordToAnyRecordLazy(
-				&rms.ROutboundResponse{
-					RootRef: objBRef,
-					PrevRef: outgoingB,
-				}),
-			AnticipatedRef: outgoingResponseB,
-		}))
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy: recordToAnyRecordLazy(
-				&rms.RInboundResponse{
-					RootRef: objBRef,
-					PrevRef: outgoingResponseB,
-				}),
-			AnticipatedRef: rms.NewReference(gen.UniqueGlobalRef()),
-		}))
-		require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
-			AnyRecordLazy: recordToAnyRecordLazy(
-				&rms.RLineMemory{
-					RootRef: objBRef,
-					PrevRef: constructorB,
-				}),
-			AnticipatedRef: rms.NewReference(gen.UniqueGlobalRef()),
-		}))
+		var (
+			chainBChecker = checker.GetReadView().GetObjectByReference(objBRef.GetValue())
+			err           error
+			messages      = []rms.LRegisterRequest{
+				{
+					AnyRecordLazy: recordToAnyRecordLazy(
+						&rms.ROutboundResponse{
+							RootRef: objBRef,
+							PrevRef: outgoingB,
+						}),
+					AnticipatedRef: outgoingResponseB,
+				},
+				{
+					AnyRecordLazy: recordToAnyRecordLazy(
+						&rms.RInboundResponse{
+							RootRef: objBRef,
+							PrevRef: outgoingResponseB,
+						}),
+					AnticipatedRef: rms.NewReference(gen.UniqueGlobalRef()),
+				},
+				{
+					AnyRecordLazy: recordToAnyRecordLazy(
+						&rms.RLineMemory{
+							RootRef: objBRef,
+							PrevRef: constructorB,
+						}),
+					AnticipatedRef: rms.NewReference(gen.UniqueGlobalRef()),
+				},
+			}
+		)
+		for _, msg := range messages {
+			_, err = chainBChecker.Feed(msg)
+			require.NoError(t, err)
+		}
 	}
 
 	mc.Finish()
@@ -247,27 +320,64 @@ func TestChecker_HappyPath(t *testing.T) {
 
 func TestChecker_UnregisteredMessage(t *testing.T) {
 	var (
-		mc     = minimock.NewController(t)
-		objRef = rms.NewReference(gen.UniqueGlobalRef())
+		mc           = minimock.NewController(t)
+		objRef       = rms.NewReference(gen.UniqueGlobalRef())
+		chainChecker ChainChecker
+		err          error
 	)
 
-	checker := NewLMNMessageChecker(mc)
-	chain := checker.NewChain(objRef)
-	chain.AddRootMessage(
-		&rms.RLifelineStart{},
+	checker := NewChecker(mc)
+	chain := checker.NewChainFromReference(objRef)
+	chain.AddMessage(
+		rms.LRegisterRequest{
+			AnyRecordLazy: recordToAnyRecordLazy(&rms.RLifelineStart{}),
+		},
 		nil,
 	)
-	require.NoError(t, checker.ProcessMessage(rms.LRegisterRequest{
+	chainChecker = checker.GetReadView().GetObjectByReference(objRef.GetValue())
+	chainChecker, err = chainChecker.Feed(rms.LRegisterRequest{
 		AnyRecordLazy:  recordToAnyRecordLazy(&rms.RLifelineStart{}),
 		AnticipatedRef: objRef,
-	}))
-	require.Error(t, checker.ProcessMessage(rms.LRegisterRequest{
+	})
+	require.NoError(t, err)
+	chainChecker, err = chainChecker.Feed(rms.LRegisterRequest{
 		AnyRecordLazy: recordToAnyRecordLazy(
 			&rms.RInboundRequest{
 				RootRef: objRef,
 				PrevRef: objRef,
 			}),
 		AnticipatedRef: rms.NewReference(gen.UniqueGlobalRef()),
-	}))
+	})
+	require.Error(t, err)
 	mc.Finish()
+}
+
+func TestChecker_UnsentMessage(t *testing.T) {
+	var (
+		objRef       = rms.NewReference(gen.UniqueGlobalRef())
+		chainChecker ChainChecker
+		err          error
+	)
+
+	checker := NewChecker(nil)
+	chain := checker.NewChainFromReference(objRef)
+	chain.AddMessage(
+		rms.LRegisterRequest{
+			AnyRecordLazy: recordToAnyRecordLazy(&rms.RLifelineStart{}),
+		},
+		nil,
+	).AddMessage(
+		rms.LRegisterRequest{
+			AnyRecordLazy: recordToAnyRecordLazy(&rms.RInboundRequest{}),
+		},
+		nil,
+	)
+	chainChecker = checker.GetReadView().GetObjectByReference(objRef.GetValue())
+	chainChecker, err = chainChecker.Feed(rms.LRegisterRequest{
+		AnyRecordLazy:  recordToAnyRecordLazy(&rms.RLifelineStart{}),
+		AnticipatedRef: objRef,
+	})
+	require.NoError(t, err)
+
+	require.False(t, checker.GetReadView().IsFinished())
 }

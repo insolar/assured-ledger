@@ -24,7 +24,7 @@ type SerializableBasicRecord interface {
 	rms.BasicRecord
 }
 
-func mustRecordToAnyRecordLazy(rec SerializableBasicRecord) rms.AnyRecordLazy {
+func MustRecordToAnyRecordLazy(rec SerializableBasicRecord) rms.AnyRecordLazy {
 	if rec == nil {
 		panic(throw.IllegalValue())
 	}
@@ -242,7 +242,7 @@ func (s *RegisterRecordBuilder) BuildLifeline() error {
 	if err := s.registerMessage(&rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
-		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // it should be based on
+		AnyRecordLazy:  MustRecordToAnyRecordLazy(record), // it should be based on
 		// TODO: here we should set all overrides, since RLifelineStart contains
 		//       ROutboundRequest and it has bad RootRef/PrevRef.
 		// OverrideRecordType: rms.RLifelineStart,
@@ -279,7 +279,7 @@ func (s *RegisterRecordBuilder) buildRegisterIncomingRequest() error {
 	if err := s.registerMessage(&rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          flags,
-		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
+		AnyRecordLazy:  MustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
 	}); err != nil {
 		panic(throw.W(err, "failed to register message"))
 	}
@@ -319,7 +319,7 @@ func (s *RegisterRecordBuilder) BuildRegisterOutgoingRequest() error {
 	if err := s.registerMessage(&rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
-		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
+		AnyRecordLazy:  MustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
 	}); err != nil {
 		panic(throw.W(err, "failed to register message"))
 	}
@@ -346,7 +346,7 @@ func (s *RegisterRecordBuilder) BuildRegisterOutgoingResult() error {
 	if err := s.registerMessage(&rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
-		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
+		AnyRecordLazy:  MustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
 	}); err != nil {
 		panic(throw.W(err, "failed to register message"))
 	}
@@ -398,7 +398,7 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 		if err := s.registerMessage(&rms.LRegisterRequest{
 			AnticipatedRef: rms.NewReference(anticipatedRef),
 			Flags:          rms.RegistrationFlags_Safe,
-			AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
+			AnyRecordLazy:  MustRecordToAnyRecordLazy(record),
 		}); err != nil {
 			panic(throw.W(err, "failed to register message"))
 		}
@@ -446,7 +446,7 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 			if err := s.registerMessage(&rms.LRegisterRequest{
 				AnticipatedRef: rms.NewReference(anticipatedRef),
 				Flags:          rms.RegistrationFlags_Safe,
-				AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
+				AnyRecordLazy:  MustRecordToAnyRecordLazy(record),
 			}); err != nil {
 				panic(throw.W(err, "failed to register message"))
 			}
@@ -480,7 +480,7 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 			if err := s.registerMessage(&rms.LRegisterRequest{
 				AnticipatedRef: rms.NewReference(anticipatedRef),
 				Flags:          rms.RegistrationFlags_Safe,
-				AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
+				AnyRecordLazy:  MustRecordToAnyRecordLazy(record),
 			}); err != nil {
 				panic(throw.W(err, "failed to register message"))
 			}

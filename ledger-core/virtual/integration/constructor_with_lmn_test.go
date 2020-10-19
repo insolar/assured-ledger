@@ -11,6 +11,7 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
@@ -20,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
 func TestVirtual_ConstructorWithLMN(t *testing.T) {
@@ -60,29 +62,46 @@ func TestVirtual_ConstructorWithLMN(t *testing.T) {
 		return false // no resend msg
 	})
 
-	checker := recordchecker.NewLMNMessageChecker(mc)
+	checker := recordchecker.NewChecker(mc)
 	{
-		inb := checker.NewChain(rms.NewReference(objectRef)).AddRootMessage(
-			&rms.RLifelineStart{},
+		inb := checker.NewChainFromReference(rms.NewReference(objectRef)).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLifelineStart{}),
+			},
 			recordchecker.ProduceResponse(ctx, server),
-		).AddChild(
-			&rms.RLineInboundRequest{},
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLineInboundRequest{}),
+			},
 			recordchecker.ProduceResponse(ctx, server),
 		)
-		inb.AddChild(
-			&rms.RInboundResponse{},
+		inb.AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RInboundResponse{}),
+			},
 			recordchecker.ProduceResponse(ctx, server),
 		)
-		inb.AddChild(
-			&rms.RLineMemory{},
+		inb.AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLineMemory{}),
+			},
 			recordchecker.ProduceResponse(ctx, server),
-		).AddChild(
-			&rms.RLineActivate{},
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLineActivate{}),
+			},
 			recordchecker.ProduceResponse(ctx, server),
 		)
 	}
+	var (
+		chainChecker = checker.GetReadView().GetObjectByReference(objectRef)
+		err          error
+	)
 	typedChecker.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
-		assert.NoError(t, checker.ProcessMessage(*request))
+		chainChecker, err = chainChecker.Feed(*request)
+		require.NoError(t, err)
+		require.NotNil(t, chainChecker)
+		chainChecker.GetResponseProvider()(*request)
 		return false
 	})
 

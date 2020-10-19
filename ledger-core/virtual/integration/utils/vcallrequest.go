@@ -64,6 +64,12 @@ func (h *VCallRequestConstructorHandler) SetClass(ref reference.Global) {
 	h.regenerate()
 }
 
+//nolint:interfacer
+func (h *VCallRequestConstructorHandler) SetCaller(ref reference.Global) {
+	h.request.Caller.Set(ref)
+	h.regenerate()
+}
+
 func (h *VCallRequestConstructorHandler) SetCallFlags(flags rms.CallFlags) {
 	h.request.CallFlags = flags
 	h.regenerate()
@@ -96,7 +102,7 @@ func (h *VCallRequestConstructorHandler) SetCallOutgoing(callOutgoing reference.
 	h.regenerate()
 }
 
-func generateVCallRequestConstructorForPulse(server *Server, pn pulse.Number) rms.VCallRequest {
+func generateVCallRequestConstructorForPulse(server *Server, pn pulse.Number) VCallRequestConstructorHandler {
 	var (
 		cIsolation = contract.ConstructorIsolation()
 		callFlags  = rms.BuildCallFlags(cIsolation.Interference, cIsolation.State)
@@ -104,20 +110,16 @@ func generateVCallRequestConstructorForPulse(server *Server, pn pulse.Number) rm
 		callee     = gen.UniqueGlobalRefWithPulse(pn)
 	)
 
-	return rms.VCallRequest{
-		CallType:       rms.CallTypeConstructor,
-		CallFlags:      callFlags,
-		Caller:         rms.NewReference(server.GlobalCaller()),
-		Callee:         rms.NewReference(callee),
-		CallSiteMethod: "New",
-		CallSequence:   1,
-		Arguments:      rms.NewBytes(arguments),
-	}
-}
-
-func generateVCallRequestConstructorHandlerForPulseFromRequest(server *Server, pn pulse.Number, request rms.VCallRequest) VCallRequestConstructorHandler {
 	hdl := VCallRequestConstructorHandler{
-		request:     request,
+		request: rms.VCallRequest{
+			CallType:       rms.CallTypeConstructor,
+			CallFlags:      callFlags,
+			Caller:         rms.NewReference(server.GlobalCaller()),
+			Callee:         rms.NewReference(callee),
+			CallSiteMethod: "New",
+			CallSequence:   1,
+			Arguments:      rms.NewBytes(arguments),
+		},
 		builder:     server.virtual.ReferenceBuilder,
 		pn:          pn,
 		previousRef: gen.UniqueGlobalRefWithPulse(pn),
@@ -128,21 +130,12 @@ func generateVCallRequestConstructorHandlerForPulseFromRequest(server *Server, p
 	return hdl
 }
 
-func generateVCallRequestConstructorHandlerForPulse(server *Server, pn pulse.Number) VCallRequestConstructorHandler {
-	request := generateVCallRequestConstructorForPulse(server, pn)
-	return generateVCallRequestConstructorHandlerForPulseFromRequest(server, pn, request)
-}
-
 func GenerateVCallRequestConstructorForPulse(server *Server, pn pulse.Number) VCallRequestConstructorHandler {
-	return generateVCallRequestConstructorHandlerForPulse(server, pn)
+	return generateVCallRequestConstructorForPulse(server, pn)
 }
 
 func GenerateVCallRequestConstructor(server *Server) VCallRequestConstructorHandler {
-	return generateVCallRequestConstructorHandlerForPulse(server, server.GetPulseNumber())
-}
-
-func GenerateVCallRequestConstructorFromRequest(server *Server, request rms.VCallRequest) VCallRequestConstructorHandler {
-	return generateVCallRequestConstructorHandlerForPulseFromRequest(server, server.GetPulseNumber(), request)
+	return generateVCallRequestConstructorForPulse(server, server.GetPulseNumber())
 }
 
 // GenerateVCallRequestMethod returns CallTypeMethod VCallRequest for tolerable/dirty request by default
