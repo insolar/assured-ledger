@@ -63,7 +63,7 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 	afterPendingStateID := server.RandomLocalWithPulse()
 	dirtyStateRef := reference.NewRecordOf(object, afterPendingStateID)
 
-	pendingTranscript := buildIncomingTranscript(constructorReq, nil, dirtyStateRef)
+	pendingTranscript := utils.GenerateIncomingTranscript(constructorReq, nil, dirtyStateRef, server.RandomGlobalWithPulse(), server.RandomGlobalWithPulse())
 
 	server.IncrementPulseAndWaitIdle(ctx)
 
@@ -80,7 +80,7 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 		pl.CallSiteMethod = "SomeMethod"
 		pl.CallOutgoing.Set(outgoingP2)
 	}
-	methodTranscript := buildIncomingTranscript(*pl, dirtyStateRef, dirtyStateRef)
+	methodTranscript := utils.GenerateIncomingTranscript(*pl, dirtyStateRef, dirtyStateRef, server.RandomGlobalWithPulse(), server.RandomGlobalWithPulse())
 
 	// create object state
 	{
@@ -190,22 +190,4 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 	assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 
 	mc.Finish()
-}
-
-func buildIncomingTranscript(request rms.VCallRequest, stateBefore, stateAfter reference.Holder) rms.Transcript {
-	transcript := rms.Transcript{Entries: []rms.Any{{}, {}}}
-	t := &rms.Transcript_TranscriptEntryIncomingRequest{
-		Request: request,
-	}
-	if stateBefore != nil {
-		t.ObjectMemory.Set(stateBefore)
-	}
-	transcript.Entries[0].Set(t)
-	result := &rms.Transcript_TranscriptEntryIncomingResult{
-		ObjectState: rms.NewReference(stateAfter),
-		Reason:      request.CallOutgoing,
-	}
-	transcript.Entries[1].Set(result)
-
-	return transcript
 }

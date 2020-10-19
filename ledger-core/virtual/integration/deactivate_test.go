@@ -58,7 +58,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				objectGlobal     = server.RandomGlobalWithPulse()
+				objectGlobal   = server.RandomGlobalWithPulse()
 				validatedState = []byte("initial state")
 				dirtyState     = validatedState
 			)
@@ -485,12 +485,6 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 			assert.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestValidatedState.Memory.GetBytes())
 			return false
 		})
-		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			assert.Equal(t, objectRef, report.Object.GetValue())
-			assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
-			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
-			return false
-		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
 			assert.Equal(t, objectRef, request.Callee.GetValue())
 			assert.Equal(t, outgoing, request.CallOutgoing.GetValue())
@@ -508,6 +502,18 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 			require.NotNil(t, finished.LatestState)
 			assert.True(t, finished.LatestState.Deactivated)
 			assert.Nil(t, finished.LatestState.Memory.GetBytes())
+
+			assert.NotEmpty(t, finished.PendingTranscript.Entries)
+			request, ok := finished.PendingTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
+			assert.True(t, ok)
+			assert.Equal(t, objectRef, request.Request.Callee.GetValue())
+			assert.Equal(t, outgoing, request.Request.CallOutgoing.GetValue())
+
+			result, ok := finished.PendingTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+			assert.True(t, ok)
+			assert.NotEmpty(t, result.ObjectState.GetValue())
+			assert.Equal(t, outgoing, result.Reason.GetValue())
+
 			return false
 		})
 	}
@@ -534,9 +540,7 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 	synchronizeExecution.WakeUp()
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, oneExecutionEnded)
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
 
-	assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
@@ -883,9 +887,11 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 					Interference: isolation.CallTolerable,
 					State:        isolation.CallDirty,
 				}
-				stateRef = server.RandomRecordOf(objectRef)
-				outgoing = server.BuildRandomOutgoingWithPulse()
-				incoming = reference.NewRecordOf(objectRef, outgoing.GetLocal())
+				stateBefore = server.RandomRecordOf(objectRef)
+				stateRef    = server.RandomRecordOf(objectRef)
+				outgoing    = server.BuildRandomOutgoingWithPulse()
+				incoming    = reference.NewRecordOf(objectRef, outgoing.GetLocal())
+				pendingCall *rms.VCallRequest
 			)
 
 			server.IncrementPulseAndWaitIdle(ctx)
@@ -932,7 +938,24 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
 				assert.Equal(t, objectRef, report.Object.GetValue())
 				assert.Equal(t, checkOutgoing.GetLocal().Pulse(), report.AsOf)
-				assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+				// todo: we should write VCallResult with 4-type error in transcript ?
+				// assert.NotEmpty(t, report.ObjectTranscript.Entries)
+
+				assert.Len(t, report.PendingTranscripts, 1)
+				transcript := report.PendingTranscripts[0]
+				assert.Equal(t, 2, len(transcript.Entries))
+
+				request1, ok := transcript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
+				require.True(t, ok)
+				require.Equal(t, outgoing, request1.Request.CallOutgoing.GetValue())
+
+				result1, ok := transcript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+				require.True(t, ok)
+				require.Equal(t, p1, result1.ObjectState.GetValue().GetLocal().Pulse())
+				require.Equal(t, outgoing, result1.Reason.GetValue())
+
+				utils.AssertVCallRequestEqual(t, pendingCall, &request1.Request)
+
 				return false
 			})
 			typedChecker.VDelegatedCallResponse.Set(func(response *rms.VDelegatedCallResponse) bool {
@@ -982,6 +1005,13 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			}
 
 			{ // send delegation request finished with deactivate flag
+				pendingCall = utils.GenerateVCallRequestMethod(server)
+				pendingCall.Callee.Set(objectRef)
+				pendingCall.CallSiteMethod = "Destroy"
+				pendingCall.CallOutgoing.Set(outgoing)
+
+				pendingTranscript := utils.GenerateIncomingTranscript(*pendingCall, stateBefore, stateRef, server.RandomGlobalWithPrevPulse(), server.RandomGlobalWithPrevPulse())
+
 				pl := rms.VDelegatedRequestFinished{
 					CallType:     rms.CallTypeMethod,
 					Callee:       rms.NewReference(objectRef),
@@ -993,6 +1023,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 						Memory:      rms.NewBytes(nil),
 						Deactivated: true,
 					},
+					PendingTranscript: pendingTranscript,
 				}
 				await := server.Journal.WaitStopOf(&handlers.SMVDelegatedRequestFinished{}, 1)
 				server.SendPayload(ctx, &pl)

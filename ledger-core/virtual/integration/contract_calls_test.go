@@ -707,15 +707,16 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 	{
 		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool { return false })
 
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			assert.Equal(t, object, report.Object.GetValue())
+			assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), report.AsOf)
+			// todo: this is error case, don't deal, yet
+			assert.NotEmpty(t, report.ObjectTranscript.Entries)
+			return false
+		})
+
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
 			require.Equal(t, object, request.Callee.GetValue())
-
-			typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-				assert.Equal(t, object, report.Object.GetValue())
-				assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), report.AsOf)
-				assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
-				return false
-			})
 
 			newPulse := server.GetPulse().PulseNumber
 			approver := server.RandomGlobalWithPulse()
