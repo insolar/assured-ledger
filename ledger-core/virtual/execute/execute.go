@@ -88,7 +88,6 @@ type SMExecute struct {
 	findCallResponse *rms.VFindCallResponse
 
 	incomingAddedToTranscript bool
-	outgoingAddedToTranscript bool
 	transcript                validation.Transcript
 
 	// registration in LMN
