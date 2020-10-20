@@ -628,7 +628,7 @@ func (p *TypedReferenceBuilder) AnticipatedRefFromBytes(object reference.Global,
 	}
 
 	var resultRef reference.Global
-	switch record := rec.Get().(type) {
+	switch record := rec.Get().(interface{}).(type) {
 	case *rms.RInboundResponse:
 		msg := rec.Get().(*rms.RInboundResponse)
 		hdlStruct := &p.Handlers.RInboundResponse
