@@ -8,8 +8,6 @@
 package lmn
 
 import (
-	"fmt"
-
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -28,7 +26,6 @@ type SerializableBasicRecord interface {
 }
 
 func mustRecordToAnyRecordLazy(rec SerializableBasicRecord) rms.AnyRecordLazy {
-	fmt.Printf("%#v\n", rec)
 	if rec == nil {
 		panic(throw.IllegalValue())
 	}
@@ -49,19 +46,16 @@ type RegisterRecordBuilder struct {
 	Interference      isolation.InterferenceFlag
 	ObjectSharedState object.SharedStateAccessor
 
-	Object          reference.Global
-	LastFilamentRef reference.Global
-	LastLifelineRef reference.Global
-
+	Object      reference.Global
 	PulseNumber pulse.Number
 
 	// internal data
 
 	// output arguments
-	NewObjectRef       reference.Global
-	NewLastFilamentRef reference.Global
-	NewLastLifelineRef reference.Global
-	Messages           []SerializableBasicMessage
+	Context       *RegistrationCtx
+	lastBranchRef reference.Global
+	lastTrunkRef  reference.Global
+	Messages      []SerializableBasicMessage
 
 	// DI
 	PulseSlot        *conveyor.PulseSlot
@@ -88,6 +82,7 @@ func (s *RegisterRecordBuilder) getRecordAnticipatedRef(record SerializableBasic
 	return s.ReferenceBuilder.AnticipatedRefFromBytes(s.Object, pulseNumber, data)
 }
 
+//nolint:unparam
 func (s *RegisterRecordBuilder) registerMessage(msg SerializableBasicMessage) error {
 	s.Messages = append(s.Messages, msg)
 
@@ -97,7 +92,7 @@ func (s *RegisterRecordBuilder) registerMessage(msg SerializableBasicMessage) er
 func GetLifelineAnticipatedReference(
 	builder RecordReferenceBuilderService,
 	request *rms.VCallRequest,
-	pn pulse.Number,
+	_ pulse.Number,
 ) reference.Global {
 	if request.CallOutgoing.IsEmpty() {
 		panic(throw.IllegalValue())
@@ -126,9 +121,16 @@ func GetOutgoingAnticipatedReference(
 		Object:           request.Callee.GetValue(),
 		Outgoing:         request,
 		ReferenceBuilder: builder,
-		LastLifelineRef:  previousRef,
+		Context:          NewDummyRegistrationCtx(previousRef),
 	}
-	return sm.getRecordAnticipatedRef(sm.getOutboundRecord())
+	return sm.getRecordAnticipatedRef(sm.GetOutboundRecord())
+}
+
+func (s *RegisterRecordBuilder) GetOutboundRecord() *rms.ROutboundRequest {
+	s.lastTrunkRef = s.Context.TrunkRef()
+	s.lastBranchRef = s.Context.BranchRef()
+
+	return s.getOutboundRecord()
 }
 
 func (s *RegisterRecordBuilder) getOutboundRecord() *rms.ROutboundRequest {
@@ -137,9 +139,9 @@ func (s *RegisterRecordBuilder) getOutboundRecord() *rms.ROutboundRequest {
 	}
 
 	// first outgoing of incoming should be branched from
-	prevRef := s.LastFilamentRef
+	prevRef := s.lastBranchRef
 	if prevRef.IsEmpty() {
-		prevRef = s.LastLifelineRef
+		prevRef = s.lastTrunkRef
 	}
 	if prevRef.IsEmpty() {
 		panic(throw.IllegalState())
@@ -199,32 +201,35 @@ func (s *RegisterRecordBuilder) getInboundRecord() *rms.RInboundRequest {
 	switch {
 	case s.Incoming == nil:
 		panic(throw.IllegalState())
-	case s.LastLifelineRef.IsEmpty():
+	case s.lastTrunkRef.IsEmpty():
 		panic(throw.IllegalState())
 	case s.Object.IsEmpty():
 		panic(throw.IllegalState())
 	}
 
-	return s.getCommonOutboundRecord(s.Incoming, s.LastFilamentRef)
+	return s.getCommonOutboundRecord(s.Incoming, s.lastTrunkRef)
 }
 
 func (s *RegisterRecordBuilder) getLineInboundRecord() *rms.RLineInboundRequest {
 	switch {
 	case s.Incoming == nil:
 		panic(throw.IllegalState())
-	case s.LastLifelineRef.IsEmpty():
+	case s.lastTrunkRef.IsEmpty():
 		panic(throw.IllegalState())
 	case s.Object.IsEmpty():
 		panic(throw.IllegalState())
 	}
 
-	return s.getCommonOutboundRecord(s.Incoming, s.LastLifelineRef)
+	return s.getCommonOutboundRecord(s.Incoming, s.lastTrunkRef)
 }
 
 func (s *RegisterRecordBuilder) BuildLifeline() error {
+	s.lastTrunkRef = s.Context.TrunkRef()
+	s.lastBranchRef = s.Context.BranchRef()
+
 	if !s.Object.IsEmpty() {
 		panic(throw.IllegalValue())
-	} else if !s.LastFilamentRef.IsEmpty() {
+	} else if !s.lastTrunkRef.IsEmpty() || !s.lastBranchRef.IsEmpty() {
 		panic(throw.IllegalValue())
 	}
 
@@ -236,9 +241,6 @@ func (s *RegisterRecordBuilder) BuildLifeline() error {
 	)
 
 	s.PulseNumber = pulse.Unknown
-
-	s.Object = anticipatedRef
-	s.LastLifelineRef = anticipatedRef
 
 	if err := s.registerMessage(&rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
@@ -254,14 +256,11 @@ func (s *RegisterRecordBuilder) BuildLifeline() error {
 		panic(throw.W(err, "failed to register message"))
 	}
 
-	s.NewLastLifelineRef = s.LastLifelineRef
-	s.NewLastFilamentRef = s.LastFilamentRef
-	s.NewObjectRef = s.Object
-
-	return nil
+	s.lastTrunkRef = anticipatedRef
+	return s.Finalize()
 }
 
-func (s *RegisterRecordBuilder) BuildRegisterIncomingRequest() error {
+func (s *RegisterRecordBuilder) buildRegisterIncomingRequest() error {
 	var record SerializableBasicRecord
 
 	switch s.Interference {
@@ -290,25 +289,20 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingRequest() error {
 
 	switch s.Interference {
 	case isolation.CallTolerable:
-		s.LastLifelineRef = anticipatedRef
+		s.lastTrunkRef = anticipatedRef
 	case isolation.CallIntolerable:
-		s.LastFilamentRef = anticipatedRef
+		s.lastBranchRef = anticipatedRef
 	}
 
-	// switch {
-	// case s.Outgoing != nil:
-	// 	return s.BuildRegisterOutgoingRequest()
-	// case s.IncomingResult != nil:
-	// 	return s.BuildRegisterIncomingResult()
-	// default:
-	// 	panic(throw.Unsupported())
-	// }
 	return nil
 }
 
 func (s *RegisterRecordBuilder) BuildRegisterOutgoingRequest() error {
+	s.lastTrunkRef = s.Context.TrunkRef()
+	s.lastBranchRef = s.Context.BranchRef()
+
 	if s.Incoming != nil {
-		if err := s.BuildRegisterIncomingRequest(); err != nil {
+		if err := s.buildRegisterIncomingRequest(); err != nil {
 			return err
 		}
 	}
@@ -333,24 +327,21 @@ func (s *RegisterRecordBuilder) BuildRegisterOutgoingRequest() error {
 		panic(throw.W(err, "failed to register message"))
 	}
 
-	s.LastFilamentRef = anticipatedRef
-
-	s.NewLastLifelineRef = s.LastLifelineRef
-	s.NewLastFilamentRef = s.LastFilamentRef
-	s.NewObjectRef = s.Object
-
-	return nil
+	s.lastBranchRef = anticipatedRef
+	return s.Finalize()
 }
 
 func (s *RegisterRecordBuilder) BuildRegisterOutgoingResult() error {
+	s.lastTrunkRef = s.Context.TrunkRef()
+	s.lastBranchRef = s.Context.BranchRef()
 
-	if s.LastFilamentRef.IsEmpty() {
+	if s.lastBranchRef.IsEmpty() {
 		panic(throw.IllegalState())
 	}
 
 	record := &rms.ROutboundResponse{
 		RootRef: rms.NewReference(s.Object),
-		PrevRef: rms.NewReference(s.LastFilamentRef),
+		PrevRef: rms.NewReference(s.lastBranchRef),
 	}
 
 	var anticipatedRef = s.getRecordAnticipatedRef(record)
@@ -363,18 +354,16 @@ func (s *RegisterRecordBuilder) BuildRegisterOutgoingResult() error {
 		panic(throw.W(err, "failed to register message"))
 	}
 
-	s.LastFilamentRef = anticipatedRef
-
-	s.NewLastLifelineRef = s.LastLifelineRef
-	s.NewLastFilamentRef = s.LastFilamentRef
-	s.NewObjectRef = s.Object
-
-	return nil
+	s.lastBranchRef = anticipatedRef
+	return s.Finalize()
 }
 
 func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
+	s.lastTrunkRef = s.Context.TrunkRef()
+	s.lastBranchRef = s.Context.BranchRef()
+
 	if s.Incoming != nil {
-		if err := s.BuildRegisterIncomingRequest(); err != nil {
+		if err := s.buildRegisterIncomingRequest(); err != nil {
 			return err
 		}
 	}
@@ -393,10 +382,10 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 	)
 
 	{ // result of execution
-		prevRef := s.LastFilamentRef
+		prevRef := s.lastBranchRef
 		if prevRef.IsEmpty() {
 			haveFilament = false
-			prevRef = s.LastLifelineRef
+			prevRef = s.lastTrunkRef
 		}
 		if prevRef.IsEmpty() {
 			panic(throw.IllegalState())
@@ -417,12 +406,12 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 			panic(throw.W(err, "failed to register message"))
 		}
 
-		s.LastFilamentRef = anticipatedRef
+		s.lastBranchRef = anticipatedRef
 	}
 
 	// TODO: RejoinRef to LastFilamentRef
 	{ // new memory (if needed)
-		if s.LastLifelineRef.IsEmpty() {
+		if s.lastTrunkRef.IsEmpty() {
 			panic(throw.IllegalState())
 		}
 
@@ -434,7 +423,7 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 		case !haveFilament && isConstructor:
 			record = &rms.RLineMemoryInit{
 				RootRef: rms.NewReference(s.Object),
-				PrevRef: rms.NewReference(s.LastLifelineRef),
+				PrevRef: rms.NewReference(s.lastTrunkRef),
 			}
 		case isDestructor:
 			record = nil
@@ -445,12 +434,12 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 			// TODO: we should post here a link to previous memory
 			record = &rms.RLineMemoryReuse{
 				RootRef: rms.NewReference(s.Object),
-				PrevRef: rms.NewReference(s.LastLifelineRef),
+				PrevRef: rms.NewReference(s.lastTrunkRef),
 			}
 		default:
 			record = &rms.RLineMemory{
 				RootRef: rms.NewReference(s.Object),
-				PrevRef: rms.NewReference(s.LastLifelineRef),
+				PrevRef: rms.NewReference(s.lastTrunkRef),
 			}
 		}
 
@@ -465,7 +454,7 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 				panic(throw.W(err, "failed to register message"))
 			}
 
-			s.LastLifelineRef = anticipatedRef
+			s.lastTrunkRef = anticipatedRef
 		}
 	}
 
@@ -477,12 +466,12 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 		case isConstructor:
 			record = &rms.RLineActivate{
 				RootRef: rms.NewReference(s.Object),
-				PrevRef: rms.NewReference(s.LastLifelineRef),
+				PrevRef: rms.NewReference(s.lastTrunkRef),
 			}
 		case isDestructor:
 			record = &rms.RLineDeactivate{
 				RootRef: rms.NewReference(s.Object),
-				PrevRef: rms.NewReference(s.LastLifelineRef),
+				PrevRef: rms.NewReference(s.lastTrunkRef),
 			}
 		default:
 			record = nil
@@ -499,13 +488,15 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 				panic(throw.W(err, "failed to register message"))
 			}
 
-			s.LastLifelineRef = anticipatedRef
+			s.lastTrunkRef = anticipatedRef
 		}
 	}
 
-	s.NewLastLifelineRef = s.LastLifelineRef
-	s.NewLastFilamentRef = s.LastFilamentRef
-	s.NewObjectRef = s.Object
+	return s.Finalize()
+}
+
+func (s *RegisterRecordBuilder) Finalize() error {
+	s.Context.SetNewReferences(s.lastTrunkRef, s.lastBranchRef)
 
 	return nil
 }
