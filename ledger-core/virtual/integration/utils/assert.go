@@ -19,7 +19,7 @@ type TestingT interface {
 }
 
 func AssertVCallRequestEqual(t TestingT, expected, actual *rms.VCallRequest, msgAndArgs ...interface{}) bool {
-	// t.Helper()
+	t.Helper()
 
 	ok := assert.True(t, expected.Equal(actual), msgAndArgs...)
 	if !ok {
@@ -28,7 +28,7 @@ func AssertVCallRequestEqual(t TestingT, expected, actual *rms.VCallRequest, msg
 		t.Logf("Diff: \n%v", diff)
 	}
 
-	return true
+	return ok
 }
 
 func AssertVStateReportsEqual(t TestingT, expected, actual *rms.VStateReport, msgAndArgs ...interface{}) bool {

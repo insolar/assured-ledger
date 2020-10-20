@@ -17,11 +17,11 @@ type BytesDifferent struct {
 	From, To interface{}
 }
 
-type Equable interface {
+type Equaled interface {
 	Equal(b interface{}) bool
 }
 
-var equalType = reflect.TypeOf((*Equable)(nil)).Elem()
+var equalType = reflect.TypeOf((*Equaled)(nil)).Elem()
 
 // PrettyDiff does a deep comparison and returns the nicely formated results.
 // See DeepDiff for more details.
