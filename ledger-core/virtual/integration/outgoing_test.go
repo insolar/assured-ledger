@@ -220,7 +220,6 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 
 			result1, ok := transcript.Entries[3].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 			require.True(t, ok)
-			require.Equal(t, secondPulse, result1.ObjectState.GetValue().GetLocal().Pulse())
 			require.Equal(t, outgoingCallRef, result1.Reason.GetValue())
 
 			utils.AssertVCallRequestEqual(t, pl, &request1.Request)
@@ -443,6 +442,31 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			assert.Equal(t, secondExpectedToken, finished.DelegationSpec)
 			assert.Equal(t, rms.CallTypeConstructor, finished.CallType)
 			assert.NotNil(t, finished.LatestState)
+
+			assert.NotEmpty(t, finished.PendingTranscript)
+			transcript := finished.PendingTranscript
+			assert.Equal(t, 4, len(transcript.Entries))
+
+			request1, ok := transcript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
+			require.True(t, ok)
+			require.Equal(t, outgoing, request1.Request.CallOutgoing.GetValue())
+
+			outgoing1, ok := transcript.Entries[1].Get().(*rms.Transcript_TranscriptEntryOutgoingRequest)
+			require.True(t, ok)
+			require.Equal(t, secondPulse, outgoing1.Request.GetValue().GetLocal().Pulse())
+			require.Equal(t, outgoing, outgoing1.Reason.GetValue())
+
+			outgoingResult1, ok := transcript.Entries[2].Get().(*rms.Transcript_TranscriptEntryOutgoingResult)
+			require.True(t, ok)
+			require.Equal(t, secondPulse, outgoingResult1.CallResult.CallOutgoing.GetValue().GetLocal().Pulse())
+			require.Equal(t, outgoing, outgoingResult1.Reason.GetValue())
+
+			result1, ok := transcript.Entries[3].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+			require.True(t, ok)
+			require.Equal(t, outgoing, result1.Reason.GetValue())
+
+			utils.AssertVCallRequestEqual(t, &pl, &request1.Request)
+
 			return false
 		})
 		typedChecker.VCallRequest.Set(func(request *rms.VCallRequest) bool {
@@ -501,7 +525,6 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	assert.Equal(t, 2, typedChecker.VDelegatedCallRequest.Count())
 	assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
-	assert.Equal(t, 2, typedChecker.VObjectTranscriptReport.Count())
 
 	mc.Finish()
 }
