@@ -558,13 +558,12 @@ func (a *Address) Unmarshal(data []byte) error {
 		return err
 	}
 
-	// if err := binary.Read(reader, binary.BigEndian, &a.data0); err != nil {
-	// 	return err
-	// }
+	if err := binary.Read(reader, binary.BigEndian, &a.data0); err != nil {
+		return err
+	}
 
-	// a.data1 = longbits.CopyBytes(data[20:])
+	a.data1 = longbits.CopyBytes(data[20:])
 
-	// panic(fmt.Sprintf("unmarshall address: %s", a.String()))
 	return nil
 }
 
