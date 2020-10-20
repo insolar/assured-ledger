@@ -150,8 +150,6 @@ func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) s
 		// TODO: no idea how deal here with this
 		panic(throw.IllegalValue())
 	}
-
-	return ctx.Stop()
 }
 
 func (s *SMVObjectTranscriptReport) stepGetMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
