@@ -9,7 +9,6 @@ package lmn
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -21,7 +20,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/execute/shared"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
@@ -36,10 +34,10 @@ type msgRegister interface {
 }
 
 type SubSMRegisterRecordSend struct {
-	Messages            []SerializableBasicMessage
-	Object              reference.Global
-	ObjectSharedState   object.SharedStateAccessor
-	SafeResponseCounter smachine.SharedDataLink
+	Messages          []SerializableBasicMessage
+	Object            reference.Global
+	ObjectSharedState object.SharedStateAccessor
+	LMNContext        *RegistrationCtx
 
 	// internal
 	sendError    error
@@ -144,9 +142,9 @@ func (s *SubSMRegisterRecordSend) stepSendRequest(ctx smachine.ExecutionContext)
 		// TODO: add destructor to finish that SM's if not all answers were
 		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			return &SMWaitSafeResponse{
-				ObjectSharedState:   s.ObjectSharedState,
-				ExpectedKey:         NewResultAwaitKey(anticipatedRef, rms.RegistrationFlags_Safe),
-				SafeResponseCounter: s.SafeResponseCounter,
+				ObjectSharedState: s.ObjectSharedState,
+				ExpectedKey:       NewResultAwaitKey(anticipatedRef, rms.RegistrationFlags_Safe),
+				LMNContext:        s.LMNContext,
 			}
 		})
 
@@ -156,8 +154,6 @@ func (s *SubSMRegisterRecordSend) stepSendRequest(ctx smachine.ExecutionContext)
 	case rms.RegistrationFlags_Fast, rms.RegistrationFlags_Safe:
 		bargeIn := ctx.NewBargeInWithParam(s.bargeInHandler)
 		bargeInKey = NewResultAwaitKey(anticipatedRef, waitFlag)
-
-		fmt.Println(bargeInKey.String())
 
 		if !ctx.PublishGlobalAliasAndBargeIn(bargeInKey, bargeIn) {
 			return ctx.Error(throw.E("failed to publish bargeIn callback"))
@@ -178,7 +174,7 @@ func (s *SubSMRegisterRecordSend) stepSendRequest(ctx smachine.ExecutionContext)
 
 func (s *SubSMRegisterRecordSend) stepUpdateSafeCount(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.requiredSafe {
-		stateUpdate := shared.CounterIncrement(ctx, s.SafeResponseCounter, 1)
+		stateUpdate := s.LMNContext.IncrementSafeResponse(ctx)
 		if !stateUpdate.IsEmpty() {
 			return stateUpdate
 		}

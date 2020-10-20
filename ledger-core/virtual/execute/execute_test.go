@@ -134,6 +134,9 @@ func TestSMExecute_Init(t *testing.T) {
 	initializedSMExecute.execution.Object = reference.Global{}
 	smExecute.execution.Object = reference.Global{}
 
+	initializedSMExecute.lmnContext = nil
+	smExecute.lmnContext = nil
+
 	assert.Equal(t, initializedSMExecute, smExecute)
 
 	mc.Finish()
@@ -184,6 +187,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	smObject.SetDescriptorDirty(desc)
 
 	smExecute = expectedInitState(ctx, smExecute)
+	smExecute.lmnContext = lmn.NewDummyRegistrationCtx(desc.State())
 
 	smObject.SharedState.Info.KnownRequests.Add(callFlags.GetInterference(), smExecute.execution.Outgoing)
 
