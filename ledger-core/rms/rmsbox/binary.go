@@ -52,5 +52,5 @@ func (p *Binary) Equal(o interface{}) bool {
 	case longbits.FixedReader:
 		return p.rawBinary._equalReader(ov)
 	}
-	return false // что то работает не правильно
+	return false
 }
