@@ -144,6 +144,24 @@ func (d *Diff) diff(aVal, bVal reflect.Value, path Path, opts *opts) bool {
 		}
 	}
 
+	if aType.Implements(equalType) {
+		if eqFunc := aVal.MethodByName("Equal"); eqFunc.IsValid() && eqFunc.CanInterface() {
+			res := eqFunc.Call([]reflect.Value{bVal})
+			if res[0].Bool() {
+				return true
+			}
+		}
+	}
+
+	if reflect.PtrTo(aType).Implements(equalType) && aVal.CanAddr() && bVal.CanAddr() {
+		if eqFunc := aVal.Addr().MethodByName("Equal"); eqFunc.IsValid() && eqFunc.CanInterface() {
+			res := eqFunc.Call([]reflect.Value{bVal.Addr()})
+			if res[0].Bool() {
+				return true
+			}
+		}
+	}
+
 	switch kind {
 	case reflect.Array, reflect.Slice:
 		aLen := aVal.Len()
@@ -281,34 +299,6 @@ func (d *Diff) diff(aVal, bVal reflect.Value, path Path, opts *opts) bool {
 		if aVal.String() != bVal.String() {
 			d.Modified[&localPath] = &Different{aVal.String(), bVal.String()}
 			equal = false
-		}
-	case reflect.Interface:
-
-		a := aVal.Interface()
-		b := bVal.Interface()
-
-		if !reflect.DeepEqual(a, b) {
-
-			fmt.Printf("\nFind interface %v %v %v", localPath, a, aType)
-			fmt.Printf("\nFind interface %v %v %v %v", localPath, b, bVal.Type(), bVal.MethodByName("Equal"))
-
-			if aType.Implements(equalType) {
-				fmt.Println("find Implements")
-				if eqFunc := aVal.MethodByName("Equal"); eqFunc.IsValid() && eqFunc.CanInterface() {
-					fmt.Println("find Method")
-					funcType := eqFunc.Type()
-					if funcType.NumIn() == 1 {
-						fmt.Println("find type")
-
-						retVals := eqFunc.Call([]reflect.Value{bVal})
-
-						if !retVals[0].Bool() {
-							d.Modified[&localPath] = &Different{a, b}
-							equal = false
-						}
-					}
-				}
-			}
 		}
 	default:
 		if reflect.DeepEqual(aVal.Interface(), bVal.Interface()) {
