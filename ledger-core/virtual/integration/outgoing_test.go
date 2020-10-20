@@ -220,7 +220,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 
 			result1, ok := transcript.Entries[3].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
 			require.True(t, ok)
-			require.Equal(t, secondPulse, result1.ObjectState.GetValue().GetLocal().Pulse())
+			require.Equal(t, server.GetPulseNumber(), result1.ObjectState.GetValue().GetLocal().Pulse())
 			require.Equal(t, outgoingCallRef, result1.Reason.GetValue())
 
 			utils.AssertVCallRequestEqual(t, pl, &request1.Request)
@@ -501,7 +501,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	assert.Equal(t, 2, typedChecker.VDelegatedCallRequest.Count())
 	assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
-	assert.Equal(t, 2, typedChecker.VObjectTranscriptReport.Count())
+	assert.Equal(t, 0, typedChecker.VObjectTranscriptReport.Count())
 
 	mc.Finish()
 }

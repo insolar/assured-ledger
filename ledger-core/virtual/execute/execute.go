@@ -839,8 +839,37 @@ func (s *SMExecute) stepRegisterOutgoing(ctx smachine.ExecutionContext) smachine
 
 		s.outgoing.CallOutgoing = rms.NewReference(s.lmnLastFilamentRef)
 
-		return ctx.Jump(s.stepSendOutgoing)
+		return ctx.Jump(s.stepTranscribeOutgoingRequest)
 	})
+}
+
+func (s *SMExecute) stepTranscribeOutgoingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	entries := make([]validation.TranscriptEntry, 0)
+	if !s.incomingAddedToTranscript {
+		entries = append(entries, s.incomingTranscriptEntry())
+	}
+
+	entries = append(entries, validation.TranscriptEntry{
+		Reason: s.execution.Outgoing,
+		Custom: validation.TranscriptEntryOutgoingRequest{
+			Request: s.outgoing.CallOutgoing.GetValue(),
+		},
+	})
+
+	if !s.migrationHappened {
+		action := func(state *object.SharedState) {
+			state.Transcript.Add(entries...)
+		}
+		if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+			return stepUpdate
+		}
+	}
+
+	s.incomingAddedToTranscript = true
+
+	s.transcript.Add(entries...)
+
+	return ctx.Jump(s.stepSendOutgoing)
 }
 
 func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -894,38 +923,6 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 
 	s.outgoingSentCounter++
 
-	// FIXME: result can be processed faster than request
-	return ctx.Jump(s.stepTranscribeOutgoingRequest)
-}
-
-func (s *SMExecute) stepTranscribeOutgoingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	entries := make([]validation.TranscriptEntry, 0)
-	if !s.incomingAddedToTranscript {
-		entries = append(entries, s.incomingTranscriptEntry())
-	}
-
-	entries = append(entries, validation.TranscriptEntry{
-		Reason: s.execution.Outgoing,
-		Custom: validation.TranscriptEntryOutgoingRequest{
-			Request: s.outgoing.CallOutgoing.GetValue(),
-		},
-	})
-
-	if !s.migrationHappened {
-		action := func(state *object.SharedState) {
-			state.Transcript.Add(entries...)
-			s.outgoingAddedToTranscript = true
-		}
-		if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
-			return stepUpdate
-		}
-	}
-
-	s.incomingAddedToTranscript = true
-
-	s.transcript.Add(entries...)
-
-	// we'll wait for barge-in WakeUp here, not adapter
 	return ctx.Sleep().ThenJump(s.stepWaitAndRegisterOutgoingResult)
 }
 
@@ -958,9 +955,35 @@ func (s *SMExecute) stepWaitAndRegisterOutgoingResult(ctx smachine.ExecutionCont
 				return ctx.Sleep().ThenRepeat()
 			}
 
-			return ctx.Jump(s.stepExecuteContinue)
+			return ctx.Jump(s.stepTranscribeOutgoingResult)
 		})
 	})
+}
+
+
+func (s *SMExecute) stepTranscribeOutgoingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.outgoingVCallResult == nil {
+		panic(throw.IllegalValue())
+	}
+
+	entry := validation.TranscriptEntry{
+		Reason: s.execution.Outgoing,
+		Custom: validation.TranscriptEntryOutgoingResult{
+			OutgoingResult: s.lmnLastFilamentRef,
+			CallResult:     *s.outgoingVCallResult,
+		},
+	}
+
+	if !s.migrationHappened {
+		action := func(state *object.SharedState) {
+			state.Transcript.Add(entry)
+		}
+		if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+			return stepUpdate
+		}
+	}
+	s.transcript.Add(entry)
+	return ctx.Jump(s.stepExecuteContinue)
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -970,29 +993,6 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 		if outgoingResult == nil {
 			panic(throw.IllegalValue())
 		}
-	}
-
-	if s.outgoingAddedToTranscript {
-		if s.outgoingVCallResult == nil {
-			panic(throw.IllegalValue())
-		}
-
-		entry := validation.TranscriptEntry{
-			Reason: s.execution.Outgoing,
-			Custom: validation.TranscriptEntryOutgoingResult{
-				OutgoingResult: s.lmnLastFilamentRef,
-				CallResult:     *s.outgoingVCallResult,
-			},
-		}
-
-		action := func(state *object.SharedState) {
-			state.Transcript.Add(entry)
-		}
-		if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
-			return stepUpdate
-		}
-
-		s.transcript.Add(entry)
 	}
 
 	// unset all outgoing fields in case we have new outgoing request
