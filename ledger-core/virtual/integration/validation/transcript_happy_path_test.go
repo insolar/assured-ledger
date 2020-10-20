@@ -54,7 +54,7 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 		p1         = server.GetPulse().PulseNumber
 		isolation  = contract.MethodIsolation{
 			Interference: isolation.CallIntolerable,
-			State:        isolation.CallDirty, // use dirty state because R0 does not copy dirty to validated state
+			State:        isolation.CallDirty, // todo, need fix it. use dirty state because R0 does not copy dirty to validated state
 		}
 		getDelegated = false
 	)
@@ -128,11 +128,11 @@ func TestValidation_HappyPathWithPending(t *testing.T) {
 		typedChecker.VStateReport.SetResend(false)
 		typedChecker.VObjectTranscriptReport.Set(func(res *rms.VObjectTranscriptReport) bool {
 
-			utils.AssertAnyTranscriptEqual(t, &pendingTranscript.Entries[0], &res.PendingTranscripts[0].Entries[0], logger)
-			utils.AssertAnyTranscriptEqual(t, &pendingTranscript.Entries[1], &res.PendingTranscripts[0].Entries[1], logger)
+			utils.AssertAnyTranscriptEqual(t, &pendingTranscript.Entries[0], &res.PendingTranscripts[0].Entries[0])
+			utils.AssertAnyTranscriptEqual(t, &pendingTranscript.Entries[1], &res.PendingTranscripts[0].Entries[1])
 
-			utils.AssertAnyTranscriptEqual(t, &methodTranscript.Entries[0], &res.ObjectTranscript.Entries[0], logger)
-			utils.AssertAnyTranscriptEqual(t, &methodTranscript.Entries[1], &res.ObjectTranscript.Entries[1], logger)
+			utils.AssertAnyTranscriptEqual(t, &methodTranscript.Entries[0], &res.ObjectTranscript.Entries[0])
+			utils.AssertAnyTranscriptEqual(t, &methodTranscript.Entries[1], &res.ObjectTranscript.Entries[1])
 
 			return false
 		})
