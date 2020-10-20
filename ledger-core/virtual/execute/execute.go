@@ -904,13 +904,17 @@ func (s *SMExecute) stepTranscribeOutgoingRequest(ctx smachine.ExecutionContext)
 		entries = append(entries, s.incomingTranscriptEntry())
 	}
 
-	if !s.outgoingAddedToTranscript {
-		entries = append(entries, s.outgoingTranscriptEntry())
-	}
+	entries = append(entries, validation.TranscriptEntry{
+		Reason: s.execution.Outgoing,
+		Custom: validation.TranscriptEntryOutgoingRequest{
+			Request: s.outgoing.CallOutgoing.GetValue(),
+		},
+	})
 
 	if !s.migrationHappened {
 		action := func(state *object.SharedState) {
 			state.Transcript.Add(entries...)
+			s.outgoingAddedToTranscript = true
 		}
 		if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 			return stepUpdate
@@ -918,7 +922,6 @@ func (s *SMExecute) stepTranscribeOutgoingRequest(ctx smachine.ExecutionContext)
 	}
 
 	s.incomingAddedToTranscript = true
-	s.outgoingAddedToTranscript = true
 
 	s.transcript.Add(entries...)
 
@@ -933,15 +936,6 @@ func (s *SMExecute) incomingTranscriptEntry() validation.TranscriptEntry {
 			ObjectMemory: s.objectMemoryRef(),
 			Incoming:     s.lmnIncomingRequestRef,
 			CallRequest:  *s.Payload,
-		},
-	}
-}
-
-func (s *SMExecute) outgoingTranscriptEntry() validation.TranscriptEntry {
-	return validation.TranscriptEntry{
-		Reason: s.execution.Outgoing,
-		Custom: validation.TranscriptEntryOutgoingRequest{
-			Request: s.outgoing.CallOutgoing.GetValue(),
 		},
 	}
 }
@@ -991,13 +985,11 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 			},
 		}
 
-		if !s.migrationHappened {
-			action := func(state *object.SharedState) {
-				state.Transcript.Add(entry)
-			}
-			if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
-				return stepUpdate
-			}
+		action := func(state *object.SharedState) {
+			state.Transcript.Add(entry)
+		}
+		if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+			return stepUpdate
 		}
 
 		s.transcript.Add(entry)
