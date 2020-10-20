@@ -73,7 +73,6 @@ T01_S002 : SMVObjectTranscriptReport
 T01_S002 --> T01_S029 : [entry==nil]
 T01_S002 --> T01_S006 : [s.objState.IsEmpty()]
 T01_S002 --> T01_S003 : [(...).Transcript_TranscriptEntryIncomingRequest]
-T01_S002 --> [*]
 state "stepSendValidationReport" as T01_S031
 T01_S031 : SMVObjectTranscriptReport
 T01_S031 --> T01_S032 : PrepareAsync(ctx).WithoutAutoWakeUp()

@@ -10,7 +10,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
-func GenerateIncomingTranscript(request rms.VCallRequest, stateBefore, stateAfter reference.Holder, incomingRef, resultRef reference.Global) rms.Transcript {
+func GenerateIncomingTranscript(request rms.VCallRequest, stateBefore, stateAfter, incomingRef, resultRef reference.Holder) rms.Transcript {
 	transcript := rms.Transcript{Entries: []rms.Any{{}, {}}}
 	t := &rms.Transcript_TranscriptEntryIncomingRequest{
 		Incoming: rms.NewReference(incomingRef),

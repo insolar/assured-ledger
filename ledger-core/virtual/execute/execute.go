@@ -959,7 +959,6 @@ func (s *SMExecute) stepWaitAndRegisterOutgoingResult(ctx smachine.ExecutionCont
 	})
 }
 
-
 func (s *SMExecute) stepTranscribeOutgoingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.outgoingVCallResult == nil {
 		panic(throw.IllegalValue())
