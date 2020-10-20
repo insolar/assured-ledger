@@ -484,21 +484,18 @@ func (s *SMVObjectTranscriptReport) peekEntry(index int) rmsreg.GoGoSerializable
 func (s *SMVObjectTranscriptReport) findNextEntry() rmsreg.GoGoSerializable {
 	for ind := s.entryIndex + 1; ind < len(s.entries); ind++ {
 		entry := s.peekEntry(ind)
-		switch entry.(type) {
+		switch expected := entry.(type) {
 		case *rms.Transcript_TranscriptEntryIncomingResult:
-			expected := entry.(*rms.Transcript_TranscriptEntryIncomingResult)
 			if expected.Reason.Equal(&s.reasonRef) {
 				s.entryIndex = ind
 				return entry
 			}
 		case *rms.Transcript_TranscriptEntryOutgoingRequest:
-			expected := entry.(*rms.Transcript_TranscriptEntryOutgoingRequest)
 			if expected.Reason.Equal(&s.reasonRef) {
 				s.entryIndex = ind
 				return entry
 			}
 		case *rms.Transcript_TranscriptEntryOutgoingResult:
-			expected := entry.(*rms.Transcript_TranscriptEntryOutgoingResult)
 			if expected.Reason.Equal(&s.reasonRef) {
 				s.entryIndex = ind
 				return entry
