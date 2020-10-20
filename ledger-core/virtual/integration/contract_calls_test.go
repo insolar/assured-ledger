@@ -959,6 +959,7 @@ func TestVirtual_CheckSortInTranscript(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 
 	assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
