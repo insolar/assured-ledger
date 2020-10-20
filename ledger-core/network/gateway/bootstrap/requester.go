@@ -209,7 +209,7 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *rms.Permit, candidat
 		Permit:           permit,
 	}
 
-	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Bootstrap, req, permit.Payload.ReconnectTo)
+	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Bootstrap, req, permit.Payload.ReconnectTo.Get())
 	if err != nil {
 		return nil, throw.W(err, "Error sending Bootstrap request")
 	}
@@ -255,7 +255,7 @@ func (ac *requester) UpdateSchedule(ctx context.Context, permit *rms.Permit, pul
 		Permit:        permit,
 	}
 
-	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.UpdateSchedule, req, permit.Payload.ReconnectTo)
+	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.UpdateSchedule, req, permit.Payload.ReconnectTo.Get())
 	if err != nil {
 		return nil, throw.W(err, "Error sending UpdateSchedule request")
 	}

@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"math"
 	"net"
 	"strconv"
@@ -508,18 +509,18 @@ func (a Address) IsLoopback() bool {
 }
 
 func (a *Address) ProtoSize() int {
-	return 2 + 1 +1 + 16 + len(a.data1)
+	return 2 + 1 + 1 + 16 + len(a.data1)
 }
 
 func (a *Address) MarshalTo(data []byte) (int, error) {
 	buffer := bytes.NewBuffer(make([]byte, 0))
 
 	if err := binary.Write(buffer, binary.BigEndian, a.port); err != nil {
-		return 0, throw.W(err, "failed to marshal protobuf host port")
+		return 0, err
 	}
 
 	if err := binary.Write(buffer, binary.BigEndian, a.network); err != nil {
-		return 0, throw.W(err, "failed to marshal protobuf host network")
+		return 0, err
 	}
 
 	if err := binary.Write(buffer, binary.BigEndian, a.flags); err != nil {
@@ -528,38 +529,42 @@ func (a *Address) MarshalTo(data []byte) (int, error) {
 
 	_, err := a.data0.WriteTo(buffer)
 	if err != nil {
-		return 0, throw.W(err, "failed to marshal protobuf host data0")
+		return 0, err
 	}
 
 	_, err = a.data1.WriteTo(buffer)
 	if err != nil {
-		return 0, throw.W(err, "failed to marshal protobuf host data1")
+		return 0, err
 	}
 
 	copy(data, buffer.Bytes())
+	fmt.Println(data)
+
 	return buffer.Len(), nil
 }
 
 func (a *Address) Unmarshal(data []byte) error {
+	fmt.Println(data)
 	reader := bytes.NewReader(data)
 	if err := binary.Read(reader, binary.BigEndian, &a.port); err != nil {
-		return throw.W(err, "failed to unmarshal protobuf host port")
+		return err
 	}
 
 	if err := binary.Read(reader, binary.BigEndian, &a.network); err != nil {
-		return throw.W(err, "failed to unmarshal protobuf host network")
+		return err
 	}
 
 	if err := binary.Read(reader, binary.BigEndian, &a.flags); err != nil {
-		return throw.W(err, "failed to unmarshal protobuf host flags")
+		return err
 	}
 
-	if err := binary.Read(reader, binary.BigEndian, &a.data0); err != nil {
-		return throw.W(err, "failed to unmarshal protobuf host data0")
-	}
+	// if err := binary.Read(reader, binary.BigEndian, &a.data0); err != nil {
+	// 	return err
+	// }
 
-	a.data1 = longbits.CopyBytes(data[20:])
+	// a.data1 = longbits.CopyBytes(data[20:])
 
+	// panic(fmt.Sprintf("unmarshall address: %s", a.String()))
 	return nil
 }
 

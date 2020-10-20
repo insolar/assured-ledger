@@ -19,6 +19,10 @@ message RecordBody {
     // stub, do NOT run code generate
 }
 
+message NetworkAddress {
+    // stub, do NOT run code generate
+}
+
 message Any {}
 message AnyLazy {}
 message AnyRecord {}

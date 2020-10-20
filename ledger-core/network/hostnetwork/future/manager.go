@@ -25,7 +25,7 @@ func NewManager() Manager {
 
 func (fm *futureManager) Create(packet *rms.Packet) Future {
 	// TODO: replace wrapping with own types in protobuf
-	future := NewFuture(types.RequestID(packet.RequestID), packet.Receiver, packet, fm.canceler)
+	future := NewFuture(types.RequestID(packet.RequestID), packet.Receiver.Get(), packet, fm.canceler)
 
 	fm.mutex.Lock()
 	defer fm.mutex.Unlock()

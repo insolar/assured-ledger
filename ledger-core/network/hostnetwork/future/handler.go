@@ -52,7 +52,7 @@ func (ph *packetHandler) Handle(ctx context.Context, response *packet.ReceivedPa
 
 func shouldProcessPacket(future Future, p *packet.ReceivedPacket) bool {
 	typesShouldBeEqual := p.GetType() == future.Request().GetType()
-	responseIsForRightSender := future.Receiver().EqualHostIdentity(p.Sender)
+	responseIsForRightSender := future.Receiver().EqualHostIdentity(p.Sender.Get())
 
 	return typesShouldBeEqual && responseIsForRightSender
 }

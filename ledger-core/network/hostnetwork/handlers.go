@@ -7,6 +7,7 @@ package hostnetwork
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -82,14 +83,15 @@ func SendPacket(ctx context.Context, pm uniproto.PeerManager, p *rms.Packet) err
 		return errors.W(err, "Failed to serialize packet")
 	}
 
-	if p.Receiver.Port() == 0 || !p.Receiver.CanConnect() {
-		panic("invalid address")
+	receiver := p.Receiver.Get()
+	if !receiver.CanConnect() {
+		panic(fmt.Sprintf("invalid address %s", receiver.String()))
 	}
 
 	var peer uniproto.Peer
-	peer, err = pm.ConnectedPeer(p.Receiver)
+	peer, err = pm.ConnectedPeer(receiver)
 	if err != nil {
-		peer, err = pm.ConnectPeer(p.Receiver)
+		peer, err = pm.ConnectPeer(receiver)
 		if err != nil {
 			return errors.W(err, "Failed to get connection")
 		}

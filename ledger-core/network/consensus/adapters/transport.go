@@ -8,7 +8,7 @@ package adapters
 import (
 	"context"
 
-	transport2 "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
@@ -26,7 +26,7 @@ func NewPacketSender(unifiedServer *uniserver.UnifiedServer) *PacketSender {
 	}
 }
 
-func (ps *PacketSender) SendPacketToTransport(ctx context.Context, to transport2.TargetProfile, sendOptions transport2.PacketSendOptions, payload interface{}) {
+func (ps *PacketSender) SendPacketToTransport(ctx context.Context, to transport.TargetProfile, sendOptions transport.PacketSendOptions, payload interface{}) {
 	addr := to.GetStatic().GetDefaultEndpoint().GetIPAddress().String()
 
 	_, logger := inslogger.WithFields(ctx, map[string]interface{}{

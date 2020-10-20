@@ -46,6 +46,8 @@ type Reference = rmsbox.Reference
 
 type RecordBody = rmsbox.RecordBody
 
+type NetworkAddress = rmsbox.NetworkAddress
+
 func RegisterRecordType(id uint64, special string, t BasicRecord) {
 	rmsreg.GetRegistry().PutSpecial(id, special, reflect.TypeOf(t))
 }

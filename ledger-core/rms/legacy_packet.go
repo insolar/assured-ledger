@@ -66,7 +66,7 @@ func (p *Packet) GetType() types.PacketType {
 }
 
 func (p *Packet) GetSenderHost() nwapi.Address {
-	return p.Sender
+	return p.Sender.Get()
 }
 
 func (p *Packet) GetRequestID() types.RequestID {
@@ -83,8 +83,8 @@ func (p *Packet) DebugString() string {
 		return "nil"
 	}
 	return `&Packet{` +
-		`Sender:` + p.Sender.String() + `,` +
-		`Receiver:` + p.Receiver.String() + `,` +
+		`Sender:` + p.Sender.Get().String() + `,` +
+		`Receiver:` + p.Receiver.Get().String() + `,` +
 		`RequestID:` + strconv.FormatUint(p.RequestID, 10) + `,` +
 		`TraceID:` + p.TraceID + `,` +
 		`Type:` + p.GetType().String() + `,` +

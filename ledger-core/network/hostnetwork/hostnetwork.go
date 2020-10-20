@@ -69,28 +69,28 @@ func (hn *hostNetwork) buildRequest(ctx context.Context, packetType types.Packet
 
 func (hn *hostNetwork) handleRequest(ctx context.Context, p *packet.ReceivedPacket) {
 	logger := inslogger.FromContext(ctx)
-	logger.Debugf("Got %s request from host %s; RequestID = %d", p.GetType(), p.Sender.String(), p.RequestID)
+	logger.Debugf("Got %s request from host %s; RequestID = %d", p.GetType(), p.Sender.Get().String(), p.RequestID)
 
 	hn.muHandlers.RLock()
 	handler, exist := hn.handlers[p.GetType()]
 	hn.muHandlers.RUnlock()
 
 	if !exist {
-		logger.Warnf("No handler set for packet type %s from node %s", p.GetType(), p.Sender.String())
+		logger.Warnf("No handler set for packet type %s from node %s", p.GetType(), p.Sender.Get().String())
 		ep := hn.BuildResponse(ctx, p, &rms.ErrorResponse{Error: "UNKNOWN RPC ENDPOINT"}).(*rms.Packet)
 		ep.RequestID = p.RequestID
 		if err := SendPacket(ctx, hn.peerManager, ep); err != nil {
-			logger.Errorf("Error while returning error response for request %s from node %s: %s", p.GetType(), p.Sender.String(), err)
+			logger.Errorf("Error while returning error response for request %s from node %s: %s", p.GetType(), p.Sender.Get().String(), err)
 		}
 		return
 	}
 	response, err := handler(ctx, p)
 	if err != nil {
-		logger.Warnf("Error handling request %s from node %s: %s", p.GetType(), p.Sender.String(), err)
+		logger.Warnf("Error handling request %s from node %s: %s", p.GetType(), p.Sender.Get().String(), err)
 		ep := hn.BuildResponse(ctx, p, &rms.ErrorResponse{Error: err.Error()}).(*rms.Packet)
 		ep.RequestID = p.RequestID
 		if err = SendPacket(ctx, hn.peerManager, ep); err != nil {
-			logger.Errorf("Error while returning error response for request %s from node %s: %s", p.GetType(), p.Sender.String(), err)
+			logger.Errorf("Error while returning error response for request %s from node %s: %s", p.GetType(), p.Sender.Get().String(), err)
 		}
 		return
 	}
@@ -114,7 +114,7 @@ func (hn *hostNetwork) SendRequestToHost(ctx context.Context, packetType types.P
 
 	p := hn.buildRequest(ctx, packetType, requestData, receiver)
 
-	inslogger.FromContext(ctx).Debugf("Send %s request to %s with RequestID = %d", p.GetType(), p.Receiver, p.RequestID)
+	inslogger.FromContext(ctx).Debugf("Send %s request to %s with RequestID = %d", p.GetType(), p.Receiver.Get().String(), p.RequestID)
 
 	f := hn.futureManager.Create(p)
 	err := SendPacket(ctx, hn.peerManager, p)

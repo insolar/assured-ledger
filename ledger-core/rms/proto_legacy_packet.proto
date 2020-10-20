@@ -14,8 +14,8 @@ option (gogoproto.protosizer_all) = true;
 message Packet {
     int32 polymorph = 16;
 
-    bytes Sender = 20 [(gogoproto.customtype) = "LegacyHost", (gogoproto.nullable) = false];
-    bytes Receiver = 21 [(gogoproto.customtype) = "LegacyHost", (gogoproto.nullable) = false];
+    NetworkAddress Sender = 20 [(gogoproto.nullable) = false];
+    NetworkAddress Receiver = 21 [(gogoproto.nullable) = false];
     uint64 RequestID = 22;
     string TraceID = 23;
     bytes TraceSpanData = 24;
@@ -64,7 +64,7 @@ message UpdateScheduleRequest {
 }
 
 message ReconnectRequest {
-    bytes ReconnectTo = 1 [(gogoproto.customtype) = "LegacyHost", (gogoproto.nullable) = false];
+    NetworkAddress ReconnectTo = 1 [(gogoproto.nullable) = false];
     Permit Permit = 2;
 }
 
@@ -110,7 +110,7 @@ message Permit {
 message PermitPayload {
     bytes JoinerPublicKey = 1;
 	int64 ExpireTimestamp = 2;
-    bytes ReconnectTo = 3 [(gogoproto.customtype) = "LegacyHost", (gogoproto.nullable) = false];
+    NetworkAddress ReconnectTo = 3 [(gogoproto.nullable) = false];
     Reference AuthorityNodeRef = 4 [(gogoproto.nullable) = false];
 }
 

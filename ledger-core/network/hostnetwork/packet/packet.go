@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsbox"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -59,8 +60,8 @@ func NewPacket(sender, receiver nwapi.Address, packetType types.PacketType, id u
 	return &rms.Packet{
 		// Polymorph field should be non-default so we have first byte 0x80 in serialized representation
 		Polymorph: 1,
-		Sender:    sender,
-		Receiver:  receiver,
+		Sender:    rmsbox.NewNetworkAddress(sender),
+		Receiver:  rmsbox.NewNetworkAddress(receiver),
 		Type:      uint32(packetType),
 		RequestID: id,
 	}

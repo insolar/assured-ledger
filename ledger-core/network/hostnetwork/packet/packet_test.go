@@ -24,7 +24,7 @@ func testRPCPacket() *rms.Packet {
 	sender := nwapi.NewHostPort("127.0.0.1:31337", false)
 	receiver := nwapi.NewHostPort("127.0.0.2:31338", false)
 
-	result := NewPacket(sender, receiver, types.RPC, 123)
+	result := NewPacket(sender, receiver, types.Authorize, 123)
 	result.TraceID = "d6b44f62-7b5e-4249-90c7-ccae194a5baa"
 	return result
 }
@@ -40,7 +40,7 @@ func TestSerializePacket(t *testing.T) {
 
 func TestDeserializePacket(t *testing.T) {
 	msg := testRPCPacket()
-	msg.SetRequest(&rms.RPCRequest{Method: "test", Data: []byte{0, 1, 2, 3}})
+	msg.SetRequest(&rms.AuthorizeRequest{AuthorizeData: nil, Signature: []byte{0, 1, 2, 3}})
 
 	serialized, _ := SerializePacket(msg)
 
@@ -98,7 +98,7 @@ func TestPacketMethods(t *testing.T) {
 	p.SetRequest(&rms.RPCRequest{Method: "test", Data: []byte{0, 1, 2, 3}})
 
 	suite.Run(t, &PacketSuite{
-		sender: p.Sender,
+		sender: p.Sender.Get(),
 		packet: p,
 	})
 }

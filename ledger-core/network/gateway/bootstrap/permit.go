@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsbox"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -25,7 +26,7 @@ func CreatePermit(authorityNodeRef reference.Holder, reconnectHost nwapi.Address
 	payload := rms.PermitPayload{
 		AuthorityNodeRef: rms.NewReference(authorityNodeRef),
 		ExpireTimestamp:  time.Now().Unix() + permitTTL,
-		ReconnectTo:      reconnectHost,
+		ReconnectTo:      rmsbox.NewNetworkAddress(reconnectHost),
 		JoinerPublicKey:  joinerPublicKey,
 	}
 
