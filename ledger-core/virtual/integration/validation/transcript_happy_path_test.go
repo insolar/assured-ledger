@@ -25,6 +25,7 @@ import (
 // constructor pending +  unordered method call
 // check transcript
 func TestValidation_HappyPathWithPending(t *testing.T) {
+	t.Skip("todo")
 	// todo add case
 	defer commonTestUtils.LeakTester(t)
 
