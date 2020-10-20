@@ -36,6 +36,7 @@ func rndBytes(n int) []byte {
 }
 
 func TestManyServersEcho(t *testing.T) {
+	t.Skip()
 	numberServers := 15
 	cfg := uniserver.ServerConfig{
 		BindingAddress: "127.0.0.1:0",
