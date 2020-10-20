@@ -18,8 +18,10 @@ import (
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
@@ -49,8 +51,15 @@ func TestVirtual_CallMethodAfterMultiplePulseChanges(t *testing.T) {
 
 	mc := minimock.NewController(t)
 
-	server, ctx := utils.NewServer(nil, t)
+	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
+
+	authService := authentication.NewServiceMock(t)
+	authService.CheckMessageFromAuthorizedVirtualMock.Return(false, nil)
+	authService.HasToSendTokenMock.Return(false)
+	server.ReplaceAuthenticationService(authService)
+
+	server.Init(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VCallRequest.SetResend(true)
@@ -58,6 +67,19 @@ func TestVirtual_CallMethodAfterMultiplePulseChanges(t *testing.T) {
 	typedChecker.VStateReport.SetResend(true)
 	typedChecker.VStateRequest.SetResend(true)
 	typedChecker.VObjectTranscriptReport.SetResend(true)
+	typedChecker.VCachedMemoryRequest.Set(func(req *rms.VCachedMemoryRequest) bool {
+		pl := &rms.VCachedMemoryResponse{
+			CallStatus: rms.CachedMemoryStateFound,
+			State: rms.ObjectState{
+				Reference: req.State,
+				Class:     rms.NewReference(testwalletProxy.GetClass()),
+				Memory:    rms.NewBytes(makeRawWalletState(initialBalance)),
+			},
+		}
+		server.SendPayload(ctx, pl)
+		return false
+	})
+	typedChecker.VObjectValidationReport.SetResend(true)
 
 	server.IncrementPulseAndWaitIdle(ctx)
 
