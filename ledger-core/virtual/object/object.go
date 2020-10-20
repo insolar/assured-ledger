@@ -476,11 +476,7 @@ func (sm *SMObject) stepSendTranscriptReport(ctx smachine.ExecutionContext) smac
 			return false
 		}
 		st = sm.KnownRequests.GetList(isolation.CallIntolerable).GetState(e.Reason)
-		if st == callregistry.RequestProcessing {
-			return false
-		}
-
-		return true
+		return st != callregistry.RequestProcessing
 	}
 
 	rmsTranscript := sm.Transcript.GetRMSTranscript(filter)
