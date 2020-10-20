@@ -103,7 +103,7 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 			{
 				cachReq := &rms.VCachedMemoryRequest{
 					Object: rms.NewReference(suite.object),
-					State: stateRef,
+					State:  stateRef,
 				}
 				suite.server.SendPayload(ctx, cachReq)
 			}
@@ -204,8 +204,8 @@ func (s *memoryCacheTest) initServer(t *testing.T) context.Context {
 
 func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	var (
-		outgoing  = s.server.BuildRandomOutgoingWithPulse()
-		incoming  = reference.NewRecordOf(s.object, outgoing.GetLocal())
+		outgoing = s.server.BuildRandomOutgoingWithPulse()
+		incoming = reference.NewRecordOf(s.object, outgoing.GetLocal())
 	)
 
 	report := s.server.StateReportBuilder().Ready().Object(s.object).OrderedPendings(1).Report()
@@ -233,6 +233,13 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, s.server.Journal.WaitAllAsyncCallsDone())
 	}
 	{ // send delegation request finished with new state
+		pendingCall := utils.GenerateVCallRequestMethod(s.server)
+		pendingCall.Callee.Set(s.object)
+		pendingCall.CallOutgoing.Set(outgoing)
+
+		stateRef := reference.NewRecordOf(s.object, s.server.RandomLocalWithPulse())
+		pendingTranscript := utils.GenerateIncomingTranscript(*pendingCall, stateRef, stateRef, s.server.RandomGlobalWithPrevPulse(), s.server.RandomGlobalWithPrevPulse())
+
 		pl := rms.VDelegatedRequestFinished{
 			CallType:     rms.CallTypeMethod,
 			Callee:       rms.NewReference(s.object),
@@ -244,6 +251,7 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 				Class:     rms.NewReference(s.class),
 				Memory:    rms.NewBytes([]byte(newState)),
 			},
+			PendingTranscript: pendingTranscript,
 		}
 		await := s.server.Journal.WaitStopOf(&handlers.SMVDelegatedRequestFinished{}, 1)
 		s.server.SendPayload(ctx, &pl)
