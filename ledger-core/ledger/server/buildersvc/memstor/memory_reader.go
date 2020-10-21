@@ -158,3 +158,20 @@ func (v MemoryStorageReader) readData(b []byte, ofs, size int) (readbundle.Slice
 	}
 	return longbits.WrapBytes(b[ofs:end:end]), nil
 }
+
+func (v MemoryStorageReader) FinderOfNext() readbundle.DirectoryIndexFinder {
+	panic(throw.NotImplemented()) // TODO FinderOfNext
+	// section, err := v.getSection(ledger.ControlSection, true)
+	// if err == nil {
+	// 	section.directory.FindLocator()
+	// }
+}
+
+func (v MemoryStorageReader) FinderOfFirst() readbundle.DirectoryIndexFinder {
+	panic(throw.NotImplemented()) // TODO FinderOfFirst
+}
+
+func (v MemoryStorageReader) FinderOfLast() readbundle.DirectoryIndexFinder {
+	panic(throw.NotImplemented()) // TODO FinderOfLast
+}
+

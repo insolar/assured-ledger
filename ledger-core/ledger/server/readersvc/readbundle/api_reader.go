@@ -27,17 +27,26 @@ type BasicReader interface {
 
 type Reader interface {
 	BasicReader
+	FindProvider
+
 	FindDirectoryEntryLocator(ledger.SectionID, reference.Holder) (ledger.StorageLocator, error)
 	FindDirectoryEntry(ledger.SectionID, reference.Holder) (ledger.Ordinal, error)
 }
 
-type SectionCursor interface {
-	NextOrdinal(ledger.Ordinal) (ledger.Ordinal, error)
+type FindProvider interface {
+	FinderOfNext() DirectoryIndexFinder
+	FinderOfFirst() DirectoryIndexFinder
+	FinderOfLast() DirectoryIndexFinder
+	// FilamentFinder
 }
 
-type DirectoryCursor interface {
-	NextIndex(ledger.DirectoryIndex) (ledger.DirectoryIndex, error)
+type DirectoryIndexFinder interface {
+	LookupByIndex(ledger.DirectoryIndex) (ledger.DirectoryIndex, error)
 }
+
+// type DirectoryIndexFinder interface {
+// 	LookupByIndex(ledger.DirectoryIndex) (ledger.DirectoryIndex, error)
+// }
 
 type Slice interface {
 	longbits.FixedReader

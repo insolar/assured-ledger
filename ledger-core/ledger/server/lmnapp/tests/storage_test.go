@@ -197,7 +197,7 @@ func TestAddRecordsThenChangePulse(t *testing.T) {
 
 	server.IncrementPulse()
 
-	t.Run("dirty-read-past toPast", func(t *testing.T) {
+	t.Run("past-dirty-read toPast", func(t *testing.T) {
 		// repeat the same sequence
 		genNewLine.seqNo.Store(0)
 

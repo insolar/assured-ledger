@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
+var ErrStartRefNotFound = throw.E("StartRef not found")
 var ErrPrevRefNotFound = throw.E("PrevRef not found")
 
 type prevReader struct {
@@ -35,12 +36,12 @@ func (v prevReader) ReadData(reader readbundle.Reader) error {
 		panic(throw.NotImplemented())
 	}
 
-	prevRef := v.cfg.Selector.StartRef
-	ord, err := reader.FindDirectoryEntry(sectionID, prevRef)
+	startRef := v.cfg.Selector.StartRef
+	ord, err := reader.FindDirectoryEntry(sectionID, startRef)
 
 	if err != nil || ord == 0 {
-		_, _ = reader.FindDirectoryEntry(sectionID, prevRef)
-		return throw.WithDetails(ErrPrevRefNotFound, struct { PrevRef reference.Global } { reference.Copy(prevRef) }, err)
+		_, _ = reader.FindDirectoryEntry(sectionID, startRef)
+		return throw.WithDetails(ErrStartRefNotFound, struct { PrevRef reference.Global } { reference.Copy(startRef) }, err)
 	}
 
 	sequence := &prevIterator{reader: reader, curEntry: ledger.NewDirectoryIndex(sectionID, ord)}
