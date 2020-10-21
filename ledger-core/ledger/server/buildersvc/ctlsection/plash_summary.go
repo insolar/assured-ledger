@@ -69,16 +69,9 @@ func (p *SectionSummaryWriter) ReadCatalog(dirtyReader bundle.DirtyReader, secti
 				p.recordToFilament[entryOrd] = entryOrd
 				p.prevFilRecord[entryOrd] = 0
 
-				first := ledger.Ordinal(0)
-				if head == entryOrd {
-					// head to itself -> first in the filament
-					first = entryOrd
-				}
-
 				filMap[entryOrd] = len(p.filamentHeads)
 				p.filamentHeads = append(p.filamentHeads, FilamentHead{
-					Head:  entryOrd,
-					First: first,
+					First: entryOrd,
 					Last:  entry.Fil.Link,
 					JetID: entry.Fil.JetID,
 					Flags: entry.Fil.Flags,
@@ -106,9 +99,6 @@ func (p *SectionSummaryWriter) ReadCatalog(dirtyReader bundle.DirtyReader, secti
 				fil.Flags &^= ledger.FilamentClose
 			case fil.Flags & ledger.FilamentClose != 0:
 				return throw.Impossible()
-			}
-			if fil.First == 0 {
-				fil.First = entryOrd
 			}
 			p.prevFilRecord[entryOrd] = fil.Last
 			fil.Last = entryOrd

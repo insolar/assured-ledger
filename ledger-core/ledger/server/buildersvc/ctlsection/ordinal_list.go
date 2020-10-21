@@ -30,14 +30,13 @@ func (v ordinalList) Write(b []byte) (n int, err error) {
 
 
 type FilamentHead struct {
-	Head  ledger.Ordinal
 	First ledger.Ordinal
 	Last  ledger.Ordinal
 	JetID jet.ID
 	Flags ledger.DirectoryEntryFlags
 }
 
-const FilamentHeadSize = 16
+const FilamentHeadSize = 12
 
 type filamentHeads []FilamentHead
 
@@ -47,8 +46,6 @@ func (v filamentHeads) Size() int {
 
 func (v filamentHeads) Write(b []byte) (n int, err error) {
 	for _, h := range v {
-		binary.LittleEndian.PutUint32(b[n:], uint32(h.Head))
-		n += 4
 		binary.LittleEndian.PutUint32(b[n:], uint32(h.First))
 		n += 4
 		binary.LittleEndian.PutUint32(b[n:], uint32(h.Last))
