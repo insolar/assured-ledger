@@ -63,8 +63,8 @@ message RCtlSectionSummary {
     uint32  RecToFilSize = 41;
     fixed64 FilToJetLoc = 42 [(gogoproto.casttype)="StorageLocator"]; // fixed size elements, []jet.ID
     uint32  FilToJetSize = 43;
-//    fixed64 RecToPrevLoc = 44 [(gogoproto.casttype)="StorageLocator"]; // fixed size elements, []Ordinal
-//    uint32  RecToPrevSize = 45;
+    fixed64 RecToPrevLoc = 44 [(gogoproto.casttype)="StorageLocator"]; // fixed size elements, []Ordinal
+    uint32  RecToPrevSize = 45;
 }
 
 message RCtlFilamentUpdate {

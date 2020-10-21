@@ -13,13 +13,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 )
 
-type FilamentHead struct {
-	Head  ledger.Ordinal
-	Last  ledger.Ordinal
-	JetID jet.ID
-	Flags ledger.DirectoryEntryFlags
-}
-
 type ordinalList []ledger.Ordinal
 
 func (v ordinalList) Size() int {
@@ -34,15 +27,29 @@ func (v ordinalList) Write(b []byte) (n int, err error) {
 	return n, err
 }
 
+
+
+type FilamentHead struct {
+	Head  ledger.Ordinal
+	First ledger.Ordinal
+	Last  ledger.Ordinal
+	JetID jet.ID
+	Flags ledger.DirectoryEntryFlags
+}
+
+const FilamentHeadSize = 16
+
 type filamentHeads []FilamentHead
 
 func (v filamentHeads) Size() int {
-	return len(v)*12
+	return len(v)*FilamentHeadSize
 }
 
 func (v filamentHeads) Write(b []byte) (n int, err error) {
 	for _, h := range v {
 		binary.LittleEndian.PutUint32(b[n:], uint32(h.Head))
+		n += 4
+		binary.LittleEndian.PutUint32(b[n:], uint32(h.First))
 		n += 4
 		binary.LittleEndian.PutUint32(b[n:], uint32(h.Last))
 		n += 4
@@ -53,7 +60,6 @@ func (v filamentHeads) Write(b []byte) (n int, err error) {
 	}
 	return n, err
 }
-
 
 func SortOrdinals(list []ledger.Ordinal) {
 	sort.Sort(ordinalSorter(list))
