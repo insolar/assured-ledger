@@ -128,7 +128,7 @@ func (p *SubSMDirtyReader) stepLineIsReady(ctx smachine.ExecutionContext) smachi
 	valid := false
 
 	switch p.sdl.TryAccess(ctx, func(sd *LineSharedData) (wakeup bool) {
-		if !sd.IsValid() {
+		if !sd.IsValidForRead() {
 			return
 		}
 		valid = true

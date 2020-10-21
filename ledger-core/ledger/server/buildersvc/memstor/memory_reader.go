@@ -86,13 +86,23 @@ func (v MemoryStorageReader) getSection(id ledger.SectionID, hasDirectory bool) 
 	return cabinetReadSection{}, throw.E("section is unknown")
 }
 
+func (v MemoryStorageReader) FindDirectoryEntry(id ledger.SectionID, ref reference.Holder) (ledger.Ordinal, error) {
+	section, err := v.getSection(id, true)
+	if err != nil {
+		return 0, throw.WithDetails(err, struct{ SectionID ledger.SectionID }{id})
+	}
+
+	ord := section.directory.FindOrdinal(ref)
+	return ord, nil
+}
+
 func (v MemoryStorageReader) FindDirectoryEntryLocator(id ledger.SectionID, ref reference.Holder) (ledger.StorageLocator, error) {
 	section, err := v.getSection(id, true)
 	if err != nil {
 		return 0, throw.WithDetails(err, struct{ SectionID ledger.SectionID }{id})
 	}
 
-	loc := section.directory.Find(ref)
+	loc := section.directory.FindLocator(ref)
 	return loc, nil
 }
 

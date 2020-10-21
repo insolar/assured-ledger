@@ -59,11 +59,11 @@ func (p *LineSharedData) GetActiveSync() smachine.SyncLink {
 var everOpenSync = smsync.NewAlwaysOpen("SMLine.always-open")
 
 func (p *LineSharedData) ensureDataAccess() {
-	p.ensureAccess()
 	if !p.jetDropID.IsValid() {
 		panic(throw.IllegalState())
 	}
 	if p.data == nil {
+		p.ensureAccess()
 		p.data = lineage.NewStages(p.lineRef.GetBase(), p.jetDropID.CreatedAt(), p.resolver)
 	}
 }
@@ -179,6 +179,10 @@ func (p *LineSharedData) ensureAccess() {
 
 func (p *LineSharedData) IsValid() bool {
 	p.ensureAccess()
+	return p.valid
+}
+
+func (p *LineSharedData) IsValidForRead() bool {
 	return p.valid
 }
 

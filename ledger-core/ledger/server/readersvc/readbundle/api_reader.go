@@ -28,6 +28,15 @@ type BasicReader interface {
 type Reader interface {
 	BasicReader
 	FindDirectoryEntryLocator(ledger.SectionID, reference.Holder) (ledger.StorageLocator, error)
+	FindDirectoryEntry(ledger.SectionID, reference.Holder) (ledger.Ordinal, error)
+}
+
+type SectionCursor interface {
+	NextOrdinal(ledger.Ordinal) (ledger.Ordinal, error)
+}
+
+type DirectoryCursor interface {
+	NextIndex(ledger.DirectoryIndex) (ledger.DirectoryIndex, error)
 }
 
 type Slice interface {

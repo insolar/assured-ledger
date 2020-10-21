@@ -47,6 +47,13 @@ func (p *SequenceReader) SetReader(reader readbundle.BasicReader) {
 	p.reader = reader
 }
 
+func (p *SequenceReader) SetPrevRef(ref reference.Holder) {
+	if p.reader != nil {
+		panic(throw.IllegalState())
+	}
+	p.recPrevRef = ref
+}
+
 func (p *SequenceReader) HasMore() bool {
 	return !p.hasNoMore
 }

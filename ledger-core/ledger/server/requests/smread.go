@@ -85,6 +85,7 @@ func (p *SMRead) getExtractorSelector() (selector dataextractor.Selector, err er
 		ReasonRef: p.request.TargetReasonRef.Get(),
 		StartRef:  p.request.TargetStartRef.Get(),
 		StopRef:   p.request.TargetStopRef.Get(),
+
 	}
 
 	flags := p.request.Flags
@@ -137,6 +138,9 @@ func (p *SMRead) getExtractorConfig(selector dataextractor.Selector) dataextract
 		Limiter:      dataextractor.NewLimiter(limits),
 		Output:       &p.output,
 		Target:       p.request.TargetPulse,
+	}
+	if cfg.Target.IsUnknown() {
+		cfg.Target = p.pulseSlot.PulseNumber()
 	}
 
 	return cfg
