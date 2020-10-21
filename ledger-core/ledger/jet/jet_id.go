@@ -58,6 +58,10 @@ func (v ID) AsPrefix() Prefix {
 
 /***************************************************************/
 
+func NoLengthExactID(id ID) ExactID {
+	return ExactID(id)
+}
+
 type ExactID uint32 // ID + MSB 8bit length
 
 const (
