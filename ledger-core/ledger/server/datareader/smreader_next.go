@@ -23,7 +23,7 @@ func (v nextReader) ReadData(reader readbundle.Reader) error {
 	sectionID := ledger.DefaultEntrySection
 
 	switch {
-	case !v.cfg.Selector.Direction.IsToPast():
+	case v.cfg.Selector.Direction.IsToPast():
 		panic(throw.IllegalState())
 	case reference.IsEmpty(v.cfg.Selector.StartRef):
 		panic(throw.NotImplemented())

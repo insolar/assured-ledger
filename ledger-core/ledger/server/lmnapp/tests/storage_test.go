@@ -197,11 +197,17 @@ func TestAddRecordsThenChangePulse(t *testing.T) {
 
 	server.IncrementPulse()
 
-	t.Run("past-dirty-read toPast", func(t *testing.T) {
-		// repeat the same sequence
-		genNewLine.seqNo.Store(0)
-
-		genNewLine.testReadToPast(t, reasonRef, TotalN)
+	t.Run("past-dirty-read", func(t *testing.T) {
+		t.Run("toPast", func(t *testing.T) {
+			// repeat the same sequence
+			genNewLine.seqNo.Store(0)
+			genNewLine.testReadToPast(t, reasonRef, TotalN)
+		})
+		t.Run("toPresent", func(t *testing.T) {
+			// repeat the same sequence
+			genNewLine.seqNo.Store(0)
+			genNewLine.testReadToPresent(t, reasonRef, TotalN)
+		})
 	})
 
 	<- ch2
@@ -215,11 +221,17 @@ func TestAddRecordsThenChangePulse(t *testing.T) {
 
 	server.IncrementPulse()
 
-	t.Run("clean-read toPast", func(t *testing.T) {
-		// repeat the same sequence
-		genNewLine.seqNo.Store(0)
-
-		genNewLine.testReadToPast(t, reasonRef, TotalN)
+	t.Run("clean-read", func(t *testing.T) {
+		t.Run("toPast", func(t *testing.T) {
+			// repeat the same sequence
+			genNewLine.seqNo.Store(0)
+			genNewLine.testReadToPast(t, reasonRef, TotalN)
+		})
+		t.Run("toPresent", func(t *testing.T) {
+			// repeat the same sequence
+			genNewLine.seqNo.Store(0)
+			genNewLine.testReadToPresent(t, reasonRef, TotalN)
+		})
 	})
 }
 

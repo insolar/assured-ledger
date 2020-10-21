@@ -240,11 +240,11 @@ func (v MemoryStorageReader) FinderOfNext(sectionID ledger.SectionID) readbundle
 	panic(err)
 }
 
-func (v MemoryStorageReader) FinderOfFirst(sectionID ledger.SectionID) readbundle.DirectoryIndexFinder {
+func (v MemoryStorageReader) FinderOfFirst(ledger.SectionID) readbundle.DirectoryIndexFinder {
 	panic(throw.NotImplemented()) // TODO FinderOfFirst
 }
 
-func (v MemoryStorageReader) FinderOfLast(sectionID ledger.SectionID) readbundle.DirectoryIndexFinder {
+func (v MemoryStorageReader) FinderOfLast(ledger.SectionID) readbundle.DirectoryIndexFinder {
 	panic(throw.NotImplemented()) // TODO FinderOfLast
 }
 
