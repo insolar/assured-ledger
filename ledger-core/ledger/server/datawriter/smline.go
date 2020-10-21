@@ -8,6 +8,7 @@ package datawriter
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datafinder"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -71,17 +72,18 @@ func (p *SMLine) stepFindDrop(ctx smachine.ExecutionContext) smachine.StateUpdat
 
 	// NB! can't use AcquireForThisStep here as ctx.Sleep().ThenJump() will cancel it
 	if ctx.Acquire(readySync) {
-		ctx.Release(readySync)
+		ctx.ReleaseAll()
 		p.sd.jetDropID = ssd.GetDrop(p.sd.lineRef)
 		return ctx.Jump(p.stepDropIsCreated)
 	}
 
 	return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-		if ctx.AcquireForThisStep(readySync) {
-			p.sd.jetDropID = ssd.GetDrop(p.sd.lineRef)
-			return ctx.Jump(p.stepDropIsCreated)
+		if !ctx.Acquire(readySync) {
+			return ctx.Sleep().ThenRepeat()
 		}
-		return ctx.Sleep().ThenRepeat()
+		ctx.ReleaseAll()
+		p.sd.jetDropID = ssd.GetDrop(p.sd.lineRef)
+		return ctx.Jump(p.stepDropIsCreated)
 	})
 }
 
@@ -97,7 +99,7 @@ func (p *SMLine) stepDropIsCreated(ctx smachine.ExecutionContext) smachine.State
 	})
 
 	if ctx.Acquire(readySync) {
-		ctx.Release(readySync)
+		ctx.ReleaseAll()
 		sdl.MustAccess(func(sd *DropSharedData) {
 			p.sd.onDropReady(sd)
 		})
@@ -105,9 +107,10 @@ func (p *SMLine) stepDropIsCreated(ctx smachine.ExecutionContext) smachine.State
 	}
 
 	return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-		if !ctx.AcquireForThisStep(readySync) {
+		if !ctx.Acquire(readySync) {
 			return ctx.Sleep().ThenRepeat()
 		}
+		ctx.ReleaseAll()
 		sdl.MustAccess(func(sd *DropSharedData) {
 			p.sd.onDropReady(sd)
 		})
@@ -185,12 +188,41 @@ func (p *SMLine) migratePresentNotReady(ctx smachine.MigrationContext) smachine.
 func (p *SMLine) migratePresent(ctx smachine.MigrationContext) smachine.StateUpdate {
 	p.sd.disableAccess()
 
+	// make sure that the drop is blocked until all lines will issue a summary
+	// but we don't need to wait here
+	ctx.Acquire(p.sd.dropFinalizeSync)
+
 	ctx.SetDefaultMigration(nil)
-	return ctx.Jump(p.stepFinalize)
+	return ctx.JumpExt(smachine.SlotStep{
+		Transition: p.stepSummarize,
+		Flags:      smachine.StepPriority,
+	})
 }
 
-func (p *SMLine) stepFinalize(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	// TODO some finalization for lines?
-	return ctx.Stop()
+func (p *SMLine) stepSummarize(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	summary := p.sd.data.CreateSummary()
+	if summary.IsZero() {
+		ctx.ReleaseAll()
+	} else {
+		jetDropID := p.sd.jetDropID
+
+		p.sd.adapter.PrepareAsync(ctx, func(svc buildersvc.Service) smachine.AsyncResultFunc {
+			svc.AppendToDropSummary(jetDropID, summary)
+
+			return func(ctx smachine.AsyncResultContext) {
+				ctx.ReleaseAll()
+			}
+		}).WithoutAutoWakeUp().Start()
+	}
+
+	return ctx.JumpExt(smachine.SlotStep{
+		Transition: p.stepWeakWaitIndefinitely,
+		Flags:      smachine.StepWeak,
+	})
+}
+
+func (p *SMLine) stepWeakWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	// This step is marked as Weak and SM will be stopped by SlotMachine when only weak SM's remain
+	return ctx.Sleep().ThenRepeat()
 }
 

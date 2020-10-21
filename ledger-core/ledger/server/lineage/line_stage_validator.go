@@ -74,9 +74,9 @@ func (p *stageValidator) _addFilament(rec *resolvedRecord) error {
 	case rec.filNo != 0:
 	case p.filNo != 0:
 		rec.filNo = p.filNo
-	case p.bundle.branchStart == 0 || p.bundle.branchHead == 0:
+	case p.bundle.branchRoot == 0 || p.bundle.branchFirst == 0:
 		return throw.New("inconsistent filament data")
-	case p.bundle.branchHead + p.recDelta != rec.recordNo:
+	case p.bundle.branchFirst + p.recDelta != rec.recordNo:
 		return throw.New("inconsistent filament head")
 	default:
 		p.stage.filaments = append(p.stage.filaments, filament{})
@@ -87,9 +87,9 @@ func (p *stageValidator) _addFilament(rec *resolvedRecord) error {
 	return nil
 }
 
-func (p *stageValidator) applyFilament(rec *resolvedRecord) error {
+func (p *stageValidator) applyFilament(rec *resolvedRecord) (recordNo, error) {
 	if err := p._addFilament(rec); err != nil {
-		return err
+		return 0, err
 	}
 
 	filament := &p.stage.filaments[rec.filNo - 1]
@@ -98,48 +98,52 @@ func (p *stageValidator) applyFilament(rec *resolvedRecord) error {
 	case filament.earliest == 0:
 		//
 	case filament.latest != rec.prev:
-		return throw.New("inconsistent filament sequence")
+		return 0, throw.New("inconsistent filament sequence")
 	default:
 		if rec.recapNo != 0 && filament.recap != rec.recapNo {
-			return throw.New("inconsistent filament recap")
+			return 0, throw.New("inconsistent filament recap")
 		}
-		filament.latest = rec.recordNo
-		if rec.next == deadFilament {
-			filament.state = ended
+		filament.setLatest(rec.recordNo)
+		return filament.root, nil
+	}
+
+	if rec.filNo != 1 {
+		switch {
+		case p.bundle.branchRoot == 0:
+			return 0, throw.New("inconsistent bundle branching root")
+		case p.bundle.branchFirst == 0:
+			return 0, throw.New("inconsistent bundle branching")
+		case p.bundle.branchFirst + p.recDelta != rec.recordNo:
+			return 0, throw.New("unexpected filament record")
+		default:
+			filament.setRoot(p.bundle.branchRoot + p.recDelta)
 		}
-		return nil
 	}
 
 	if !rec.IsRecap() {
-		filament.earliest = rec.recordNo
-		filament.latest = rec.recordNo
 		filament.resolvedHead = rec.asResolvedDependency()
-		if rec.next == deadFilament {
-			filament.state = ended
-		}
-
-		return nil
+		filament.setLatest(rec.recordNo)
+		return filament.root, nil
 	}
 
 	switch {
 	case filament.recap != 0:
 		panic(throw.Impossible())
 	case rec.recapRec == nil:
-		return throw.New("recap body is missing")
-	case rec.recapRec.Type == rms.FilamentType_Lifeline:
+		return 0, throw.New("recap body is missing")
+	case rec.recapRec.State & rms.FilamentState_FilamentTypeMask == rms.FilamentState_Lifeline:
 		if rec.filNo != 1 {
-			return throw.New("recap mismatched line type")
+			return 0, throw.New("recap mismatched line type")
 		}
 	case rec.filNo == 1:
-		return throw.New("recap mismatched filament type")
+		return 0, throw.New("recap mismatched filament type")
 	}
 
-	switch rec.recapRec.State {
-	case rms.FilamentState_Unknown:
-		return throw.New("recap is invalid")
-	case rms.FilamentState_DirtyDeactivated, rms.FilamentState_Dead:
-		filament.earliest = deadFilament
-		filament.latest = deadFilament
+	switch {
+	case rec.recapRec.State & rms.FilamentState_FilamentTypeMask == rms.FilamentState_Unknown:
+		return 0, throw.New("recap is invalid")
+	case rec.recapRec.State & rms.FilamentState_ClosedFlag != 0:
+		filament.setLatest(deadFilament)
 	}
 
 	filament.recap = rec.recordNo
@@ -151,12 +155,12 @@ func (p *stageValidator) applyFilament(rec *resolvedRecord) error {
 	if rType := RecordType(rec.recapRec.RedirectToType); rType != 0 {
 		filament.resolvedHead.RedirectToRef = rec.recapRec.PrevRedirectRef.Get()
 		if reference.IsEmpty(filament.resolvedHead.RedirectToRef) {
-			return throw.New("recap inconsistent redirect")
+			return 0, throw.New("recap inconsistent redirect")
 		}
 		filament.resolvedHead.RedirectToType = RecordType(rec.recapRec.RedirectToType)
 	}
 
-	return nil
+	return filament.root, nil
 }
 
 func (p *stageValidator) postCheck() error {
@@ -165,11 +169,14 @@ func (p *stageValidator) postCheck() error {
 	}
 
 	// sanity check
-	latest := p.stage.filaments[p.filNo - 1].latest
-	switch p.bundle.records[latest - p.bundle.maxRecNo].next {
-	case 0, deadFilament:
-	default:
-		return throw.New("inconsistent latest of filament")
+	if latest := p.stage.filaments[p.filNo - 1].latest; latest != deadFilament {
+		// filament was not received as closed
+
+		switch p.bundle.records[latest - p.bundle.maxRecNo].next {
+		case 0, deadFilament:
+		default:
+			return throw.New("inconsistent latest of filament")
+		}
 	}
 
 	if p.filRoot.IsEmpty() {

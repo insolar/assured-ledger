@@ -53,6 +53,7 @@ type SMRegisterRecordSet struct {
 	inspectedSet inspectsvc.InspectedRecordSet
 	hasRequested bool
 	isCompleted  bool
+	limiter      smachine.SyncLink
 
 	// results
 	committed *buildersvc.Future
@@ -107,9 +108,8 @@ func (p *SMRegisterRecordSet) stepFindLine(ctx smachine.ExecutionContext) smachi
 		}
 	}
 
-	var limiter smachine.SyncLink
 	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
-		limiter = sd.GetLimiter()
+		p.limiter = sd.GetLimiter()
 		return false
 	}) {
 	case smachine.Passed:
@@ -120,12 +120,12 @@ func (p *SMRegisterRecordSet) stepFindLine(ctx smachine.ExecutionContext) smachi
 		panic(throw.IllegalState())
 	}
 
-	if ctx.Acquire(limiter) {
+	if ctx.Acquire(p.limiter) { // a quick check
 		return ctx.Jump(p.stepLineIsReady)
 	}
 
 	return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-		if ctx.Acquire(limiter) {
+		if ctx.Acquire(p.limiter) {
 			return ctx.Jump(p.stepLineIsReady)
 		}
 		return ctx.Sleep().ThenRepeat()
@@ -161,6 +161,14 @@ func (p *SMRegisterRecordSet) stepLineIsReady(ctx smachine.ExecutionContext) sma
 	).DelayedStart().Sleep().ThenJump(p.stepApplyRecordSet)
 }
 
+func (p *SMRegisterRecordSet) stepReacquireLimiter(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	// get ahead of queue
+	if !ctx.AcquireExt(p.limiter, smachine.HighPriorityAcquire) {
+		return ctx.Sleep().ThenRepeat()
+	}
+	return ctx.Jump(p.stepApplyRecordSet)
+}
+
 func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if p.inspectedSet.Records == nil {
 		return ctx.Sleep().ThenRepeat()
@@ -168,17 +176,26 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 
 	var errors []error
 	allRecordsDone := false
+	var dependency *buildersvc.Future
 
 	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
-		switch future, bundle := sd.TryApplyRecordSet(ctx, p.inspectedSet, p.verifyMode); {
+		switch prevFuture, future, bundle := sd.TryApplyRecordSet(ctx, p.inspectedSet, p.verifyMode); {
 		case future != nil:
-			if bundle != nil {
+			switch {
+			case bundle != nil:
+				panic(throw.Impossible())
+			case prevFuture != nil:
 				panic(throw.Impossible())
 			}
 			sd.CollectSignatures(p.inspectedSet, false)
 			p.committed = future
 
 		case bundle == nil:
+			if prevFuture != nil {
+				dependency = prevFuture
+				return false
+			}
+
 			allRecordsDone = true
 			sd.CollectSignatures(p.inspectedSet, false)
 
@@ -186,6 +203,10 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 			errors = bundle.GetErrors()
 
 		case p.verifyMode:
+			if prevFuture != nil {
+				panic(throw.Impossible())
+			}
+
 			// some (or all) records were not found, but we can give answer
 			// but not for all of records
 			allRecordsDone = true
@@ -198,6 +219,8 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 		default:
 			p.hasRequested = true
 			sd.RequestDependencies(bundle, ctx.NewBargeIn().WithWakeUp())
+
+			// let SMLine know that there are required dependencies to be processed
 			return true
 		}
 		return false
@@ -218,6 +241,16 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 
 	case allRecordsDone:
 		p.isCompleted = true
+
+	case dependency != nil:
+		ctx.ReleaseAll()
+		depReady := dependency.GetReadySync()
+		return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
+			if !ctx.Acquire(depReady) {
+				return ctx.Sleep().ThenRepeat()
+			}
+			return ctx.Jump(p.stepReacquireLimiter)
+		})
 
 	case p.committed == nil:
 		return ctx.Sleep().ThenRepeat()

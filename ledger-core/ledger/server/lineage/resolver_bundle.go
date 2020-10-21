@@ -6,6 +6,7 @@
 package lineage
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -33,13 +34,16 @@ type BundleResolver struct {
 	resolveResults
 }
 
-//nolint:structcheck
+//nolint:structcheck // is used via BundleResolver
 type resolveResults struct {
 	lastRecord  reference.Holder
 	unresolved  []UnresolvedDependency
 	errors      []error
-	branchStart recordNo
-	branchHead  recordNo
+
+	// branchRoot is the record that referenced as RootRef by a branch
+	branchRoot  recordNo
+	// branchFirst is the first record of the branch. It will be == branchRoot for record with BranchedStart policy.
+	branchFirst recordNo
 	isLineStart bool
 	isResolved  bool
 
@@ -108,7 +112,7 @@ func (p *BundleResolver) Add(record Record) bool {
 	p.isResolved = true
 
 	recType := RecordType(upd.Excerpt.RecordType)
-	policy := GetRecordPolicy(recType)
+	policy := p.policyProvider(recType)
 	if !policy.IsValid() {
 		return p.addError(throw.E("unknown type"))
 	}
@@ -136,6 +140,7 @@ func (p *BundleResolver) Add(record Record) bool {
 			return p.addRefError("RecordRef", err)
 		}
 
+		flags := ledger.DirectoryEntryFlags(0)
 		switch isFound, err := p.checkCollision(&upd, ref); {
 		case err != nil:
 			return p.addRefError("RecordRef", err)
@@ -143,16 +148,19 @@ func (p *BundleResolver) Add(record Record) bool {
 			p.dupRecords = append(p.dupRecords, upd.recordNo)
 			return p.isResolved
 		case !policy.IsAnyFilamentStart():
+			//
 		case len(p.records) == 0:
 			if p.maxRecNo <= 1 {
+				// otherwise, recap will be the first record
 				p.isLineStart = true
 				upd.filNo = 1
 			} else {
-				p.branchStart = upd.recordNo
+				p.branchRoot = upd.recordNo
 			}
+			flags |= ledger.FilamentLocalStart
 		default:
 			switch {
-			case p.branchStart != 0:
+			case p.branchRoot != 0:
 				return p.addError(throw.E("can only be one branch in bundle"))
 			case base.GetPulseNumber() == details.LocalPN:
 			case reference.PulseNumberOf(upd.Excerpt.ReasonRef.Get()) == details.LocalPN:
@@ -160,10 +168,21 @@ func (p *BundleResolver) Add(record Record) bool {
 				return p.addError(throw.E("can only be first in bundle"))
 			}
 
-			p.branchStart = upd.recordNo
+			p.branchRoot = upd.recordNo
+			flags |= ledger.FilamentLocalStart
 		}
+
 		if policy.PolicyFlags&FilamentEnd != 0 {
+			flags |= ledger.FilamentClose
 			upd.next = deadFilament
+		}
+
+		if !upd.Excerpt.RedirectRef.IsEmpty() {
+			flags |= ledger.FilamentReopen
+		}
+
+		if flags != 0 {
+			upd.filamentStartIndex = ledger.DirectoryIndex(0).WithFlags(flags)
 		}
 
 		p.resolveRecordDependencies(&upd, policy, details)
@@ -304,12 +323,12 @@ func (p *BundleResolver) resolvePrevRef(upd *resolvedRecord, policy RecordPolicy
 	case err != nil:
 		p.addRefError("PrevRef", err)
 	case isFork:
-		if p.branchHead != 0 {
+		if p.branchFirst != 0 {
 			p.addRefError("PrevRef", throw.E("can only be one branch in bundle"))
 		}
-		switch upd.recordNo - p.branchStart {
+		switch upd.recordNo - p.branchRoot {
 		case 0, 1:
-			p.branchHead = upd.recordNo
+			p.branchFirst = upd.recordNo
 		default:
 			p.addRefError("PrevRef", throw.E("misplaced branch fork"))
 		}

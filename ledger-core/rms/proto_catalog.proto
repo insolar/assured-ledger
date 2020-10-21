@@ -35,7 +35,7 @@ message CatalogEntry {
 
     // Start of fixed-size portion.
     // Use of fixed-size fields allows direct memory mapping for fast access to a few critical fields
-    fixed32 Ordinal = 16 [(gogoproto.casttype)="CatalogOrdinal"];
+    fixed64 DropOrdinal = 16 [(gogoproto.casttype)="DropOrdinal"];
     fixed64 BodyLoc = 17 [(gogoproto.casttype)="StorageLocator"];
     fixed64 PayloadLoc = 18 [(gogoproto.casttype)="StorageLocator"];
     fixed64 BodyPayloadSizes = 19; // low32 - bodySize, high32 - payloadSize
@@ -74,6 +74,6 @@ message ExtLocator {
     option (insproto.id) = 0;
     option (insproto.notation) = false; // this type actually satisfies the notation, but check of proto-gen-ins is too restrictive
     uint32 ExtensionID = 17 [(gogoproto.casttype)="ExtensionID"];
-    fixed64 PayloadLoc = 18  [(gogoproto.casttype)="StorageLocator"];
+    fixed64 PayloadLoc = 18 [(gogoproto.casttype)="StorageLocator"];
     uint32 PayloadSize = 20;
 }

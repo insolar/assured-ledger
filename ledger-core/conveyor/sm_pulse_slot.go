@@ -257,6 +257,7 @@ func (p *PulseSlotMachine) cancelPulseChange(ctx smachine.BargeInContext) smachi
 
 func (p *PulseSlotMachine) migrateFromPresent(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(p.migratePast)
+	p.pulseSlot.commitMigrate()
 	p._runInnerMigrate(ctx, Present)
 	return ctx.Jump(p.stepPastLoop)
 }
@@ -282,8 +283,7 @@ func (p *PulseSlotMachine) stepPastLoop(ctx smachine.ExecutionContext) smachine.
 func (p *PulseSlotMachine) migratePast(ctx smachine.MigrationContext) smachine.StateUpdate {
 	p._runInnerMigrate(ctx, Past)
 
-	if p.innerMachine.IsEmpty() {
-		ctx.UnpublishAll()
+	if p.innerMachine.StopIfEmpty() {
 		return ctx.Stop()
 	}
 	return ctx.Stay()

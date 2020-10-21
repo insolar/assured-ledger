@@ -9,17 +9,29 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datafinder"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
+// DropSharedData stores shared information about Drop
+// WARNING! This struct is accessed directly, no synchronization guarantees are provided.
 type DropSharedData struct {
-	id                jet.DropID
+	info DropInfo
+
 	ready             smsync.BoolConditionalLink
+	finalize          smachine.SyncLink
 	prevReportBargein smachine.BargeInWithParam
 
 	state atomickit.Uint32
+}
+
+type DropInfo struct {
+	ID jet.DropID
+	PrevID jet.DropID
+	LastOp JetTreeOp
+	// LegID jet.LegID // TODO LegID
+	AssistData *PlashSharedData
 }
 
 func (p *DropSharedData) GetReadySync() smachine.SyncLink {
@@ -31,17 +43,21 @@ func (p *DropSharedData) enableAccess() smachine.SyncAdjustment {
 	return p.ready.NewValue(true)
 }
 
-//nolint
 func (p *DropSharedData) ensureAccess() {
 	if p.state.Load() == 0 {
 		panic(throw.IllegalState())
 	}
 }
 
-func (p *DropSharedData) SetPrevDropReport(report datafinder.PrevDropReport) {
+func (p *DropSharedData) SetPrevDropReport(report catalog.DropReport) {
 	p.prevReportBargein.CallWithParam(report)
 }
 
-func (p *DropSharedData) setPrevReport(datafinder.PrevDropReport) {
+func (p *DropSharedData) setPrevReport(catalog.DropReport) {
 	// TODO
+}
+
+func (p *DropSharedData) GetFinalizeSync() smachine.SyncLink {
+	p.ensureAccess()
+	return p.finalize
 }

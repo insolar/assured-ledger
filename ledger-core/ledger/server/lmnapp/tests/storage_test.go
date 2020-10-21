@@ -8,11 +8,13 @@ package tests
 import (
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp/lmntestapp"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/readersvc"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
@@ -144,6 +146,63 @@ func TestAddRecords(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestAddRecordsThenChangePulse(t *testing.T) {
+	server := lmntestapp.NewTestServer(t)
+	defer server.Stop()
+
+	var recBuilder lmntestapp.RecordBuilder
+
+	server.SetImposer(func(params *insconveyor.ImposedParams) {
+		recBuilder = lmntestapp.NewRecordBuilderFromDependencies(params.AppInject)
+	})
+
+	server.Start()
+
+	var readSvc readersvc.Service
+	{
+		var readAdapter readersvc.Adapter
+		server.Injector().MustInject(&readAdapter)
+		readSvc = readersvc.GetServiceForTestOnly(readAdapter)
+	}
+
+	server.RunGenesis()
+	server.IncrementPulse()
+
+	recBuilder.RefTemplate = reference.NewSelfRefTemplate(server.LastPulseNumber(), reference.SelfScopeLifeline)
+
+	genNewLine := generatorNewLifeline{
+		recBuilder: recBuilder,
+		conv:       server.App().Conveyor(),
+		body:       make([]byte, 1<<10),
+	}
+
+	pn := server.LastPulseNumber()
+	reasonRef := gen.UniqueGlobalRefWithPulse(pn)
+
+	var bundleSignatures [][]cryptkit.Signature
+
+	for N := 10; N > 0; N-- {
+		// one bundle per object
+		sg, err := genNewLine.registerNewLine(reasonRef)
+		require.NoError(t, err)
+		require.Len(t, sg, 3)
+		bundleSignatures = append(bundleSignatures, sg)
+	}
+
+	server.IncrementPulse()
+
+	time.Sleep(2*time.Second) // TODO
+
+	server.IncrementPulse()
+
+	require.Eventually(t, func() bool {
+		cab, err := readSvc.FindCabinet(pn)
+		require.NoError(t, err)
+
+		return cab != nil
+	}, 2*time.Second, 10*time.Millisecond)
 }
 
 func BenchmarkWriteNew(b *testing.B) {
@@ -283,4 +342,3 @@ func benchmarkWriteRead(b *testing.B, bodySize int, parallel bool) {
 		b.SetBytes(int64(genNewLine.totalBytes.Load()) / int64(iterCount.Load()))
 	})
 }
-

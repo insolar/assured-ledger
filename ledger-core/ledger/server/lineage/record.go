@@ -89,9 +89,19 @@ func (v Record) asBasicRecord() rms.BasicRecord {
 	}
 }
 
+/***********************************/
+
+type RecordExtension struct {
+	Body     rms.BasicRecord
+	FilHead  ledger.DirectoryIndex
+	Flags    ledger.DirectoryEntryFlags
+	Dust     DustMode
+}
+
 
 /***********************************/
 type ReadRecord struct {
 	Record
 	StorageIndex ledger.DirectoryIndex
 }
+

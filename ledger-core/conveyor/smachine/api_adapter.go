@@ -21,23 +21,23 @@ type CreateFactoryFunc func(eventPayload interface{}) CreateFunc
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.AsyncCallRequester -o ./ -s _mock.go -g
 type AsyncCallRequester interface {
-	// Allocates and provides cancellation function. Repeated call returns same.
+	// WithCancel allocates and provides cancellation function. Repeated call returns same.
 	WithCancel(*context.CancelFunc) AsyncCallRequester
-	// Sets a handler to map nested calls from the target adapter to new SMs
+	// WithNested sets a handler to map nested calls from the target adapter to new SMs
 	// If this handler is nil or returns nil, then a default handler of the adapter will be in use.
 	// To block a nested event - return non-nil CreateFunc, and then return nil from CreateFunc.
 	WithNested(CreateFactoryFunc) AsyncCallRequester
-	// See AsyncCallFlags, set to AutoWakeUp by default.
+	// WithFlags sets AsyncCallFlags. AutoWakeUp is set by default.
 	WithFlags(flags AsyncCallFlags) AsyncCallRequester
-	// See AsyncCallFlags, removes AutoWakeUp.
+	// WithoutAutoWakeUp removes AutoWakeUp. See AsyncCallFlags.
 	WithoutAutoWakeUp() AsyncCallRequester
-	// Sets internal logging for the call and its result.
+	// WithLog sets internal logging for the call and its result.
 	// This mode is set automatically when tracing is active or StepElevatedLog is set.
 	WithLog(isLogging bool) AsyncCallRequester
 
-	// Starts async call
+	// Start starts this async call
 	Start()
-	// Creates an update that can be returned as a new state and will ONLY be executed if returned as a new state
+	// DelayedStart creates an update that can be returned as a new state and will ONLY be executed if returned as a new state
 	DelayedStart() CallConditionalBuilder
 }
 
@@ -45,17 +45,17 @@ type AsyncCallFlags uint8
 
 const (
 	/*
-		Call stays valid for this step (where the call is made) and for a next step.
+		CallBoundToStep indicates that a call stays valid for this step (where the call is made) and for a next step.
 		When SM will went further, the call or its result will be cancelled / ignored.
 		NB! This cancel functionality is PASSIVE, an adapter should check this status explicitly.
 	*/
 	CallBoundToStep AsyncCallFlags = 1 << iota
 
-	// When set, a wakeup from call's result will be valid for this step (where the call is made) and for a next step.
+	// WakeUpBoundToStep indicates if a wakeup from call's result will be valid for this step (where the call is made) and for a next step.
 	WakeUpBoundToStep
-	//	When set, receiving of call's successful result will wake up the slot without WakeUp(). Affected by WakeUpBoundToStep.
+	// WakeUpOnResult enables receiving of call's successful result to wake up the slot without WakeUp(). Affected by WakeUpBoundToStep.
 	WakeUpOnResult
-	// Caller will be woken up when the async request was cancelled by an adapter. Affected by WakeUpBoundToStep.
+	// WakeUpOnResult enables a caller to be woken up when the async request was cancelled by an adapter. Affected by WakeUpBoundToStep.
 	WakeUpOnCancel
 )
 
@@ -63,38 +63,40 @@ const AutoWakeUp = WakeUpOnResult | WakeUpOnCancel
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.NotifyRequester -o ./ -s _mock.go -g
 type NotifyRequester interface {
-	// Sets internal logging for the call. This mode is set automatically when tracing is active or StepElevatedLog is set.
+	// WithLog sets internal logging for the call. This mode is set automatically when tracing is active or StepElevatedLog is set.
 	WithLog(isLogging bool) NotifyRequester
-	// Sends notify
+	// Send immediately sends notification
 	Send()
-	// Creates an update that can be returned as a new state and will ONLY be executed if returned as a new state
+	// DelayedSend creates an update that can be returned as a new state and will ONLY be executed if returned as a new state
 	DelayedSend() CallConditionalBuilder
+	// DelegationFunc returns a function that can be called outside of SM to send a notification.
+	SendFunc() func()
 }
 
 type SyncCallRequester interface {
-	// Sets a handler to map nested calls from the target adapter to new SMs.
+	// WithNested sets a handler to map nested calls from the target adapter to new SMs.
 	// See AsyncCallRequester.WithNested() for details.
 	WithNested(CreateFactoryFunc) SyncCallRequester
-	// Sets internal logging for the call. This mode is set automatically when tracing is active or StepElevatedLog is set.
+	// WithLog sets internal logging for the call. This mode is set automatically when tracing is active or StepElevatedLog is set.
 	WithLog(isLogging bool) SyncCallRequester
 
-	// Returns true when the call was successful, or false if cancelled. May return false on a signal - depends on context mode.
+	// TryCall returns true when the call was successful, or false if cancelled. May return false on a signal - depends on context mode.
 	TryCall() bool
-	// May panic on migrate - depends on context mode
+	// Call may panic on migrate - depends on context mode
 	Call()
 }
 
 // Provides execution of calls to an adapter.
 type AdapterExecutor interface {
-	// Schedules asynchronous execution, MAY return native cancellation function, but only if supported.
+	// StartCall schedules asynchronous execution, MAY return native cancellation function, but only if supported.
 	// This method MUST be fast and MUST NOT lock up. May panic on queue overflow.
 	StartCall(ctx context.Context, fn AdapterCallFunc, callback *AdapterCallback, needCancel bool) context.CancelFunc
 
-	// Schedules asynchronous, fire-and-forget execution.
+	// SendNotify schedules asynchronous, fire-and-forget execution.
 	// This method MUST be fast and MUST NOT lock up. May panic on queue overflow.
 	SendNotify(context.Context, AdapterNotifyFunc)
 
-	// Performs sync call ONLY if *natively* supported by the adapter, otherwise must return (false, nil)
 	// TODO PLAT-41 pass in a cancellation object
+	// TrySyncCall performs sync call ONLY if *natively* supported by the adapter, otherwise must return (false, nil)
 	TrySyncCall(context.Context, AdapterCallFunc) (bool, AsyncResultFunc)
 }

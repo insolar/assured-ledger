@@ -9,6 +9,7 @@ import (
 	"reflect"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 )
@@ -27,9 +28,41 @@ func BeforeStep(fn smachine.StateFunc) Func {
 	}
 }
 
+func BeforeStepName(name string) Func {
+	return func(event debuglogger.UpdateEvent) bool {
+		switch event.Data.EventType {
+		case smachine.StepLoggerUpdate, smachine.StepLoggerMigrate:
+			step := event.Update.NextStep
+			if step.Transition == nil {
+				step = event.Data.CurrentStep
+			}
+			if name == step.Name {
+				return true
+			}
+			stepName := convlog.GetStepName(event.Update.NextStep.Transition)
+			return name == stepName
+		default:
+			return false
+		}
+	}
+}
+
 func AfterStep(fn smachine.StateFunc) Func {
 	return func(event debuglogger.UpdateEvent) bool {
 		return event.Data.EventType == smachine.StepLoggerUpdate && testutils.CmpStateFuncs(fn, event.Data.CurrentStep.Transition)
+	}
+}
+
+func AfterStepName(name string) Func {
+	return func(event debuglogger.UpdateEvent) bool {
+		if event.Data.EventType == smachine.StepLoggerUpdate {
+			if name == event.Data.CurrentStep.Name {
+				return true
+			}
+			stepName := convlog.GetStepName(event.Data.CurrentStep.Transition)
+			return stepName == name
+		}
+		return false
 	}
 }
 

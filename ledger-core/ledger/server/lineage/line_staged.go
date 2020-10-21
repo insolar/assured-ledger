@@ -45,6 +45,8 @@ type LineStages struct {
 	earliest *updateStage
 	latest   *updateStage
 
+	accessFrequency uint64
+
 	recordRefs    map[reference.LocalHash]recordNo
 	filamentRefs  map[reference.Local]filamentNo
 	reasonRefs    map[reference.Global]recordNo
@@ -56,7 +58,13 @@ func (p *LineStages) NewBundle() *BundleResolver {
 	return newBundleResolver(p, GetRecordPolicy)
 }
 
+func (p *LineStages) RegisterRead() {
+	p.accessFrequency++
+}
+
 func (p *LineStages) VerifyBundle(bundle *BundleResolver) (bool, StageTracker) {
+	p.accessFrequency++
+
 	switch {
 	case bundle == nil:
 		panic(throw.IllegalValue())
@@ -84,17 +92,25 @@ func (p *LineStages) VerifyBundle(bundle *BundleResolver) (bool, StageTracker) {
 	}
 }
 
-func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (bool, StageTracker, UpdateBundle) {
+type AddResult uint8
+const (
+	UnableToAdd AddResult = iota
+	WaitForHead
+	Added
+	Deduplicated
+)
+
+func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (AddResult, StageTracker, UpdateBundle) {
 	switch {
 	case tracker == nil:
 		panic(throw.IllegalValue())
 	case bundle == nil:
 		panic(throw.IllegalValue())
 	case !bundle.hasNoTroubles():
-		return false, nil, UpdateBundle{}
+		return UnableToAdd, nil, UpdateBundle{}
 	case len(bundle.records) > 0:
 	case len(bundle.dupRecords) == 0:
-		return true, nil, UpdateBundle{}
+		return Deduplicated, nil, UpdateBundle{}
 	default:
 		// all records were deduplicated
 		// we have to find the latest relevant tracker
@@ -107,9 +123,9 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (bo
 			}
 		}
 		if s := p.findStage(latestRec); s != nil {
-			return true, s.tracker, UpdateBundle{}
+			return Deduplicated, s.tracker, UpdateBundle{}
 		}
-		return true, nil, UpdateBundle{}
+		return Deduplicated, nil, UpdateBundle{}
 	}
 
 	prevFilamentCount := 0
@@ -139,6 +155,8 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (bo
 
 	defer bundle.setLastRecord(nil)
 
+	var latestHeadRec recordNo
+
 	for i := range bundle.records {
 		rec := &bundle.records[i]
 		bundle.setLastRecord(rec.GetRecordRef())
@@ -158,9 +176,19 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (bo
 			continue
 		}
 
-		if err := validator.applyFilament(rec); err != nil {
+		switch filDependency, err := validator.applyFilament(rec); {
+		case err != nil:
 			bundle.addError(err)
 			continue
+		case filDependency != 0:
+			if filDependency > latestHeadRec {
+				latestHeadRec = filDependency
+			}
+
+			if err := p.applyFilamentDependency(rec, filDependency, stage.firstRec); err != nil {
+				bundle.addError(err)
+				continue
+			}
 		}
 	}
 
@@ -170,16 +198,23 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (bo
 
 	if !bundle.hasNoTroubles() {
 		// has errors or unresolved dependencies
-		return false, nil, UpdateBundle{}
+		return UnableToAdd, nil, UpdateBundle{}
+	}
+
+	if latestHeadRec != 0 && latestHeadRec < stage.firstRec {
+		if s := p.findStage(latestHeadRec); s != nil && s.tracker != nil {
+			return WaitForHead, s.tracker, UpdateBundle{}
+		}
 	}
 
 	// block this bundle from being reused without reprocessing - to protect bundle.records
-	defer bundle.addError(throw.New("discarded bundle"))
+	defer bundle.addError(throw.New("processed bundle"))
 
 	if p.addStage(bundle, stage, prevFilamentCount, validator.filRoot) {
-		return true, tracker, UpdateBundle{bundle.records }
+		p.accessFrequency++
+		return Added, tracker, UpdateBundle{bundle.records }
 	}
-	return false, nil, UpdateBundle{}
+	return UnableToAdd, nil, UpdateBundle{}
 }
 
 func (p *LineStages) addStage(bundle *BundleResolver, stage *updateStage, prevFilamentCount int, filRoot reference.Local) bool {
@@ -204,7 +239,10 @@ func (p *LineStages) addStage(bundle *BundleResolver, stage *updateStage, prevFi
 	for i := range bundle.records {
 		rec := &bundle.records[i]
 
-		if recNo != rec.recordNo {
+		switch {
+		case recNo != rec.recordNo:
+			panic(throw.Impossible())
+		case rec.filamentStartIndex == 0:
 			panic(throw.Impossible())
 		}
 		recNo++
@@ -279,7 +317,7 @@ func (p *LineStages) trimCommittedStages() (last *updateStage) {
 			if len(allocations) > 0 {
 				p.setAllocations(p.earliest, allocations)
 			} else {
-				// TODO rollback and reapply
+				// TODO rollback?  reapply?
 				panic(throw.NotImplemented())
 			}
 		}
@@ -369,6 +407,10 @@ func (p *LineStages) restoreLatest(cutOffRec recordNo) {
 		}
 	}
 
+	if p.latest == nil {
+		return
+	}
+
 	// cleanup filament map
 	cutOffFil := filamentNo(len(p.latest.filaments) + 1)
 	for k, filNo := range p.filamentRefs {
@@ -382,9 +424,11 @@ func (p *LineStages) restoreLatest(cutOffRec recordNo) {
 
 	// mark open last records of filaments
 	for _, f := range p.latest.filaments {
-		latestRec := p.get(f.latest)
-		if next := latestRec.next; next >= cutOffRec && next != deadFilament {
-			latestRec.next = 0
+		if f.latest != deadFilament {
+			latestRec := p.get(f.latest)
+			if next := latestRec.next; next >= cutOffRec && next != deadFilament {
+				latestRec.next = 0
+			}
 		}
 	}
 }
@@ -486,6 +530,42 @@ func (p *LineStages) findFilament(root reference.LocalHolder) (filamentNo, Resol
 	return filNo, p.latest.filaments[filNo - 1].resolvedHead
 }
 
+func (p *LineStages) applyFilamentDependency(rec *resolvedRecord, dependency recordNo, bundleFirst recordNo) error {
+	flags := rec.filamentStartIndex.Flags()
+
+	switch {
+	case dependency == 0:
+		panic(throw.IllegalValue())
+	case dependency > rec.recordNo:
+		panic(throw.Impossible())
+
+	case rec.recapNo != 0:
+		return throw.New("filament root is applicable with recap")
+	case rec.recordNo != dependency:
+	case flags & ledger.FilamentLocalStart == 0:
+		return throw.New("self-root is only allowed for filament start")
+	}
+
+	if dependency >= bundleFirst {
+		// dependency is in the same batch
+		depLocalIdx := dependency - bundleFirst
+		rec.filamentStartIndex = ledger.DirectoryIndex(depLocalIdx + 1).WithFlags(flags)
+		return nil
+	}
+
+	dep := p.get(dependency)
+	if dep == nil {
+		return throw.New("filament root is unknown")
+	}
+
+	if idx := dep.storageIndex; idx != 0 {
+		// non zero when was already resolved
+		rec.filamentStartIndex = idx.WithFlags(flags)
+	}
+
+	return nil
+}
+
 func (p *LineStages) findCollision(local reference.LocalHolder, record *Record) (recordNo, error) {
 	recNo := p.recordRefs[local.GetLocal().IdentityHash()]
 	if recNo == 0 {
@@ -522,7 +602,7 @@ func (p *LineStages) putReason(rec *resolvedRecord) {
 	p.reasonRefs[normRef] = rec.recordNo
 }
 
-func (p *LineStages) setAllocations(stage *updateStage, allocBase []ledger.DirectoryIndex) {
+func (p *LineStages) setAllocations(stage *updateStage, allocs []ledger.DirectoryIndex) {
 	max := uint32(0)
 	if stage.next == nil {
 		max = uint32(p.getNextRecNo() - stage.firstRec)
@@ -530,13 +610,22 @@ func (p *LineStages) setAllocations(stage *updateStage, allocBase []ledger.Direc
 		max = uint32(stage.next.firstRec - stage.firstRec)
 	}
 
-	if max != uint32(len(allocBase)) {
+	if max != uint32(len(allocs)) {
 		panic(throw.IllegalState())
+	}
+
+	for _, alloc := range allocs {
+		switch {
+		case alloc.SectionID() == ledger.RelativeEntry:
+			panic(throw.FailHere("invalid record section"))
+		case alloc.Ordinal() == 0:
+			panic(throw.FailHere("invalid record ordinal"))
+		}
 	}
 
 	for i := uint32(0); i < max; i++ {
 		rec := p.get(stage.firstRec + recordNo(i))
-		rec.storageIndex = allocBase[i]
+		rec.storageIndex = allocs[i]
 		rec.cleanup()
 	}
 }
@@ -590,5 +679,7 @@ func (p *LineStages) scanSequence(rn recordNo, findFn func(ReadRecord) bool) boo
 	return false
 }
 
-
+func (p *LineStages) CreateSummary() LineSummary {
+	return LineSummary{}
+}
 

@@ -21,6 +21,8 @@ func NewLocator(id SectionID, chapterID ChapterID, ofs uint32) StorageLocator {
 		panic(throw.IllegalValue())
 	case chapterID > MaxChapterID:
 		panic(throw.IllegalValue())
+	case id > MaxSectionID:
+		panic(throw.IllegalValue())
 	case ofs > MaxChapterOffset:
 		panic(throw.IllegalValue())
 	}
@@ -28,7 +30,10 @@ func NewLocator(id SectionID, chapterID ChapterID, ofs uint32) StorageLocator {
 }
 
 func NewOffsetLocator(id SectionID, ofs uint64) StorageLocator {
-	if ofs > 0xFFFF_FFFF_FFFF {
+	switch {
+	case id > MaxSectionID:
+		panic(throw.IllegalValue())
+	case ofs > 0xFFFF_FFFF_FFFF:
 		panic(throw.IllegalValue())
 	}
 	return StorageLocator(id)<<48 | StorageLocator(ofs)

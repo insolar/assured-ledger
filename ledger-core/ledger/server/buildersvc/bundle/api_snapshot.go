@@ -6,7 +6,10 @@
 package bundle
 
 import (
+	"io"
+
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
@@ -57,6 +60,7 @@ type Snapshot interface {
 }
 
 type PayloadReceptacle interface {
+	io.WriterTo
 	ApplyMarshalTo(MarshalerTo) error
 	ApplyFixedReader(longbits.FixedReader) error
 }
@@ -75,8 +79,16 @@ type PayloadSection interface {
 }
 
 type DirectoryEntry struct {
-	Key reference.Global
-	Loc ledger.StorageLocator
+	Key   reference.Global
+	Loc   ledger.StorageLocator
+	// Fil is a temporary field and it is not preserved
+	Fil   FilamentInfo
+}
+
+type FilamentInfo struct {
+	Link  ledger.Ordinal
+	JetID jet.ID
+	Flags ledger.DirectoryEntryFlags
 }
 
 func (v DirectoryEntry) IsZero() bool {

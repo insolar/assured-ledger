@@ -8,7 +8,6 @@ package conveyor
 import (
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -50,7 +49,7 @@ func NewPastPulseSlot(pulseManager *PulseDataManager, pr pulse.Range) PulseSlot 
 type PulseSlot struct {
 	pulseManager *PulseDataManager
 	pulseData    pulseDataHolder
-	pulseChanger PulseChangerFunc
+	pulseChanger PulseChanger
 }
 
 func (p *PulseSlot) State() PulseSlotState {
@@ -201,37 +200,47 @@ func (p *PulseSlot) postMigrate(prevState PulseSlotState, holder smachine.SlotMa
 	}
 }
 
-var stubChanger PulseChangerFunc = func(outFn PreparePulseCallbackFunc) {
-	if outFn != nil {
-		// TODO temporary hack
-		outFn(beat.AckData{})
-	}
-}
-
 func (p *PulseSlot) prepareMigrate(outFn PreparePulseCallbackFunc) {
 	if p.pulseChanger == nil {
 		p.pulseChanger = stubChanger
 	}
 
 	if outFn != nil {
-		p.pulseChanger(outFn)
+		p.pulseChanger.PreparePulseChange(outFn)
 	}
 }
 
 func (p *PulseSlot) cancelMigrate() {
-	p.pulseChanger(nil)
+	// cancel can only be called after prepareMigrate
+	p.pulseChanger.CancelPulseChange()
 }
 
-// PulseChangerFunc is invoked with non-nil PreparePulseCallbackFunc when pulse change is preparing, and with nil when pulse change was cancelled.
-type PulseChangerFunc func(PreparePulseCallbackFunc)
+func (p *PulseSlot) commitMigrate() {
+	if p.pulseChanger == nil {
+		// it is possible for commit to be called without prepare
+		p.pulseChanger = stubChanger
+	}
+	p.pulseChanger.CommitPulseChange()
+}
 
-func (p *PulseSlot) SetPulseChanger(fn PulseChangerFunc) error {
+func (p *PulseSlot) SetPulseChanger(changer PulseChanger) bool {
 	switch {
-	case fn == nil:
+	case changer == nil:
 		panic(throw.IllegalValue())
 	case p.pulseChanger != nil:
-		return throw.IllegalState()
+		return false
 	}
-	p.pulseChanger = fn
-	return nil
+	p.pulseChanger = changer
+	return true
+}
+
+func (p *PulseSlot) PulseRelativeDeadline(portion float64) time.Time {
+	startedAt := p.pulseData.PulseStartedAt()
+	if portion <= 0 {
+		return startedAt
+	}
+
+	delta := time.Duration(p.pulseData.PulseData().NextPulseDelta) * time.Second
+	relative := portion * float64(delta)
+	return startedAt.Add(time.Duration(relative))
 }

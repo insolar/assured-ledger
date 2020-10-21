@@ -98,7 +98,7 @@ func (m *SlotMachineSync) FlushAll() {
 func (m *SlotMachineSync) AddAsyncSignal(link SlotLink, fn func(link SlotLink, worker FixedSlotWorker)) bool {
 	switch {
 	case fn == nil:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	case m.IsInactive():
 		return false
 	}
@@ -117,7 +117,7 @@ func (m *SlotMachineSync) AddAsyncSignal(link SlotLink, fn func(link SlotLink, w
 func (m *SlotMachineSync) AddAsyncUpdate(link SlotLink, fn func(link SlotLink, worker FixedSlotWorker)) bool {
 	switch {
 	case fn == nil:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	case m.IsInactive():
 		return false
 	}
@@ -135,7 +135,7 @@ func (m *SlotMachineSync) AddAsyncUpdate(link SlotLink, fn func(link SlotLink, w
 func (m *SlotMachineSync) ProcessUpdates(worker FixedSlotWorker) (hasUpdates bool) {
 	switch {
 	case worker.IsZero():
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	case m.IsInactive():
 		return
 	}
@@ -168,7 +168,7 @@ type AsyncCallbackFunc func(link SlotLink, worker DetachableSlotWorker) bool
 func (m *SlotMachineSync) AddAsyncCallback(link SlotLink, fn AsyncCallbackFunc) bool {
 	switch {
 	case fn == nil:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	case !m.CanProcessCallbacks(): // callbacks are cancelled on stopping
 		fn(link, DetachableSlotWorker{})
 		return false
@@ -244,7 +244,7 @@ func (m *SlotMachineSync) ProcessSlotCallbacksByDetachable(link SlotLink, worker
 
 func (m *SlotMachineSync) cancelCallbacks(tasks synckit.SyncFuncList, worker SlotWorker) (hasSignal bool) {
 	if worker == nil {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	}
 	for i, fn := range tasks {
 		fn(nil)

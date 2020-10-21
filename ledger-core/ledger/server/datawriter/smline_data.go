@@ -21,19 +21,20 @@ import (
 type LineKey reference.Global
 
 type LineSharedData struct {
-	lineRef reference.Global
-	limiter smsync.SemaphoreLink
+	lineRef    reference.Global
+	limiter    smsync.SemaphoreLink
 	activeSync smsync.BoolConditionalLink
 
-	ready   bool
-	valid   bool
+	ready bool
+	valid bool
 
 	jetDropID jet.DropID
 	resolver  lineage.DependencyResolver
 	adapter   buildersvc.WriteAdapter
 
-	data *lineage.LineStages
-	deps DependencyTracker
+	data             *lineage.LineStages
+	deps             DependencyTracker
+	dropFinalizeSync smachine.SyncLink
 }
 
 func (p *LineSharedData) LineRef() reference.Global {
@@ -68,7 +69,7 @@ func (p *LineSharedData) ensureDataAccess() {
 
 func (p *LineSharedData) TryApplyRecordSet(ctx smachine.ExecutionContext,
 	set inspectsvc.InspectedRecordSet, verifyOnly bool,
-) (*buildersvc.Future, *lineage.BundleResolver) {
+) (*buildersvc.Future, *buildersvc.Future, *lineage.BundleResolver) {
 
 	p.ensureDataAccess()
 	if set.IsEmpty() {
@@ -84,8 +85,10 @@ func (p *LineSharedData) TryApplyRecordSet(ctx smachine.ExecutionContext,
 	}
 
 	if verifyOnly {
-		return p.verifyBundle(br)
+		fut, br := p.verifyBundle(br)
+		return nil, fut, br
 	}
+
 	return p.applyBundle(ctx, br)
 }
 
@@ -106,43 +109,49 @@ func (p *LineSharedData) verifyBundle(br *lineage.BundleResolver) (*buildersvc.F
 	}
 }
 
-func (p *LineSharedData) applyBundle(ctx smachine.ExecutionContext, br *lineage.BundleResolver) (*buildersvc.Future, *lineage.BundleResolver) {
+func (p *LineSharedData) applyBundle(ctx smachine.ExecutionContext, br *lineage.BundleResolver) (*buildersvc.Future, *buildersvc.Future, *lineage.BundleResolver) {
 
 	if !br.IsReadyForStage() {
-		return nil, br
+		return nil, nil, br
 	}
 
 	future := buildersvc.NewFuture("")
 
-	switch ok, fut, resolved := p.data.AddBundle(br, future); {
-	case !ok:
+	switch result, fut, resolved := p.data.AddBundle(br, future); result {
+	case lineage.UnableToAdd:
 		// got an error or an unresolved dependency
-		return nil, br
+		return nil, nil, br
 
-	case fut == nil:
-		// all entries were already added and committed
-		if !resolved.IsZero() {
-			panic(throw.Impossible())
-		}
-		return nil, nil
-
-	case resolved.IsZero():
-		// all entries were already added, but not yet committed
-		return fut.(*buildersvc.Future), nil
+	case lineage.WaitForHead:
+		return fut.(*buildersvc.Future), nil, nil
 
 	default:
-		// entries has to be added
+		switch {
+		case fut == nil:
+			// all entries were already added and committed
+			if !resolved.IsZero() {
+				panic(throw.Impossible())
+			}
+			return nil, nil, nil
 
-		if future != fut {
-			panic(throw.Impossible())
+		case resolved.IsZero():
+			// all entries were already added, but not yet committed
+			return nil, fut.(*buildersvc.Future), nil
+
+		default:
+			// entries has to be added
+
+			if future != fut {
+				panic(throw.Impossible())
+			}
+
+			dropID := p.jetDropID
+			p.adapter.PrepareNotify(ctx, func(service buildersvc.Service) {
+				service.AppendToDrop(dropID, future, resolved)
+			}).Send()
+
+			return nil, future, nil
 		}
-
-		dropID := p.jetDropID
-		p.adapter.PrepareNotify(ctx, func(service buildersvc.Service) {
-			service.AppendToDrop(dropID, future, resolved)
-		}).Send()
-
-		return future, nil
 	}
 }
 
@@ -203,28 +212,30 @@ func (p *LineSharedData) AddRecap(ctx smachine.ExecutionContext, ref reference.G
 
 }
 
-func (p *LineSharedData) addSoloRecord(ctx smachine.ExecutionContext, rec lineage.Record) *buildersvc.Future {
+//nolint
+func (p *LineSharedData) addSoloRecord(ctx smachine.ExecutionContext, rec lineage.Record) (*buildersvc.Future, *buildersvc.Future) {
 	p.ensureDataAccess()
 	br := p.data.NewBundle()
 	br.Add(rec)
 
-	if f, _ := p.applyBundle(ctx, br); f != nil {
-		return f
-	}
-
-	if len(br.GetUnresolvedDependencies()) == 0 {
-		panic(throw.Impossible())
-	}
-
-	errs := br.GetErrors()
-	if len(errs) == 0 {
-		panic(throw.Impossible())
-	}
-	err := errs[0]
-	for _, e2 := range errs[1:] {
-		err = throw.WithDetails(err, e2)
-	}
-	panic(err)
+	panic(throw.NotImplemented())
+	// if prevFut, fut, _ := p.applyBundle(ctx, br); f != nil {
+	// 	return prevFut, fut
+	// }
+	//
+	// if len(br.GetUnresolvedDependencies()) == 0 {
+	// 	panic(throw.Impossible())
+	// }
+	//
+	// errs := br.GetErrors()
+	// if len(errs) == 0 {
+	// 	panic(throw.Impossible())
+	// }
+	// err := errs[0]
+	// for _, e2 := range errs[1:] {
+	// 	err = throw.WithDetails(err, e2)
+	// }
+	// panic(err)
 }
 
 func (p *LineSharedData) getUnresolved() UnresolvedDependencyMap {
@@ -232,8 +243,8 @@ func (p *LineSharedData) getUnresolved() UnresolvedDependencyMap {
 	return p.deps.GetPendingUnresolved()
 }
 
-func (p *LineSharedData) onDropReady(*DropSharedData) {
-
+func (p *LineSharedData) onDropReady(dd *DropSharedData) {
+	p.dropFinalizeSync = dd.GetFinalizeSync()
 }
 
 func (p *LineSharedData) TrimStages() {
@@ -278,6 +289,7 @@ func (p *LineSharedData) FindWithTracker(ref reference.Holder) (bool, *buildersv
 func (p *LineSharedData) FindSequence(ref reference.Holder, findFn func(record lineage.ReadRecord) bool) (bool, *buildersvc.Future) {
 	p.ensureDataAccess()
 
+	p.data.RegisterRead()
 	ok, fut := p.data.FindSequence(ref, findFn)
 	if fut == nil {
 		return ok, nil

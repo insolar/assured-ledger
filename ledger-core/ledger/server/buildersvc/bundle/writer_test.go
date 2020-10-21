@@ -115,14 +115,16 @@ func TestWriterRollback(t *testing.T) {
 
 	rollback := sync.WaitGroup{}
 	rollback.Add(1)
-	rollbackCount := atomickit.Int{}
+	snapRollbackCount := atomickit.Int{}
 	snap.RollbackMock.Set(func(chained bool) error {
-		require.Equal(t, rollbackCount.Load() > 0, chained)
-		if rollbackCount.Add(1) == 1 {
+		require.Equal(t, snapRollbackCount.Load() > 0, chained)
+		if snapRollbackCount.Add(1) == 1 {
 			rollback.Done()
 		}
 		return nil
 	})
+
+	bundleRollbackCount := atomickit.Int{}
 
 	sw.TakeSnapshotMock.Return(snap, nil)
 
@@ -144,6 +146,9 @@ func TestWriterRollback(t *testing.T) {
 		applied.Done()
 		return []ledger.DirectoryIndex{1}, nil
 	})
+	wb1.ApplyRollbackMock.Set(func() {
+		bundleRollbackCount.Add(1)
+	})
 
 	wb2 := NewWriteableMock(t)
 	wb2.PrepareWriteMock.Return(nil)
@@ -152,6 +157,9 @@ func TestWriterRollback(t *testing.T) {
 		mid.Wait()
 		return []ledger.DirectoryIndex{1}, nil
 	})
+	wb2.ApplyRollbackMock.Set(func() {
+		bundleRollbackCount.Add(1)
+	})
 
 	wb3 := NewWriteableMock(t)
 	wb3.PrepareWriteMock.Return(nil)
@@ -159,6 +167,9 @@ func TestWriterRollback(t *testing.T) {
 		start.Wait()
 		defer applied.Done()
 		panic("mock panic")
+	})
+	wb3.ApplyRollbackMock.Set(func() {
+		bundleRollbackCount.Add(1)
 	})
 
 	check := make(chan int, 5)
@@ -184,14 +195,15 @@ func TestWriterRollback(t *testing.T) {
 	}
 
 	applied2.Wait()
-	require.Equal(t, 0, rollbackCount.Load())
+	require.Equal(t, 0, snapRollbackCount.Load())
+	require.Equal(t, 0, bundleRollbackCount.Load())
 
 	start.Done()
 	require.Equal(t, 1, <- check)
 	require.Equal(t, 2, <- check)
 	applied.Wait()
 	rollback.Wait()
-	require.Equal(t, 1, rollbackCount.Load())
+	require.Equal(t, 1, snapRollbackCount.Load())
 
 	select {
 	case <- check:
@@ -204,7 +216,8 @@ func TestWriterRollback(t *testing.T) {
 	require.Equal(t, 4, <- check)
 	require.Equal(t, 5, <- check)
 
-	require.Equal(t, 3, rollbackCount.Load())
+	require.Equal(t, 3, snapRollbackCount.Load())
+	require.Equal(t, 3, bundleRollbackCount.Load())
 
 	w.WaitWriteBundles(nil, nil) // nothing to wait
 }
@@ -232,6 +245,7 @@ func TestWriterRollbackError(t *testing.T) {
 	wb1.ApplyWriteMock.Set(func() ([]ledger.DirectoryIndex, error) {
 		panic("mock panic")
 	})
+	wb1.ApplyRollbackMock.Return()
 
 	err := w.WriteBundle(wb1, func(d []ledger.DirectoryIndex, err error) bool {
 		require.Nil(t, d)

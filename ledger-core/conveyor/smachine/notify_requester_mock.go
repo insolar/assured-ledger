@@ -26,6 +26,12 @@ type NotifyRequesterMock struct {
 	beforeSendCounter uint64
 	SendMock          mNotifyRequesterMockSend
 
+	funcSendFunc          func() (f1 func())
+	inspectFuncSendFunc   func()
+	afterSendFuncCounter  uint64
+	beforeSendFuncCounter uint64
+	SendFuncMock          mNotifyRequesterMockSendFunc
+
 	funcWithLog          func(isLogging bool) (n1 NotifyRequester)
 	inspectFuncWithLog   func(isLogging bool)
 	afterWithLogCounter  uint64
@@ -43,6 +49,8 @@ func NewNotifyRequesterMock(t minimock.Tester) *NotifyRequesterMock {
 	m.DelayedSendMock = mNotifyRequesterMockDelayedSend{mock: m}
 
 	m.SendMock = mNotifyRequesterMockSend{mock: m}
+
+	m.SendFuncMock = mNotifyRequesterMockSendFunc{mock: m}
 
 	m.WithLogMock = mNotifyRequesterMockWithLog{mock: m}
 	m.WithLogMock.callArgs = []*NotifyRequesterMockWithLogParams{}
@@ -328,6 +336,149 @@ func (m *NotifyRequesterMock) MinimockSendInspect() {
 	}
 }
 
+type mNotifyRequesterMockSendFunc struct {
+	mock               *NotifyRequesterMock
+	defaultExpectation *NotifyRequesterMockSendFuncExpectation
+	expectations       []*NotifyRequesterMockSendFuncExpectation
+}
+
+// NotifyRequesterMockSendFuncExpectation specifies expectation struct of the NotifyRequester.SendFunc
+type NotifyRequesterMockSendFuncExpectation struct {
+	mock *NotifyRequesterMock
+
+	results *NotifyRequesterMockSendFuncResults
+	Counter uint64
+}
+
+// NotifyRequesterMockSendFuncResults contains results of the NotifyRequester.SendFunc
+type NotifyRequesterMockSendFuncResults struct {
+	f1 func()
+}
+
+// Expect sets up expected params for NotifyRequester.SendFunc
+func (mmSendFunc *mNotifyRequesterMockSendFunc) Expect() *mNotifyRequesterMockSendFunc {
+	if mmSendFunc.mock.funcSendFunc != nil {
+		mmSendFunc.mock.t.Fatalf("NotifyRequesterMock.SendFunc mock is already set by Set")
+	}
+
+	if mmSendFunc.defaultExpectation == nil {
+		mmSendFunc.defaultExpectation = &NotifyRequesterMockSendFuncExpectation{}
+	}
+
+	return mmSendFunc
+}
+
+// Inspect accepts an inspector function that has same arguments as the NotifyRequester.SendFunc
+func (mmSendFunc *mNotifyRequesterMockSendFunc) Inspect(f func()) *mNotifyRequesterMockSendFunc {
+	if mmSendFunc.mock.inspectFuncSendFunc != nil {
+		mmSendFunc.mock.t.Fatalf("Inspect function is already set for NotifyRequesterMock.SendFunc")
+	}
+
+	mmSendFunc.mock.inspectFuncSendFunc = f
+
+	return mmSendFunc
+}
+
+// Return sets up results that will be returned by NotifyRequester.SendFunc
+func (mmSendFunc *mNotifyRequesterMockSendFunc) Return(f1 func()) *NotifyRequesterMock {
+	if mmSendFunc.mock.funcSendFunc != nil {
+		mmSendFunc.mock.t.Fatalf("NotifyRequesterMock.SendFunc mock is already set by Set")
+	}
+
+	if mmSendFunc.defaultExpectation == nil {
+		mmSendFunc.defaultExpectation = &NotifyRequesterMockSendFuncExpectation{mock: mmSendFunc.mock}
+	}
+	mmSendFunc.defaultExpectation.results = &NotifyRequesterMockSendFuncResults{f1}
+	return mmSendFunc.mock
+}
+
+//Set uses given function f to mock the NotifyRequester.SendFunc method
+func (mmSendFunc *mNotifyRequesterMockSendFunc) Set(f func() (f1 func())) *NotifyRequesterMock {
+	if mmSendFunc.defaultExpectation != nil {
+		mmSendFunc.mock.t.Fatalf("Default expectation is already set for the NotifyRequester.SendFunc method")
+	}
+
+	if len(mmSendFunc.expectations) > 0 {
+		mmSendFunc.mock.t.Fatalf("Some expectations are already set for the NotifyRequester.SendFunc method")
+	}
+
+	mmSendFunc.mock.funcSendFunc = f
+	return mmSendFunc.mock
+}
+
+// SendFunc implements NotifyRequester
+func (mmSendFunc *NotifyRequesterMock) SendFunc() (f1 func()) {
+	mm_atomic.AddUint64(&mmSendFunc.beforeSendFuncCounter, 1)
+	defer mm_atomic.AddUint64(&mmSendFunc.afterSendFuncCounter, 1)
+
+	if mmSendFunc.inspectFuncSendFunc != nil {
+		mmSendFunc.inspectFuncSendFunc()
+	}
+
+	if mmSendFunc.SendFuncMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSendFunc.SendFuncMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmSendFunc.SendFuncMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSendFunc.t.Fatal("No results are set for the NotifyRequesterMock.SendFunc")
+		}
+		return (*mm_results).f1
+	}
+	if mmSendFunc.funcSendFunc != nil {
+		return mmSendFunc.funcSendFunc()
+	}
+	mmSendFunc.t.Fatalf("Unexpected call to NotifyRequesterMock.SendFunc.")
+	return
+}
+
+// SendFuncAfterCounter returns a count of finished NotifyRequesterMock.SendFunc invocations
+func (mmSendFunc *NotifyRequesterMock) SendFuncAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSendFunc.afterSendFuncCounter)
+}
+
+// SendFuncBeforeCounter returns a count of NotifyRequesterMock.SendFunc invocations
+func (mmSendFunc *NotifyRequesterMock) SendFuncBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSendFunc.beforeSendFuncCounter)
+}
+
+// MinimockSendFuncDone returns true if the count of the SendFunc invocations corresponds
+// the number of defined expectations
+func (m *NotifyRequesterMock) MinimockSendFuncDone() bool {
+	for _, e := range m.SendFuncMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SendFuncMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSendFuncCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSendFunc != nil && mm_atomic.LoadUint64(&m.afterSendFuncCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockSendFuncInspect logs each unmet expectation
+func (m *NotifyRequesterMock) MinimockSendFuncInspect() {
+	for _, e := range m.SendFuncMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to NotifyRequesterMock.SendFunc")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SendFuncMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSendFuncCounter) < 1 {
+		m.t.Error("Expected call to NotifyRequesterMock.SendFunc")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSendFunc != nil && mm_atomic.LoadUint64(&m.afterSendFuncCounter) < 1 {
+		m.t.Error("Expected call to NotifyRequesterMock.SendFunc")
+	}
+}
+
 type mNotifyRequesterMockWithLog struct {
 	mock               *NotifyRequesterMock
 	defaultExpectation *NotifyRequesterMockWithLogExpectation
@@ -550,6 +701,8 @@ func (m *NotifyRequesterMock) MinimockFinish() {
 
 		m.MinimockSendInspect()
 
+		m.MinimockSendFuncInspect()
+
 		m.MinimockWithLogInspect()
 		m.t.FailNow()
 	}
@@ -576,5 +729,6 @@ func (m *NotifyRequesterMock) minimockDone() bool {
 	return done &&
 		m.MinimockDelayedSendDone() &&
 		m.MinimockSendDone() &&
+		m.MinimockSendFuncDone() &&
 		m.MinimockWithLogDone()
 }

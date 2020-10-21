@@ -6,10 +6,14 @@
 package datawriter
 
 import (
-	"time"
+	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datafinder"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
@@ -21,12 +25,15 @@ var _ smachine.StateMachine = &SMDropBuilder{}
 type SMDropBuilder struct {
 	smachine.StateMachineDeclTemplate
 
+	// injected
 	pulseSlot *conveyor.PulseSlot
-	// catalog   PlashCataloger
+	adapter    buildersvc.WriteAdapter
 
 	sd         DropSharedData
-	prevReport datafinder.PrevDropReport
-	// jetAssist  *PlashSharedData
+
+	prevReport catalog.DropReport
+	nextReport catalog.DropReport
+	nextDrops  []jet.DropID
 }
 
 func (p *SMDropBuilder) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -39,7 +46,7 @@ func (p *SMDropBuilder) GetInitStateFor(smachine.StateMachine) smachine.InitFunc
 
 func (p *SMDropBuilder) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	injector.MustInject(&p.pulseSlot)
-	// injector.MustInject(&p.catalog)
+	injector.MustInject(&p.adapter)
 }
 
 func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
@@ -47,8 +54,11 @@ func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.St
 		return ctx.Error(throw.E("not a present pulse"))
 	}
 
+	p.sd.ready = smsync.NewConditionalBool(false, fmt.Sprintf("StreamDrop{%d}.ready", ctx.SlotLink().SlotID()))
+	p.sd.finalize = smsync.NewExclusive(fmt.Sprintf("StreamDrop{%d}.finalize", ctx.SlotLink().SlotID()))
+
 	p.sd.prevReportBargein = ctx.NewBargeInWithParam(func(v interface{}) smachine.BargeInCallbackFunc {
-		report := v.(datafinder.PrevDropReport)
+		report := v.(catalog.DropReport)
 		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
 			if p.receivePrevReport(report, ctx) {
 				return ctx.WakeUp()
@@ -56,8 +66,6 @@ func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.St
 			return ctx.Stay()
 		}
 	})
-
-	// p.jetAssist = p.catalog.Get(ctx, p.sd.id.CreatedAt())
 
 	if !RegisterJetDrop(ctx, &p.sd) {
 		panic(throw.IllegalState())
@@ -67,26 +75,16 @@ func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.St
 	return ctx.Jump(p.stepWaitPrevDrop)
 }
 
-const passiveWaitPortion = 50 // wait for 1/50th of pulse
-
-func (p *SMDropBuilder) getPassiveDeadline(startedAt time.Time, pulseDelta uint16) time.Time {
-	switch {
-	case startedAt.IsZero():
-		panic(throw.IllegalValue())
-	case pulseDelta == 0:
-		panic(throw.IllegalValue())
-	}
-	return startedAt.Add(time.Second * time.Duration(pulseDelta) / passiveWaitPortion)
-}
+const passiveWaitPortion = 0.02 // wait for 1/50th of pulse
 
 func (p *SMDropBuilder) stepWaitPrevDrop(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	// TODO this is a temporary stub
-	p.prevReport.ReportRec = &rms.RPrevDropReport{}
+	p.prevReport.ReportRec = &rms.RCtlDropReport{}
 	if !p.prevReport.IsZero() {
 		return ctx.Jump(p.stepDropStart)
 	}
 
-	passiveUntil := p.getPassiveDeadline(p.pulseSlot.PulseStartedAt(), p.pulseSlot.PulseData().NextPulseDelta)
+	passiveUntil := p.pulseSlot.PulseRelativeDeadline(passiveWaitPortion)
 	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 		if !p.prevReport.IsZero() {
 			return ctx.Jump(p.stepDropStart)
@@ -122,19 +120,56 @@ func (p *SMDropBuilder) stepWaitPast(ctx smachine.ExecutionContext) smachine.Sta
 
 func (p *SMDropBuilder) migratePresent(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(p.migratePast)
+	ctx.SetDefaultFlags(smachine.StepPriority)
 	return ctx.Jump(p.stepFinalize)
 }
 
 func (p *SMDropBuilder) migratePast(ctx smachine.MigrationContext) smachine.StateUpdate {
-	return ctx.Stop()
+	// can't get here normally
+	return ctx.Error(throw.IllegalState())
 }
 
 func (p *SMDropBuilder) stepFinalize(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	// TODO drop finalization
-	return ctx.Stop()
+	if !ctx.AcquireExt(p.sd.finalize, smachine.NoPriorityAcquire) {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	if _, inactive := p.sd.finalize.GetCounts(); inactive > 0 {
+		ctx.ReleaseAll()
+		return ctx.Yield().ThenRepeat()
+	}
+	ctx.ReleaseAll()
+
+	jetID := p.sd.info.ID
+	p.adapter.PrepareAsync(ctx, func(svc buildersvc.Service) smachine.AsyncResultFunc {
+		dropReport := svc.FinalizeDropSummary(jetID)
+
+		return func(ctx smachine.AsyncResultContext) {
+			p.nextReport = dropReport
+			ctx.WakeUp()
+		}
+	}).Start()
+
+	return ctx.Sleep().ThenJump(p.stepWaitNextReadyAndSendReport)
 }
 
-func (p *SMDropBuilder) receivePrevReport(report datafinder.PrevDropReport, ctx smachine.BargeInContext) (wakeup bool) {
+func (p *SMDropBuilder) stepWaitNextReadyAndSendReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if p.nextReport.IsZero() {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	jetAssist := p.sd.info.AssistData.jetAssist
+	// wait for confirmation from Plash of the next pulse / different slot
+	ready := jetAssist.GetNextReadySync()
+	if !ctx.Acquire(ready) {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	p.nextDrops = jetAssist.CalculateNextDrops(p.sd.info.ID)
+	return ctx.Jump(p.sendReport)
+}
+
+func (p *SMDropBuilder) receivePrevReport(report catalog.DropReport, ctx smachine.BargeInContext) (wakeup bool) {
 	switch {
 	case !p.prevReport.IsZero():
 		if p.prevReport.Equal(report) {
@@ -154,8 +189,13 @@ func (p *SMDropBuilder) receivePrevReport(report datafinder.PrevDropReport, ctx 
 	return true
 }
 
-func (p *SMDropBuilder) verifyPrevReport(report datafinder.PrevDropReport) bool {
+func (p *SMDropBuilder) verifyPrevReport(report catalog.DropReport) bool {
 	// TODO verification vs jet tree etc
 	return !report.IsZero()
+}
+
+func (p *SMDropBuilder) sendReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	// TODO send dropReport to next LME
+	return ctx.Stop()
 }
 
