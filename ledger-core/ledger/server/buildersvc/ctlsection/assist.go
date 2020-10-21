@@ -74,7 +74,7 @@ func (p *WriteAssistant) WritePlashStart(pd pulse.Data, population census.Online
 			// Population:     rms.Binary{},
 		}
 
-		ew := newCtlEntryWriter(Ref(ledger.ControlSection, false), startEntry)
+		ew := newCtlEntryWriter(SectionCtlRecordRef(ledger.ControlSection, rms.TypeRCtlPlashStartPolymorphID), startEntry)
 
 		err = p.w.WriteBundle(ew, func(indices []ledger.DirectoryIndex, err error) bool {
 			if err != nil {
@@ -172,7 +172,7 @@ func (p *WriteAssistant) WriteDropSummary(id jet.DropID, finalizeFn func ()) (ca
 		// MerkleLogCount:          0,
 	}
 
-	ew := newCtlEntryWriter(JetRef(id.ID()), dropEntry)
+	ew := newCtlEntryWriter(JetCtlRecordRef(id.ID(), rms.TypeRCtlDropSummaryPolymorphID), dropEntry)
 	dr := catalog.DropReport{ ReportRec: &dropEntry.DropReport }
 
 	err := p.w.WriteBundle(ew, func(indices []ledger.DirectoryIndex, err error) bool {
@@ -205,7 +205,7 @@ func (p *WriteAssistant) WritePlashSummary() (err error) {
 		}
 		p.mutex.Unlock()
 
-		ew := newCtlEntryWriter(Ref(ledger.ControlSection, true), plashSummary)
+		ew := newCtlEntryWriter(SectionCtlRecordRef(ledger.ControlSection, rms.TypeRCtlPlashSummaryPolymorphID), plashSummary)
 
 		err = p.w.WriteBundle(ew, func(indices []ledger.DirectoryIndex, err error) bool {
 			if err != nil {

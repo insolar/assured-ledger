@@ -10,10 +10,11 @@ import (
 	"sort"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type ordinalList []ledger.Ordinal
+const ordinalSize = 4
 
 func (v ordinalList) Size() int {
 	return len(v)<<2
@@ -22,38 +23,7 @@ func (v ordinalList) Size() int {
 func (v ordinalList) Write(b []byte) (n int, err error) {
 	for _, o := range v {
 		binary.LittleEndian.PutUint32(b[n:], uint32(o))
-		n += 4
-	}
-	return n, err
-}
-
-
-
-type FilamentHead struct {
-	First ledger.Ordinal
-	Last  ledger.Ordinal
-	JetID jet.ID
-	Flags ledger.DirectoryEntryFlags
-}
-
-const FilamentHeadSize = 12
-
-type filamentHeads []FilamentHead
-
-func (v filamentHeads) Size() int {
-	return len(v)*FilamentHeadSize
-}
-
-func (v filamentHeads) Write(b []byte) (n int, err error) {
-	for _, h := range v {
-		binary.LittleEndian.PutUint32(b[n:], uint32(h.First))
-		n += 4
-		binary.LittleEndian.PutUint32(b[n:], uint32(h.Last))
-		n += 4
-		binary.LittleEndian.PutUint16(b[n:], uint16(h.JetID))
-		n += 2
-		binary.LittleEndian.PutUint16(b[n:], uint16(h.Flags))
-		n += 2
+		n += ordinalSize
 	}
 	return n, err
 }
@@ -74,5 +44,33 @@ func (v ordinalSorter) Less(i, j int) bool {
 
 func (v ordinalSorter) Swap(i, j int) {
 	v[i], v[j] = v[j], v[i]
+}
+
+func NewOrdinalListMapper(b []byte) OrdinalListMapper {
+	m := OrdinalListMapper(b)
+	if m.Len() < 0 {
+		panic(throw.IllegalValue())
+	}
+	return m
+}
+
+type OrdinalListMapper []byte
+
+func (v OrdinalListMapper) Len() int {
+	switch n := len(v); {
+	case n == 0:
+		return 0
+	case n & (ordinalSize - 1) == 0:
+		return n >> 2
+	default:
+		return -1
+	}
+}
+
+func (v OrdinalListMapper) TryGet(ord ledger.Ordinal) (ledger.Ordinal, bool) {
+	if int(ord<<2) >= len(v) {
+		return 0, false
+	}
+	return ledger.Ordinal(binary.LittleEndian.Uint32(v[ord<<2:])), true
 }
 

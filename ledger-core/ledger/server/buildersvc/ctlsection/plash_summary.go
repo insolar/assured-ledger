@@ -16,7 +16,7 @@ type SectionSummaryWriter struct {
 	section          ledger.SectionID
 
 	recordToFilament []ledger.Ordinal
-	prevFilRecord    []ledger.Ordinal
+	nextFilRecord    []ledger.Ordinal
 	filamentHeads    []FilamentHead
 	// merkleLog        []cryptkit.Digest // TODO
 
@@ -42,7 +42,7 @@ func (p *SectionSummaryWriter) ReadCatalog(dirtyReader bundle.DirtyReader, secti
 	totalCount := lastPage * pageSize + len(directoryPages[lastPage])
 
 	p.recordToFilament = make([]ledger.Ordinal, totalCount)
-	p.prevFilRecord = make([]ledger.Ordinal, totalCount)
+	p.nextFilRecord = make([]ledger.Ordinal, totalCount)
 	p.filamentHeads = make([]FilamentHead, 0, 1 + totalCount >> 4)
 	filMap := make(map[ledger.Ordinal]int, cap(p.filamentHeads))
 
@@ -67,7 +67,6 @@ func (p *SectionSummaryWriter) ReadCatalog(dirtyReader bundle.DirtyReader, secti
 
 			if flags & ledger.FilamentLocalStart != 0 {
 				p.recordToFilament[entryOrd] = entryOrd
-				p.prevFilRecord[entryOrd] = 0
 
 				filMap[entryOrd] = len(p.filamentHeads)
 				p.filamentHeads = append(p.filamentHeads, FilamentHead{
@@ -100,7 +99,9 @@ func (p *SectionSummaryWriter) ReadCatalog(dirtyReader bundle.DirtyReader, secti
 			case fil.Flags & ledger.FilamentClose != 0:
 				return throw.Impossible()
 			}
-			p.prevFilRecord[entryOrd] = fil.Last
+			if fil.Last > 0 {
+				p.nextFilRecord[fil.Last] = entryOrd
+			}
 			fil.Last = entryOrd
 			p.recordToFilament[entryOrd] = head
 		}
@@ -130,9 +131,9 @@ func (p *SectionSummaryWriter) PrepareWrite(snapshot bundle.Snapshot) error {
 	}
 
 	{
-		sz := ordinalList(p.prevFilRecord).Size()
-		p.summary.RecToPrevSize = uint32(sz)
-		p.receptRecToPrev, p.summary.RecToPrevLoc, err = cp.AllocatePayloadStorage(sz, ledger.SameAsBodyExtensionID)
+		sz := ordinalList(p.nextFilRecord).Size()
+		p.summary.RecToNextSize = uint32(sz)
+		p.receptRecToPrev, p.summary.RecToNextLoc, err = cp.AllocatePayloadStorage(sz, ledger.SameAsBodyExtensionID)
 		if err != nil {
 			return err
 		}
@@ -156,7 +157,7 @@ func (p *SectionSummaryWriter) PrepareWrite(snapshot bundle.Snapshot) error {
 
 	p.dirIndex = cd.GetNextDirectoryIndex()
 
-	de := bundle.DirectoryEntry{ Key: Ref(p.section, true) }
+	de := bundle.DirectoryEntry{ Key: SectionCtlRecordRef(p.section, rms.TypeRCtlSectionSummaryPolymorphID) }
 	p.receptSummary, de.Loc, err = cd.AllocateEntryStorage(p.summary.ProtoSize())
 	if err != nil {
 		return err
@@ -173,7 +174,7 @@ func (p *SectionSummaryWriter) ApplyWrite() ([]ledger.DirectoryIndex, error) {
 		}
 	}
 	if r := p.receptRecToPrev; r != nil {
-		if _, err := r.WriteTo(ordinalList(p.prevFilRecord)); err != nil {
+		if _, err := r.WriteTo(ordinalList(p.nextFilRecord)); err != nil {
 			return nil, err
 		}
 	}

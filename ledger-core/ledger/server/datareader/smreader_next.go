@@ -35,7 +35,7 @@ func (v nextReader) ReadData(reader readbundle.Reader) error {
 		panic(throw.NotImplemented())
 	}
 
-	nextFinder := reader.FinderOfNext()
+	nextFinder := reader.FinderOfNext(sectionID)
 	if nextFinder == nil {
 		panic(throw.Impossible())
 	}

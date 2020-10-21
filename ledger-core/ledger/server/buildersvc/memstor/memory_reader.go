@@ -9,8 +9,10 @@ import (
 	"math"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/ctlsection"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/readersvc/readbundle"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -107,6 +109,9 @@ func (v MemoryStorageReader) FindDirectoryEntryLocator(id ledger.SectionID, ref 
 }
 
 func (v MemoryStorageReader) GetDirectoryEntryLocator(index ledger.DirectoryIndex) (ledger.StorageLocator, error) {
+	if index == 0 {
+		return 0, nil
+	}
 	section, err := v.getSection(index.SectionID(), true)
 	if err != nil {
 		return 0, throw.WithDetails(err, struct{ Index ledger.DirectoryIndex }{index})
@@ -117,6 +122,9 @@ func (v MemoryStorageReader) GetDirectoryEntryLocator(index ledger.DirectoryInde
 }
 
 func (v MemoryStorageReader) GetEntryStorage(locator ledger.StorageLocator) (readbundle.Slice, error) {
+	if locator == 0 {
+		return nil, nil
+	}
 	section, err := v.getSection(locator.SectionID(), true)
 	if err == nil {
 		var b []byte
@@ -135,7 +143,23 @@ func (v MemoryStorageReader) GetEntryStorage(locator ledger.StorageLocator) (rea
 }
 
 func (v MemoryStorageReader) GetPayloadStorage(locator ledger.StorageLocator, size int) (readbundle.Slice, error) {
-	if size <= 0 {
+	switch b, err := v.getPayloadStorage(locator, size); {
+	case err != nil:
+		return nil, err
+	case b == nil:
+		return nil, nil
+	default:
+		return v.readData(b, 0, size)
+	}
+}
+
+func (v MemoryStorageReader) getPayloadStorage(locator ledger.StorageLocator, size int) ([]byte, error) {
+	switch {
+	case size < 0:
+		panic(throw.IllegalValue())
+	case locator == 0:
+		return nil, nil
+	case size == 0:
 		panic(throw.IllegalValue())
 	}
 
@@ -147,31 +171,105 @@ func (v MemoryStorageReader) GetPayloadStorage(locator ledger.StorageLocator, si
 		if err != nil {
 			return nil, err
 		}
-		return v.readData(b, 0, size)
+		return b, nil
+	}
+}
+
+func (v MemoryStorageReader) checkSlice(b []byte, ofs, size int) ([]byte, error) {
+	switch end := ofs + size; {
+	case end > len(b):
+		return nil, throw.E("invalid data slice", struct{ Offset, Length int }{ofs, size})
+	default:
+		return b[ofs:end:end], nil
 	}
 }
 
 func (v MemoryStorageReader) readData(b []byte, ofs, size int) (readbundle.Slice, error) {
-	end := ofs + size
-	if end > len(b) {
-		return nil, throw.E("invalid data slice", struct { Offset, Length int}{ ofs, size})
+	switch bb, err := v.checkSlice(b, ofs, size); {
+	case err != nil:
+		return nil, err
+	default:
+		return longbits.WrapBytes(bb), nil
 	}
-	return longbits.WrapBytes(b[ofs:end:end]), nil
 }
 
-func (v MemoryStorageReader) FinderOfNext() readbundle.DirectoryIndexFinder {
-	panic(throw.NotImplemented()) // TODO FinderOfNext
-	// section, err := v.getSection(ledger.ControlSection, true)
-	// if err == nil {
-	// 	section.directory.FindLocator()
-	// }
+var ErrCtlRecNotFound = throw.E("control record not found")
+
+func (v MemoryStorageReader) readCtlRecLoc(ref reference.Holder) (readbundle.Slice, error) {
+	loc, err := v.FindDirectoryEntryLocator(ledger.ControlSection, ref)
+	switch {
+	case err != nil:
+	case loc == 0:
+		err = ErrCtlRecNotFound
+	default:
+		var slice readbundle.Slice
+		switch slice, err = v.GetEntryStorage(loc); {
+		case err != nil:
+		case slice == nil:
+			err = ErrCtlRecNotFound
+		default:
+			return slice, nil
+		}
+	}
+	return nil, err
 }
 
-func (v MemoryStorageReader) FinderOfFirst() readbundle.DirectoryIndexFinder {
+func (v MemoryStorageReader) readSectionSummary(sectionID ledger.SectionID) (rec rms.RCtlSectionSummary, _ error) {
+	if sectionID == ledger.ControlSection {
+		panic(throw.Unsupported())
+	}
+
+	slice, err := v.readCtlRecLoc(ctlsection.SectionCtlRecordRef(sectionID, rec.GetDefaultPolymorphID()))
+	if err != nil {
+		return rec, err
+	}
+	err = readbundle.UnmarshalTo(slice, &rec)
+	return rec, err
+}
+
+func (v MemoryStorageReader) FinderOfNext(sectionID ledger.SectionID) readbundle.DirectoryIndexFinder {
+	rec, err := v.readSectionSummary(sectionID)
+	if err == nil {
+		var list ctlsection.OrdinalListMapper
+		list, err = v.readOrdinalListFinder(rec.RecToNextLoc, int(rec.RecToNextSize))
+		if err == nil {
+			return ordinalMapperFinder{"recToNext", sectionID, list}
+		}
+	}
+
+	panic(err)
+}
+
+func (v MemoryStorageReader) FinderOfFirst(sectionID ledger.SectionID) readbundle.DirectoryIndexFinder {
 	panic(throw.NotImplemented()) // TODO FinderOfFirst
 }
 
-func (v MemoryStorageReader) FinderOfLast() readbundle.DirectoryIndexFinder {
+func (v MemoryStorageReader) FinderOfLast(sectionID ledger.SectionID) readbundle.DirectoryIndexFinder {
 	panic(throw.NotImplemented()) // TODO FinderOfLast
+}
+
+var ErrInvalidOrdinalIndex = throw.E("ordinal index has wrong size")
+
+func (v MemoryStorageReader) readOrdinalListFinder(listLoc rms.StorageLocator, listSize int) (ctlsection.OrdinalListMapper, error) {
+	if listLoc == 0 || listSize == 0 {
+		return nil, nil
+	}
+
+	b0, err := v.getPayloadStorage(listLoc, listSize)
+	if err != nil {
+		return nil, err
+	}
+	if b0, err = v.checkSlice(b0, 0, listSize); err != nil {
+		return nil, err
+	}
+
+	list := ctlsection.OrdinalListMapper(b0)
+	switch n := list.Len(); {
+	case n == 0:
+		return nil, nil
+	case list.Len() < 0:
+		return nil, ErrInvalidOrdinalIndex
+	}
+	return list, nil
 }
 

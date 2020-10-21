@@ -134,6 +134,10 @@ func (p *MemoryStorageWriter) getDirtyReadSection(sectionID ledger.SectionID) *c
 }
 
 func (p *MemoryStorageWriter) GetDirectoryEntry(index ledger.DirectoryIndex) bundle.DirectoryEntry {
+	if index == 0 {
+		return bundle.DirectoryEntry{}
+	}
+
 	switch section := p.getDirtyReadSection(index.SectionID()); {
 	case section == nil:
 	case !section.hasDirectory():
@@ -158,6 +162,10 @@ func (p *MemoryStorageWriter) GetDirectoryEntryLocator(index ledger.DirectoryInd
 }
 
 func (p *MemoryStorageWriter) GetEntryStorage(locator ledger.StorageLocator) (readbundle.Slice, error) {
+	if locator == 0 {
+		return nil, nil
+	}
+
 	switch section := p.getDirtyReadSection(locator.SectionID()); {
 	case section == nil:
 	case !section.hasDirectory():
@@ -179,10 +187,19 @@ func (p *MemoryStorageWriter) GetEntryStorage(locator ledger.StorageLocator) (re
 	return nil, nil
 }
 
-func (p *MemoryStorageWriter) GetPayloadStorage(locator ledger.StorageLocator, sz int) (readbundle.Slice, error) {
-	if section := p.getDirtyReadSection(locator.SectionID()); sz >= 0 && section != nil {
-		if b := section.readDirtyStorage(locator); len(b) >= sz {
-			return readbundle.WrapBytes(b[:sz:sz]), nil
+func (p *MemoryStorageWriter) GetPayloadStorage(locator ledger.StorageLocator, size int) (readbundle.Slice, error) {
+	switch {
+	case size < 0:
+		panic(throw.IllegalValue())
+	case locator == 0:
+		return nil, nil
+	case size == 0:
+		panic(throw.IllegalValue())
+	}
+
+	if section := p.getDirtyReadSection(locator.SectionID()); size >= 0 && section != nil {
+		if b := section.readDirtyStorage(locator); len(b) >= size {
+			return readbundle.WrapBytes(b[:size:size]), nil
 		}
 	}
 	return nil, nil

@@ -34,9 +34,9 @@ type Reader interface {
 }
 
 type FindProvider interface {
-	FinderOfNext() DirectoryIndexFinder
-	FinderOfFirst() DirectoryIndexFinder
-	FinderOfLast() DirectoryIndexFinder
+	FinderOfNext(ledger.SectionID) DirectoryIndexFinder
+	FinderOfFirst(ledger.SectionID) DirectoryIndexFinder
+	FinderOfLast(ledger.SectionID) DirectoryIndexFinder
 	// FilamentFinder
 }
 

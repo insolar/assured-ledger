@@ -15,6 +15,7 @@ type Ordinal uint32
 type ExtensionID uint32
 
 const (
+	OrdinalSize = 4
 	SameAsBodyExtensionID ExtensionID = 0
 )
 
