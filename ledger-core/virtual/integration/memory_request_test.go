@@ -75,9 +75,16 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 				syncChan <- rep.ProvidedContent.LatestDirtyState.Reference
 				return false // no resend msg
 			})
+			suite.typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+				assert.Equal(t, suite.object, report.Object.GetValue())
+				// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+				// write a method for checking the transcript after implementation
+				return false
+			})
 
 			suite.server.IncrementPulse(ctx)
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, suite.typedChecker.VStateReport.Wait(ctx, 1))
+			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, suite.typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
 
 			suite.typedChecker.VCachedMemoryResponse.Set(func(resp *rms.VCachedMemoryResponse) bool {
 				assert.Equal(t, []byte(newState), resp.State.Memory.GetBytes())
@@ -96,7 +103,7 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 			{
 				cachReq := &rms.VCachedMemoryRequest{
 					Object: rms.NewReference(suite.object),
-					State: stateRef,
+					State:  stateRef,
 				}
 				suite.server.SendPayload(ctx, cachReq)
 			}
@@ -197,8 +204,8 @@ func (s *memoryCacheTest) initServer(t *testing.T) context.Context {
 
 func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	var (
-		outgoing  = s.server.BuildRandomOutgoingWithPulse()
-		incoming  = reference.NewRecordOf(s.object, outgoing.GetLocal())
+		outgoing = s.server.BuildRandomOutgoingWithPulse()
+		incoming = reference.NewRecordOf(s.object, outgoing.GetLocal())
 	)
 
 	report := s.server.StateReportBuilder().Ready().Object(s.object).OrderedPendings(1).Report()
@@ -226,6 +233,13 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, s.server.Journal.WaitAllAsyncCallsDone())
 	}
 	{ // send delegation request finished with new state
+		pendingCall := utils.GenerateVCallRequestMethod(s.server)
+		pendingCall.Callee.Set(s.object)
+		pendingCall.CallOutgoing.Set(outgoing)
+
+		stateRef := reference.NewRecordOf(s.object, s.server.RandomLocalWithPulse())
+		pendingTranscript := utils.GenerateIncomingTranscript(*pendingCall, stateRef, stateRef, s.server.RandomGlobalWithPrevPulse(), s.server.RandomGlobalWithPrevPulse())
+
 		pl := rms.VDelegatedRequestFinished{
 			CallType:     rms.CallTypeMethod,
 			Callee:       rms.NewReference(s.object),
@@ -237,6 +251,7 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 				Class:     rms.NewReference(s.class),
 				Memory:    rms.NewBytes([]byte(newState)),
 			},
+			PendingTranscript: pendingTranscript,
 		}
 		await := s.server.Journal.WaitStopOf(&handlers.SMVDelegatedRequestFinished{}, 1)
 		s.server.SendPayload(ctx, &pl)

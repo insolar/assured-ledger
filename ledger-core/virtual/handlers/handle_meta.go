@@ -137,6 +137,8 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 			return targetPulse, &SMVObjectTranscriptReport{Meta: payloadMeta, Payload: obj}
 		case *rms.VCachedMemoryRequest:
 			return targetPulse, &SMVCachedMemoryRequest{Meta: payloadMeta, Payload: obj}
+		case *rms.VCachedMemoryResponse:
+			return targetPulse, &SMVCachedMemoryResponse{Meta: payloadMeta, Payload: obj}
 		case *rms.VObjectValidationReport:
 			return obj.In, &SMVObjectValidationReport{Meta: payloadMeta, Payload: obj}
 		case *rms.LRegisterResponse:

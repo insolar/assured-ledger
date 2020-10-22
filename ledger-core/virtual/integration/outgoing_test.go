@@ -122,6 +122,8 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			CallRequestFlags: rms.BuildCallRequestFlags(rms.SendResultDefault, rms.RepeatedCall),
 			Arguments:        rms.NewBytes([]byte("123")),
 		}
+
+		pl *rms.VCallRequest
 	)
 
 	// add ExecutionMocks to runnerMock
@@ -197,6 +199,31 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
 			assert.Equal(t, objectAGlobal, finished.Callee.GetValue())
 			assert.Equal(t, secondExpectedToken, finished.DelegationSpec)
+
+			assert.NotEmpty(t, finished.PendingTranscript)
+			transcript := finished.PendingTranscript
+			assert.Equal(t, 4, len(transcript.Entries))
+
+			request1, ok := transcript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
+			require.True(t, ok)
+			require.Equal(t, outgoingCallRef, request1.Request.CallOutgoing.GetValue())
+
+			outgoing1, ok := transcript.Entries[1].Get().(*rms.Transcript_TranscriptEntryOutgoingRequest)
+			require.True(t, ok)
+			require.Equal(t, secondPulse, outgoing1.Request.GetValue().GetLocal().Pulse())
+			require.Equal(t, outgoingCallRef, outgoing1.Reason.GetValue())
+
+			outgoingResult1, ok := transcript.Entries[2].Get().(*rms.Transcript_TranscriptEntryOutgoingResult)
+			require.True(t, ok)
+			require.Equal(t, secondPulse, outgoingResult1.CallResult.CallOutgoing.GetValue().GetLocal().Pulse())
+			require.Equal(t, outgoingCallRef, outgoingResult1.Reason.GetValue())
+
+			result1, ok := transcript.Entries[3].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+			require.True(t, ok)
+			require.Equal(t, server.GetPulseNumber(), result1.ObjectState.GetValue().GetLocal().Pulse())
+			require.Equal(t, outgoingCallRef, result1.Reason.GetValue())
+
+			utils.AssertVCallRequestEqual(t, pl, &request1.Request)
 			return false
 		})
 		typedChecker.VCallRequest.Set(func(request *rms.VCallRequest) bool {
@@ -242,7 +269,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 		})
 	}
 
-	pl := utils.GenerateVCallRequestMethod(server)
+	pl = utils.GenerateVCallRequestMethod(server)
 	pl.CallFlags = rms.BuildCallFlags(fooIsolation.Interference, fooIsolation.State)
 	pl.Callee.Set(objectAGlobal)
 	pl.CallSiteMethod = "Foo"
@@ -261,7 +288,6 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	assert.Equal(t, 2, typedChecker.VDelegatedCallRequest.Count())
 	assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
-
 	mc.Finish()
 }
 
@@ -362,6 +388,12 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			assert.Equal(t, objectRef, report.Object.GetValue())
 			assert.Equal(t, rms.StateStatusEmpty, report.Status)
 			assert.Zero(t, report.DelegationSpec)
+			return false
+		})
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			assert.Equal(t, objectRef, report.Object.GetValue())
+			assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
+			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
@@ -469,6 +501,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	assert.Equal(t, 2, typedChecker.VDelegatedCallRequest.Count())
 	assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
+	assert.Equal(t, 0, typedChecker.VObjectTranscriptReport.Count())
 
 	mc.Finish()
 }

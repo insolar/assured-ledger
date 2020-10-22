@@ -106,6 +106,7 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 			{
 				server.IncrementPulse(ctx)
 				commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+
 				assert.Equal(t, 1, typedChecker.VStateReport.Count())
 			}
 

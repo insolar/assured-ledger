@@ -47,6 +47,7 @@ import (
 	virtualtestutils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/validation"
 )
 
 func executeLeakCheck(t *testing.T) {
@@ -77,6 +78,7 @@ func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 		Interference: sm.Payload.CallFlags.GetInterference(),
 		State:        sm.Payload.CallFlags.GetState(),
 	}
+	sm.transcript = validation.NewTranscript()
 	return sm
 }
 
@@ -857,6 +859,8 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 				AnticipatedRef:     res.AnticipatedRef,
 				RegistrarSignature: rms.NewBytes([]byte("dummy")),
 			})
+		case *rms.VObjectTranscriptReport:
+			// TODO: FIXME: check transcript content
 		default:
 			t.Fatal("unreachable")
 		}

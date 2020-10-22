@@ -181,6 +181,8 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 		state.SetState(object.Missing)
 	}
 
+	state.PendingTranscripts = append(state.PendingTranscripts, s.Payload.PendingTranscript)
+
 	pendingList := state.PendingTable.GetList(s.Payload.CallFlags.GetInterference())
 	if !pendingList.Finish(requestRef) {
 		panic(throw.E("delegated request was not registered", struct {

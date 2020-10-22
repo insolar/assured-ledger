@@ -36,6 +36,7 @@ import (
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/validation"
 )
 
 /* -------- Utilities ------------- */
@@ -86,9 +87,13 @@ type SMExecute struct {
 
 	findCallResponse *rms.VFindCallResponse
 
+	incomingAddedToTranscript bool
+	transcript                validation.Transcript
+
 	// registration in LMN
 	lmnLastFilamentRef         reference.Global
 	lmnLastLifelineRef         reference.Global
+	lmnIncomingRequestRef      reference.Global
 	lmnSafeResponseCounter     shared.SafeResponseCounter
 	lmnSafeResponseCounterLink smachine.SharedDataLink
 	incomingRegistered         bool
@@ -127,28 +132,38 @@ func (s *SMExecute) GetStateMachineDeclaration() smachine.StateMachineDeclaratio
 	return dSMExecuteInstance
 }
 
+func ExecContextFromRequest(request *rms.VCallRequest) execution.Context {
+	res := execution.Context{
+		Request: request,
+	}
+	if request.CallType == rms.CallTypeConstructor {
+		// TODO: FIXME: validation should be fixed
+	} else {
+		res.Object = request.Callee.GetValue()
+	}
+
+	res.Incoming = reference.NewRecordOf(request.Callee.GetValue(), request.CallOutgoing.GetValue().GetLocal())
+	res.Outgoing = request.CallOutgoing.GetValue()
+
+	res.Isolation = contract.MethodIsolation{
+		Interference: request.CallFlags.GetInterference(),
+		State:        request.CallFlags.GetState(),
+	}
+	return res
+}
+
 func (s *SMExecute) prepareExecution(ctx context.Context) {
-	currentPulse := s.pulseSlot.CurrentPulseNumber()
+	s.execution = ExecContextFromRequest(s.Payload)
 
 	s.execution.Context = ctx
-	s.execution.Sequence = 0
-	s.execution.Request = s.Payload
 	s.execution.Pulse = s.pulseSlot.PulseData()
 
 	if s.Payload.CallType == rms.CallTypeConstructor {
 		s.isConstructor = true
+		currentPulse := s.pulseSlot.CurrentPulseNumber()
 		s.execution.Object = lmn.GetLifelineAnticipatedReference(s.referenceBuilder, s.Payload, currentPulse)
-	} else {
-		s.execution.Object = s.Payload.Callee.GetValue()
 	}
-
-	s.execution.Incoming = reference.NewRecordOf(s.Payload.Callee.GetValue(), s.Payload.CallOutgoing.GetValue().GetLocal())
-	s.execution.Outgoing = s.Payload.CallOutgoing.GetValue()
-
-	s.execution.Isolation = contract.MethodIsolation{
-		Interference: s.Payload.CallFlags.GetInterference(),
-		State:        s.Payload.CallFlags.GetState(),
-	}
+	s.transcript = validation.NewTranscript()
 }
 
 func (s *SMExecute) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
@@ -550,6 +565,7 @@ func (s *SMExecute) stepRegisterObjectLifeLine(ctx smachine.ExecutionContext) sm
 		}
 
 		s.lmnLastLifelineRef = reference.NewRecordOf(s.execution.Object, subroutineSM.NewLastLifelineRef.GetLocal())
+		s.lmnIncomingRequestRef = subroutineSM.IncomingRequestRef
 
 		return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 			if ctx.Acquire(s.globalSemaphore.PartialLink()).IsNotPassed() {
@@ -818,11 +834,41 @@ func (s *SMExecute) stepRegisterOutgoing(ctx smachine.ExecutionContext) smachine
 	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
 		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
+		s.lmnIncomingRequestRef = subroutineSM.IncomingRequestRef
 
 		s.outgoing.CallOutgoing = rms.NewReference(s.lmnLastFilamentRef)
 
-		return ctx.Jump(s.stepSendOutgoing)
+		return ctx.Jump(s.stepTranscribeOutgoingRequest)
 	})
+}
+
+func (s *SMExecute) stepTranscribeOutgoingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	entries := make([]validation.TranscriptEntry, 0)
+	if !s.incomingAddedToTranscript {
+		entries = append(entries, s.incomingTranscriptEntry())
+	}
+
+	entries = append(entries, validation.TranscriptEntry{
+		Reason: s.execution.Outgoing,
+		Custom: validation.TranscriptEntryOutgoingRequest{
+			Request: s.outgoing.CallOutgoing.GetValue(),
+		},
+	})
+
+	if !s.migrationHappened {
+		action := func(state *object.SharedState) {
+			state.Transcript.Add(entries...)
+		}
+		if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+			return stepUpdate
+		}
+	}
+
+	s.incomingAddedToTranscript = true
+
+	s.transcript.Add(entries...)
+
+	return ctx.Jump(s.stepSendOutgoing)
 }
 
 func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -842,6 +888,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
 				s.outgoingVCallResult = res
 				s.outgoingResult = res.ReturnArguments.GetBytes()
+				s.outgoingVCallResult = res
 
 				return ctx.WakeUp()
 			}
@@ -875,8 +922,18 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 
 	s.outgoingSentCounter++
 
-	// we'll wait for barge-in WakeUp here, not adapter
 	return ctx.Sleep().ThenJump(s.stepWaitAndRegisterOutgoingResult)
+}
+
+func (s *SMExecute) incomingTranscriptEntry() validation.TranscriptEntry {
+	return validation.TranscriptEntry{
+		Reason: s.Payload.CallOutgoing.GetValue(),
+		Custom: validation.TranscriptEntryIncomingRequest{
+			ObjectMemory: s.objectMemoryRef(),
+			Incoming:     s.lmnIncomingRequestRef,
+			CallRequest:  *s.Payload,
+		},
+	}
 }
 
 func (s *SMExecute) stepWaitAndRegisterOutgoingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -897,9 +954,34 @@ func (s *SMExecute) stepWaitAndRegisterOutgoingResult(ctx smachine.ExecutionCont
 				return ctx.Sleep().ThenRepeat()
 			}
 
-			return ctx.Jump(s.stepExecuteContinue)
+			return ctx.Jump(s.stepTranscribeOutgoingResult)
 		})
 	})
+}
+
+func (s *SMExecute) stepTranscribeOutgoingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.outgoingVCallResult == nil {
+		panic(throw.IllegalValue())
+	}
+
+	entry := validation.TranscriptEntry{
+		Reason: s.execution.Outgoing,
+		Custom: validation.TranscriptEntryOutgoingResult{
+			OutgoingResult: s.lmnLastFilamentRef,
+			CallResult:     *s.outgoingVCallResult,
+		},
+	}
+
+	if !s.migrationHappened {
+		action := func(state *object.SharedState) {
+			state.Transcript.Add(entry)
+		}
+		if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+			return stepUpdate
+		}
+	}
+	s.transcript.Add(entry)
+	return ctx.Jump(s.stepExecuteContinue)
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -964,6 +1046,7 @@ func (s *SMExecute) stepSaveExecutionResult(ctx smachine.ExecutionContext) smach
 	return ctx.CallSubroutine(&subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
 		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
+		s.lmnIncomingRequestRef = subroutineSM.IncomingRequestRef
 
 		return ctx.Jump(s.stepSaveNewObject)
 	})
@@ -998,27 +1081,49 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		panic(throw.IllegalValue())
 	}
 
-	if s.migrationHappened || s.newObjectDescriptor == nil {
+	tEntries := make([]validation.TranscriptEntry, 0)
+
+	if !s.incomingAddedToTranscript {
+		tEntries = append(tEntries, s.incomingTranscriptEntry())
+	}
+
+	tEntries = append(tEntries, validation.TranscriptEntry{
+		Reason: s.execution.Outgoing,
+		Custom: validation.TranscriptEntryIncomingResult{
+			IncomingResult: s.lmnLastFilamentRef,
+			ObjectMemory:   s.lmnLastLifelineRef,
+		},
+	})
+
+	if s.migrationHappened {
+		s.transcript.Add(tEntries...)
 		return ctx.Jump(s.stepSendCallResult)
 	}
 
-	s.updateMemoryCache(ctx, s.newObjectDescriptor)
-
 	action := func(state *object.SharedState) {
-		state.SetDescriptorDirty(s.newObjectDescriptor)
+		if s.newObjectDescriptor != nil {
+			state.SetDescriptorDirty(s.newObjectDescriptor)
 
-		switch state.GetState() {
-		case object.HasState:
-			// ok
-		case object.Empty, object.Missing:
-			state.SetState(object.HasState)
-		default:
-			panic(throw.IllegalState())
+			switch state.GetState() {
+			case object.HasState:
+				// ok
+			case object.Empty, object.Missing:
+				state.SetState(object.HasState)
+			default:
+				panic(throw.IllegalState())
+			}
 		}
-	}
 
+		state.Transcript.Add(tEntries...)
+		s.transcript.Add(tEntries...)
+		s.incomingAddedToTranscript = true
+	}
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
+	}
+
+	if s.newObjectDescriptor != nil {
+		s.updateMemoryCache(ctx, s.newObjectDescriptor)
 	}
 
 	return ctx.Jump(s.stepSendCallResult)
@@ -1108,13 +1213,14 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 
 func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, lastState *rms.ObjectState) {
 	msg := rms.VDelegatedRequestFinished{
-		CallType:       s.Payload.CallType,
-		CallFlags:      s.Payload.CallFlags,
-		Callee:         rms.NewReference(s.execution.Object),
-		CallOutgoing:   rms.NewReference(s.execution.Outgoing),
-		CallIncoming:   rms.NewReference(s.execution.Incoming),
-		DelegationSpec: s.getToken(),
-		LatestState:    lastState,
+		CallType:          s.Payload.CallType,
+		CallFlags:         s.Payload.CallFlags,
+		Callee:            rms.NewReference(s.execution.Object),
+		CallOutgoing:      rms.NewReference(s.execution.Outgoing),
+		CallIncoming:      rms.NewReference(s.execution.Incoming),
+		DelegationSpec:    s.getToken(),
+		LatestState:       lastState,
+		PendingTranscript: s.transcript.GetRMSTranscript(nil),
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
@@ -1127,8 +1233,28 @@ func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, 
 	}).WithoutAutoWakeUp().Start()
 }
 
-func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte, deactivated bool) descriptor.Object {
-	return descriptor.NewObject(s.execution.Object, s.lmnLastLifelineRef.GetLocal(), class, memory, deactivated)
+func (s *SMExecute) makeNewDescriptor(
+	class reference.Global,
+	memory []byte,
+	deactivated bool,
+) descriptor.Object {
+	return MakeDescriptor(
+		s.execution.Object,
+		class,
+		s.lmnLastLifelineRef.GetLocal(),
+		memory, deactivated,
+	)
+}
+
+func MakeDescriptor(
+	object reference.Global,
+	class reference.Global,
+	state reference.Local,
+	memory []byte,
+	deactivated bool,
+) descriptor.Object {
+	return descriptor.NewObject(object, state, class, memory, deactivated)
+
 }
 
 func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -1256,6 +1382,19 @@ func (s *SMExecute) deduplicate(state *object.SharedState) (DeduplicationAction,
 	}
 
 	return ContinueExecute, nil, nil
+}
+
+func (s *SMExecute) objectMemoryRef() reference.Global {
+	switch s.Payload.CallType {
+	case rms.CallTypeConstructor:
+		return reference.Global{}
+	default:
+		desc := s.execution.ObjectDescriptor
+		if desc == nil {
+			panic(throw.Impossible())
+		}
+		return desc.State()
+	}
 }
 
 type RegisterVariant int

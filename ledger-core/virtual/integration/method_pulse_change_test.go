@@ -195,11 +195,25 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 					assert.Equal(t, object, finished.Callee.GetValue())
 					assert.Equal(t, expectedToken, finished.DelegationSpec)
 
-					if test.isolation == tolerableFlags() && test.withSideEffect {
-						require.NotEmpty(t, finished.LatestState)
-						assert.Equal(t, []byte("new memory"), finished.LatestState.Memory.GetBytes())
-					} else {
-						assert.Empty(t, finished.LatestState)
+					// todo: we should write VCallResult with 4-type error in transcript ?
+					if test.isolation == tolerableFlags() {
+						assert.NotEmpty(t, finished.PendingTranscript.Entries)
+						request, ok := finished.PendingTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
+						assert.True(t, ok)
+						assert.Equal(t, object, request.Request.Callee.GetValue())
+						assert.Equal(t, outgoing, request.Request.CallOutgoing.GetValue())
+
+						result, ok := finished.PendingTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+						assert.True(t, ok)
+						assert.NotEmpty(t, result.ObjectState.GetValue())
+						assert.Equal(t, outgoing, result.Reason.GetValue())
+
+						if test.withSideEffect {
+							require.NotEmpty(t, finished.LatestState)
+							assert.Equal(t, []byte("new memory"), finished.LatestState.Memory.GetBytes())
+						} else {
+							assert.Empty(t, finished.LatestState)
+						}
 					}
 					return false
 				})
@@ -245,9 +259,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 				assert.Equal(t, test.countChangePulse, typedChecker.VDelegatedCallRequest.Count())
 			}
-
 			mc.Finish()
-
 		})
 	}
 }
@@ -349,6 +361,23 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
 			assert.Equal(t, object, finished.Callee.GetValue())
 			assert.NotEmpty(t, finished.DelegationSpec)
+
+			assert.NotEmpty(t, finished.PendingTranscript.Entries)
+			request, ok := finished.PendingTranscript.Entries[0].Get().(*rms.Transcript_TranscriptEntryIncomingRequest)
+			assert.True(t, ok)
+			assert.Equal(t, object, request.Request.Callee.GetValue())
+
+			result, ok := finished.PendingTranscript.Entries[1].Get().(*rms.Transcript_TranscriptEntryIncomingResult)
+			assert.True(t, ok)
+			assert.NotEmpty(t, result.ObjectState.GetValue())
+			assert.Equal(t, request.Request.CallOutgoing.GetValue(), result.Reason.GetValue())
+
+			if request.Request.CallFlags.GetInterference() == isolation.CallTolerable {
+				require.NotEmpty(t, finished.LatestState)
+				assert.Equal(t, []byte("new memory"), finished.LatestState.Memory.GetBytes())
+			} else {
+				assert.Empty(t, finished.LatestState)
+			}
 			return false
 		})
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
@@ -541,12 +570,21 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			}
 			// VDelegatedRequestFinished
 			{
+				plWrapper := utils.GenerateVCallRequestConstructorForPulse(server, p1)
+				pendingCall := plWrapper.Get()
+				pendingCall.Callee.Set(object)
+				pendingCall.CallOutgoing.Set(outgoingP1)
+
+				stateRef := reference.NewRecordOf(object, server.RandomLocalWithPulse())
+				pendingTranscript := utils.GenerateIncomingTranscript(pendingCall, nil, stateRef, server.RandomGlobalWithPrevPulse(), server.RandomGlobalWithPrevPulse())
+
 				finished := rms.VDelegatedRequestFinished{
-					CallType:     rms.CallTypeMethod,
-					CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-					Callee:       rms.NewReference(object),
-					CallOutgoing: rms.NewReference(outgoingP1),
-					CallIncoming: rms.NewReference(incomingP1),
+					CallType:          rms.CallTypeConstructor,
+					CallFlags:         rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+					Callee:            rms.NewReference(object),
+					CallOutgoing:      rms.NewReference(outgoingP1),
+					CallIncoming:      rms.NewReference(incomingP1),
+					PendingTranscript: pendingTranscript,
 					LatestState: &rms.ObjectState{
 						Reference: rms.NewReference(dirtyStateRef),
 						Class:     rms.NewReference(class),

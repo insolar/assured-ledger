@@ -13,6 +13,7 @@ import (
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
@@ -65,23 +66,28 @@ func (s *SMVCachedMemoryRequest) stepGetMemory(ctx smachine.ExecutionContext) sm
 		objectStateRef = s.Payload.State.GetValue()
 	)
 
-	return s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
+	done := false
+	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
 		objectDescriptor, err := svc.Get(ctx, objectStateRef)
 
 		return func(ctx smachine.AsyncResultContext) {
+			defer func() { done = true }()
 			s.object = objectDescriptor
 			if err != nil {
 				ctx.Log().Error("failed to get memory", err)
 			}
 		}
-	}).DelayedStart().ThenJump(s.stepWaitResult)
-}
+	}).Start()
 
-func (s *SMVCachedMemoryRequest) stepWaitResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.object == nil {
-		return ctx.Sleep().ThenRepeat()
-	}
-	return ctx.Jump(s.stepBuildResult)
+	return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
+		if !done {
+			return ctx.Sleep().ThenRepeat()
+		}
+		if s.object == nil {
+			panic(throw.NotImplemented())
+		}
+		return ctx.Jump(s.stepBuildResult)
+	})
 }
 
 func (s *SMVCachedMemoryRequest) stepBuildResult(ctx smachine.ExecutionContext) smachine.StateUpdate {

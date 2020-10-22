@@ -81,19 +81,19 @@ func TestGetUpdateBalanceConcurrently(t *testing.T) {
 	{
 		for i := 0; i < count; i++ {
 			for _, port := range testutils.GetPorts() {
-				go func(port string) {
+				go func(port, ref string) {
 					getBalanceURL := testutils.GetURL(testutils.WalletGetBalancePath, "", port)
 					_, resultErr := testutils.GetWalletBalance(ctx, getBalanceURL, ref)
 					// testing.T isn't goroutine safe, so that we will check responses in main goroutine
 					outChan <- resultErr
-				}(port)
+				}(port, ref)
 
-				go func(port string) {
+				go func(port, ref string, amount uint) {
 					addAmountURL := testutils.GetURL(testutils.WalletAddAmountPath, "", port)
 					resultErr := testutils.AddAmountToWallet(ctx, addAmountURL, ref, amount)
 					// testing.T isn't goroutine safe, so that we will check responses in main goroutine
 					outChan <- resultErr
-				}(port)
+				}(port, ref, amount)
 			}
 		}
 

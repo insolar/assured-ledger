@@ -200,6 +200,9 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 			suite.createPulseP5(ctx)
 			expectedPublished++                      // expect StateReport
 			expectedPublished += 2 * len(test.start) // expect GetToken + FindRequest
+			if len(test.finish) != 0 {
+				expectedPublished++ // expect VObjectTranscriptReport only if there is finished pending
+			}
 			suite.waitMessagePublications(ctx, t, expectedPublished)
 
 			suite.releaseNewlyCreatedPendings()
@@ -337,12 +340,27 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) finishActivePending(
 	ctx context.Context, reqName string,
 ) {
 	reqInfo := s.requests[reqName]
+
+	pendingCall := utils.GenerateVCallRequestMethod(s.server)
+	pendingCall.Callee.Set(s.getObject())
+	pendingCall.CallOutgoing.Set(reqInfo.ref)
+
+	var pendingTranscript rms.Transcript
+	stateRef := reference.NewRecordOf(s.getObject(), s.server.RandomLocalWithPulse())
+	if reqInfo.flags.GetInterference() == isolation.CallIntolerable {
+		pendingTranscript = utils.GenerateIncomingTranscript(*pendingCall, stateRef, stateRef, s.server.RandomGlobalWithPrevPulse(), s.server.RandomGlobalWithPrevPulse())
+	} else {
+		newStateRef := reference.NewRecordOf(s.getObject(), s.server.RandomLocalWithPulse())
+		pendingTranscript = utils.GenerateIncomingTranscript(*pendingCall, stateRef, newStateRef, s.server.RandomGlobalWithPrevPulse(), s.server.RandomGlobalWithPrevPulse())
+	}
+
 	pl := rms.VDelegatedRequestFinished{
-		CallType:     rms.CallTypeMethod,
-		CallFlags:    reqInfo.flags,
-		Callee:       rms.NewReference(s.getObject()),
-		CallOutgoing: rms.NewReference(reqInfo.ref),
-		CallIncoming: rms.NewReference(s.getObject()),
+		CallType:          rms.CallTypeMethod,
+		CallFlags:         reqInfo.flags,
+		Callee:            rms.NewReference(s.getObject()),
+		CallOutgoing:      rms.NewReference(reqInfo.ref),
+		CallIncoming:      rms.NewReference(s.getObject()),
+		PendingTranscript: pendingTranscript,
 	}
 	s.addPayloadAndWaitIdle(ctx, &pl)
 }
@@ -429,6 +447,14 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 		)
 
 		return false // no resend msg
+	})
+	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+		assert.Equal(t, s.object, report.Object.GetValue())
+		assert.Empty(t, report.ObjectTranscript.Entries)
+		// todo: check pendings
+		assert.NotEmpty(t, report.PendingTranscripts)
+
+		return false
 	})
 	typedChecker.VDelegatedCallResponse.Set(func(del *rms.VDelegatedCallResponse) bool {
 		outgoingRef := del.ResponseDelegationSpec.Outgoing

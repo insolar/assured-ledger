@@ -9,6 +9,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/statemachine"
 )
 
 type SMVCachedMemoryResponse struct {
@@ -36,5 +38,24 @@ func (s *SMVCachedMemoryResponse) GetStateMachineDeclaration() smachine.StateMac
 	return dSMVCachedMemoryResponseInstance
 }
 func (s *SMVCachedMemoryResponse) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	return ctx.Jump(s.stepProcess)
+}
+
+func (s *SMVCachedMemoryResponse) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	key := statemachine.CachedMemoryReportAwaitKey{State: s.Payload.State.Reference}
+
+	link, bargeInCallback := ctx.GetPublishedGlobalAliasAndBargeIn(key)
+	if link.IsZero() {
+		return ctx.Error(throw.E("no one is waiting"))
+	}
+	if bargeInCallback == nil {
+		return ctx.Error(throw.Impossible())
+	}
+
+	done := bargeInCallback.CallWithParam(s.Payload)
+	if !done {
+		return ctx.Error(throw.E("no one is waiting anymore"))
+	}
+
 	return ctx.Stop()
 }

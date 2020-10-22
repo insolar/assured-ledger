@@ -10,7 +10,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 )
 
@@ -27,7 +26,8 @@ type DefaultService struct {
 func (s *DefaultService) Get(ctx context.Context, stateReference reference.Global) (descriptor.Object, error) {
 	object, found := s.memoryCache.Get(stateReference)
 	if !found {
-		return nil, throw.New("key not found")
+		inslogger.FromContext(ctx).Warn("key not found")
+		return nil, nil
 	}
 	return object, nil
 }
@@ -42,8 +42,8 @@ func (s *DefaultService) Set(ctx context.Context, stateReference reference.Globa
 
 func NewDefaultService() *DefaultService {
 	strategy := cacheStrategy{
-		pgSize:   10,
-		maxTotal: 100,
+		pgSize:   1000,
+		maxTotal: 1000000,
 		trimEach: true,
 	}
 	return &DefaultService{
