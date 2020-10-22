@@ -1,7 +1,7 @@
 name: consensus-checks # consensus perfomance checks
 on:
-  schedule:
-    - cron: '0 0 * * 6' # run at midnight on saturdays
+#  schedule:
+#    - cron: '0 0 * * 6' # run at midnight on saturdays
   workflow_dispatch: {}
 env:
   KUBECONFIG: "${{ github.workspace }}/aks.yaml"
