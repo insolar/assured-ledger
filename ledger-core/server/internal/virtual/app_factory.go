@@ -16,8 +16,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
 func AppFactory(ctx context.Context, cfg configuration.Configuration, comps insapp.AppComponents) (insapp.AppComponent, error) {
@@ -30,7 +30,7 @@ func AppFactory(ctx context.Context, cfg configuration.Configuration, comps insa
 	virtualDispatcher.MessageSender = comps.MessageSender
 	virtualDispatcher.Affinity = comps.AffinityHelper
 	virtualDispatcher.AuthenticationService = authentication.NewService(ctx, comps.AffinityHelper)
-	virtualDispatcher.ReferenceBuilder = lmn.NewRecordReferenceBuilder(comps.CryptoScheme.RecordScheme(), comps.LocalNodeRef)
+	virtualDispatcher.ReferenceBuilder = vnlmn.NewRecordReferenceBuilder(comps.CryptoScheme.RecordScheme(), comps.LocalNodeRef)
 
 	if cfg.Virtual.MaxRunners > 0 {
 		virtualDispatcher.MaxRunners = cfg.Virtual.MaxRunners

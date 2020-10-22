@@ -30,11 +30,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
 /* -------- Utilities ------------- */
@@ -72,7 +72,7 @@ type SMExecute struct {
 	authenticationService authentication.Service
 	globalSemaphore       tool.RunnerLimiter
 	memoryCache           memoryCacheAdapter.MemoryCache
-	referenceBuilder      lmn.RecordReferenceBuilderService
+	referenceBuilder      vnlmn.RecordReferenceBuilder
 
 	outgoing            *rms.VCallRequest
 	outgoingObject      reference.Global
@@ -87,7 +87,7 @@ type SMExecute struct {
 	findCallResponse *rms.VFindCallResponse
 
 	// registration in LMN
-	lmnContext *lmn.RegistrationCtx
+	lmnContext *vnlmn.RegistrationCtx
 }
 
 /* -------- Declaration ------------- */
@@ -132,7 +132,7 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 
 	if s.Payload.CallType == rms.CallTypeConstructor {
 		s.isConstructor = true
-		s.execution.Object = lmn.GetLifelineAnticipatedReference(s.referenceBuilder, s.Payload, currentPulse)
+		s.execution.Object = vnlmn.GetLifelineAnticipatedReference(s.referenceBuilder, s.Payload, currentPulse)
 	} else {
 		s.execution.Object = s.Payload.Callee.GetValue()
 	}
@@ -156,7 +156,7 @@ func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 	ctx.SetDefaultMigration(s.migrationDefault)
 
-	s.lmnContext = lmn.NewRegistrationCtx(ctx)
+	s.lmnContext = vnlmn.NewRegistrationCtx(ctx)
 
 	return ctx.Jump(s.stepCheckRequest)
 }
@@ -833,7 +833,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 	currentPulse := s.pulseSlot.CurrentPulseNumber()
 
 	if s.outgoing.CallType == rms.CallTypeConstructor {
-		s.outgoingObject = lmn.GetLifelineAnticipatedReference(s.referenceBuilder, s.outgoing, currentPulse)
+		s.outgoingObject = vnlmn.GetLifelineAnticipatedReference(s.referenceBuilder, s.outgoing, currentPulse)
 	}
 
 	if s.outgoingSentCounter == 0 {
@@ -959,7 +959,7 @@ func (s *SMExecute) stepWaitSafeAnswersRelease(ctx smachine.ExecutionContext) sm
 
 func (s *SMExecute) stepWaitSafeAnswers(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	// waiting for all save responses to be there
-	stateUpdate := s.lmnContext.AwaitZeroSafeResponse(ctx)
+	stateUpdate := s.lmnContext.WaitForAllSafeResponses(ctx)
 	if !stateUpdate.IsEmpty() {
 		return stateUpdate
 	}
@@ -1292,11 +1292,11 @@ const (
 	RegisterIncomingResult
 )
 
-func (s *SMExecute) constructRegisterRecordBuilder(v RegisterVariant) lmn.RegisterRecordBuilder {
-	subroutineSM := lmn.RegisterRecordBuilder{
+func (s *SMExecute) constructRegisterRecordBuilder(v RegisterVariant) vnlmn.RegisterRecordBuilder {
+	subroutineSM := vnlmn.RegisterRecordBuilder{
 		Interference: s.methodIsolation.Interference,
 
-		PulseSlot:        s.pulseSlot,
+		PulseGetter:      s.pulseSlot.CurrentPulseNumber,
 		ReferenceBuilder: s.referenceBuilder,
 		Context:          s.lmnContext,
 	}
@@ -1330,8 +1330,8 @@ func (s *SMExecute) constructRegisterRecordBuilder(v RegisterVariant) lmn.Regist
 	return subroutineSM
 }
 
-func (s *SMExecute) constructSubSMRegisterSend(msgs []lmn.SerializableBasicMessage) lmn.SubSMRegisterRecordSend {
-	return lmn.SubSMRegisterRecordSend{
+func (s *SMExecute) constructSubSMRegisterSend(msgs []vnlmn.SerializableBasicMessage) vnlmn.SubSMRegisterRecordSend {
+	return vnlmn.SubSMRegisterRecordSend{
 		Messages:          msgs,
 		Object:            s.execution.Object,
 		ObjectSharedState: s.objectSharedState,

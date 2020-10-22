@@ -5,7 +5,7 @@
 
 //go:generate sm-uml-gen -f $GOFILE
 
-package lmn
+package vnlmn
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"

@@ -5,10 +5,9 @@
 
 //go:generate sm-uml-gen -f $GOFILE
 
-package lmn
+package vnlmn
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -49,8 +48,6 @@ type RegisterRecordBuilder struct {
 	Object      reference.Global
 	PulseNumber pulse.Number
 
-	// internal data
-
 	// output arguments
 	Context       *RegistrationCtx
 	lastBranchRef reference.Global
@@ -58,8 +55,8 @@ type RegisterRecordBuilder struct {
 	Messages      []SerializableBasicMessage
 
 	// DI
-	PulseSlot        *conveyor.PulseSlot
-	ReferenceBuilder RecordReferenceBuilderService
+	PulseGetter      func() pulse.Number
+	ReferenceBuilder RecordReferenceBuilder
 }
 
 func (s *RegisterRecordBuilder) getRecordAnticipatedRef(record SerializableBasicRecord) reference.Global {
@@ -69,10 +66,10 @@ func (s *RegisterRecordBuilder) getRecordAnticipatedRef(record SerializableBasic
 	)
 
 	if pulseNumber == pulse.Unknown {
-		if s.PulseSlot == nil {
+		if s.PulseGetter == nil {
 			panic(throw.IllegalState())
 		}
-		pulseNumber = s.PulseSlot.CurrentPulseNumber()
+		pulseNumber = s.PulseGetter()
 	}
 
 	_, err := record.MarshalTo(data)
@@ -90,7 +87,7 @@ func (s *RegisterRecordBuilder) registerMessage(msg SerializableBasicMessage) er
 }
 
 func GetLifelineAnticipatedReference(
-	builder RecordReferenceBuilderService,
+	builder RecordReferenceBuilder,
 	request *rms.VCallRequest,
 	_ pulse.Number,
 ) reference.Global {
@@ -111,7 +108,7 @@ func GetLifelineAnticipatedReference(
 }
 
 func GetOutgoingAnticipatedReference(
-	builder RecordReferenceBuilderService,
+	builder RecordReferenceBuilder,
 	request *rms.VCallRequest,
 	previousRef reference.Global,
 	pn pulse.Number,
