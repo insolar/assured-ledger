@@ -30,9 +30,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	virtualtestutils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
 func TestBuiltinTestAPIEchoValue(t *testing.T) {
@@ -67,7 +67,7 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 	slotMachine.AddInterfaceDependency(&memoryCache)
 
-	var referenceBuilder lmn.RecordReferenceBuilderService = virtualtestutils.GetReferenceBuilder(meRef)
+	var referenceBuilder vnlmn.RecordReferenceBuilder = virtualtestutils.GetReferenceBuilder(meRef)
 	slotMachine.AddInterfaceDependency(&referenceBuilder)
 
 	if !slotMachine.SlotMachine.TryPutDependency(insapp.LocalNodeRefInjectionID, meRef) {
@@ -151,7 +151,7 @@ func TestSMTestAPICall_MethodEcho(t *testing.T) {
 	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 	slotMachine.AddInterfaceDependency(&memoryCache)
 
-	var referenceBuilder lmn.RecordReferenceBuilderService = virtualtestutils.GetReferenceBuilder(meRef)
+	var referenceBuilder vnlmn.RecordReferenceBuilder = virtualtestutils.GetReferenceBuilder(meRef)
 	slotMachine.AddInterfaceDependency(&referenceBuilder)
 
 	if !slotMachine.SlotMachine.TryPutDependency(insapp.LocalNodeRefInjectionID, meRef) {
@@ -202,7 +202,7 @@ func TestSMTestAPICall_Constructor(t *testing.T) {
 	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 	slotMachine.AddInterfaceDependency(&memoryCache)
 
-	var referenceBuilder lmn.RecordReferenceBuilderService = virtualtestutils.GetReferenceBuilder(meRef)
+	var referenceBuilder vnlmn.RecordReferenceBuilder = virtualtestutils.GetReferenceBuilder(meRef)
 	slotMachine.AddInterfaceDependency(&referenceBuilder)
 
 	if !slotMachine.SlotMachine.TryPutDependency(insapp.LocalNodeRefInjectionID, meRef) {
@@ -261,7 +261,7 @@ func TestSMTestAPICall_RetriesExceeded(t *testing.T) {
 	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 	slotMachine.AddInterfaceDependency(&memoryCache)
 
-	var referenceBuilder lmn.RecordReferenceBuilderService = virtualtestutils.GetReferenceBuilder(meRef)
+	var referenceBuilder vnlmn.RecordReferenceBuilder = virtualtestutils.GetReferenceBuilder(meRef)
 	slotMachine.AddInterfaceDependency(&referenceBuilder)
 
 	if !slotMachine.SlotMachine.TryPutDependency(insapp.LocalNodeRefInjectionID, meRef) {
