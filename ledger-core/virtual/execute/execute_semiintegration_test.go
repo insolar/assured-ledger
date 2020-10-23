@@ -26,12 +26,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
 func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
@@ -103,7 +103,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		func(msg rmsreg.GoGoSerializable) {
 			switch res := msg.(type) {
 			case *rms.LRegisterRequest:
-				key := lmn.ResultAwaitKey{
+				key := vnlmn.ResultAwaitKey{
 					AnticipatedRef: res.AnticipatedRef,
 					RequiredFlag:   rms.RegistrationFlags_Fast,
 				}
@@ -236,7 +236,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		func(msg rmsreg.GoGoSerializable) {
 			switch res := msg.(type) {
 			case *rms.LRegisterRequest:
-				key := lmn.ResultAwaitKey{
+				key := vnlmn.ResultAwaitKey{
 					AnticipatedRef: res.AnticipatedRef,
 					RequiredFlag:   rms.RegistrationFlags_Fast,
 				}
@@ -340,7 +340,7 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		func(msg rmsreg.GoGoSerializable) {
 			switch res := msg.(type) {
 			case *rms.LRegisterRequest:
-				key := lmn.ResultAwaitKey{
+				key := vnlmn.ResultAwaitKey{
 					AnticipatedRef: res.AnticipatedRef,
 					RequiredFlag:   rms.RegistrationFlags_Fast,
 				}
@@ -442,7 +442,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		func(msg rmsreg.GoGoSerializable) {
 			switch res := msg.(type) {
 			case *rms.LRegisterRequest:
-				key := lmn.ResultAwaitKey{
+				key := vnlmn.ResultAwaitKey{
 					AnticipatedRef: res.AnticipatedRef,
 					RequiredFlag:   rms.RegistrationFlags_Fast,
 				}

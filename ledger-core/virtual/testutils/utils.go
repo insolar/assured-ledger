@@ -13,10 +13,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
-func GetReferenceBuilder(nodeRef reference.Holder) lmn.RecordReferenceBuilderService {
+func GetReferenceBuilder(nodeRef reference.Holder) vnlmn.RecordReferenceBuilder {
 	if nodeRef.IsEmpty() {
 		panic(throw.IllegalValue())
 	}
@@ -31,9 +31,9 @@ func GetReferenceBuilder(nodeRef reference.Holder) lmn.RecordReferenceBuilderSer
 	platformCryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
 	platformScheme := legacyadapter.New(platformCryptographyScheme, keyProcessor, keyStore)
 
-	return lmn.NewRecordReferenceBuilder(platformScheme.RecordScheme(), nodeRef)
+	return vnlmn.NewRecordReferenceBuilder(platformScheme.RecordScheme(), nodeRef)
 }
 
 func GetObjectReference(request *rms.VCallRequest, nodeRef reference.Holder) reference.Global {
-	return lmn.GetLifelineAnticipatedReference(GetReferenceBuilder(nodeRef), request, pulse.Unknown)
+	return vnlmn.GetLifelineAnticipatedReference(GetReferenceBuilder(nodeRef), request, pulse.Unknown)
 }

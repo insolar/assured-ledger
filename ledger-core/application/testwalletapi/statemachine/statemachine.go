@@ -24,8 +24,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
 const BuiltinTestAPIEcho = "insolar:0AAABApiTestEcho____"
@@ -49,7 +49,7 @@ type SMTestAPICall struct {
 	pulseSlot        *conveyor.PulseSlot
 	messageSender    messageSenderAdapter.MessageSender
 	memoryCache      memoryCacheAdapter.MemoryCache
-	referenceBuilder lmn.RecordReferenceBuilderService
+	referenceBuilder vnlmn.RecordReferenceBuilder
 	nodeReference    reference.Global
 }
 
@@ -98,14 +98,14 @@ func (s *SMTestAPICall) stepSend(ctx smachine.ExecutionContext) smachine.StateUp
 	s.requestPayload.Caller.Set(APICaller)
 
 	// probably APICaller is not the best that may be here
-	outLocal := lmn.GetOutgoingAnticipatedReference(s.referenceBuilder, &s.requestPayload, APICaller, s.pulseSlot.CurrentPulseNumber())
+	outLocal := vnlmn.GetOutgoingAnticipatedReference(s.referenceBuilder, &s.requestPayload, APICaller, s.pulseSlot.CurrentPulseNumber())
 	s.requestPayload.CallOutgoing.Set(outLocal)
 
 	switch s.requestPayload.CallType {
 	case rms.CallTypeMethod:
 		s.object = s.requestPayload.Callee.GetValue()
 	case rms.CallTypeConstructor:
-		s.object = lmn.GetLifelineAnticipatedReference(s.referenceBuilder, &s.requestPayload, s.pulseSlot.CurrentPulseNumber())
+		s.object = vnlmn.GetLifelineAnticipatedReference(s.referenceBuilder, &s.requestPayload, s.pulseSlot.CurrentPulseNumber())
 	default:
 		panic(throw.IllegalValue())
 	}

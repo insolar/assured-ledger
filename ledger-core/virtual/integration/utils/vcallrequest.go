@@ -13,13 +13,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
 type VCallRequestConstructorHandler struct {
 	request rms.VCallRequest
 	pn      pulse.Number
-	builder lmn.RecordReferenceBuilderService
+	builder vnlmn.RecordReferenceBuilder
 
 	object      reference.Global
 	previousRef reference.Global
@@ -49,12 +49,12 @@ func (h *VCallRequestConstructorHandler) regenerate() {
 		duplicateRequest := h.request
 		duplicateRequest.CallOutgoing = rms.NewReference(reference.Global{})
 
-		h.outgoing = lmn.GetOutgoingAnticipatedReference(h.builder, &duplicateRequest, h.previousRef, h.pn)
+		h.outgoing = vnlmn.GetOutgoingAnticipatedReference(h.builder, &duplicateRequest, h.previousRef, h.pn)
 	}
 
 	h.request.CallOutgoing = rms.NewReference(h.outgoing)
 
-	h.object = lmn.GetLifelineAnticipatedReference(h.builder, &h.request, h.pn)
+	h.object = vnlmn.GetLifelineAnticipatedReference(h.builder, &h.request, h.pn)
 
 }
 

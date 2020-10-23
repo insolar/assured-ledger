@@ -10,7 +10,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
 type SMLRegisterResponse struct {
@@ -46,7 +46,7 @@ func (s *SMLRegisterResponse) Init(ctx smachine.InitializationContext) smachine.
 }
 
 func (s *SMLRegisterResponse) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	key := lmn.NewResultAwaitKey(s.Payload.AnticipatedRef, s.Payload.Flags)
+	key := vnlmn.NewResultAwaitKey(s.Payload.AnticipatedRef, s.Payload.Flags)
 
 	switch link, bargeInCallback := ctx.GetPublishedGlobalAliasAndBargeIn(key); {
 	case link.IsZero():
