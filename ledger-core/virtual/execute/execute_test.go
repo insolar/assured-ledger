@@ -41,12 +41,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	virtualtestutils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
 func executeLeakCheck(t *testing.T) {
@@ -134,6 +134,9 @@ func TestSMExecute_Init(t *testing.T) {
 	initializedSMExecute.execution.Object = reference.Global{}
 	smExecute.execution.Object = reference.Global{}
 
+	initializedSMExecute.lmnContext = nil
+	smExecute.lmnContext = nil
+
 	assert.Equal(t, initializedSMExecute, smExecute)
 
 	mc.Finish()
@@ -184,6 +187,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	smObject.SetDescriptorDirty(desc)
 
 	smExecute = expectedInitState(ctx, smExecute)
+	smExecute.lmnContext = vnlmn.NewDummyRegistrationCtx(desc.State())
 
 	smObject.SharedState.Info.KnownRequests.Add(callFlags.GetInterference(), smExecute.execution.Outgoing)
 
@@ -846,7 +850,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 			assert.Empty(t, res.LatestValidatedState)
 			close(vStateReportRecv)
 		case *rms.LRegisterRequest:
-			key := lmn.ResultAwaitKey{
+			key := vnlmn.ResultAwaitKey{
 				AnticipatedRef: res.AnticipatedRef,
 				RequiredFlag:   rms.RegistrationFlags_Fast,
 			}

@@ -22,9 +22,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
 type VirtualStepController struct {
@@ -53,8 +53,8 @@ func NewWithErrorFilter(ctx context.Context, t *testing.T, filterFn logcommon.Er
 		platformCryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
 		platformScheme := legacyadapter.New(platformCryptographyScheme, keyProcessor, keyStore)
 
-		var rrb lmn.RecordReferenceBuilderService
-		rrb = lmn.NewRecordReferenceBuilder(platformScheme.RecordScheme(), w.GenerateGlobal())
+		var rrb vnlmn.RecordReferenceBuilder
+		rrb = vnlmn.NewRecordReferenceBuilder(platformScheme.RecordScheme(), w.GenerateGlobal())
 		w.SlotMachine.AddInterfaceDependency(&rrb)
 	}
 
