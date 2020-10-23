@@ -141,17 +141,17 @@ T01_S017 : SMExecute
 T01_S017 --[dotted]> T01_S001
 T01_S017 --> [*] : [ctx.GetError()!=nil]\nError
 T01_S017 --> T01_S018
-state "stepRegisterObjectLifeLine.2.1" as T01_S018
-T01_S018 : SMExecute
-T01_S018 --[dotted]> T01_S001
-T01_S018 --[dashed]> T01_S018 : [ctx.Acquire().IsNotPassed()]\nSleep
-T01_S018 --> T01_S019
 state "stepRegisterObjectLifeLine.subroutineSM.1" as T01_S016 <<sdlreceive>>
 T01_S016 --> T01_S017
-state "stepRegisterObjectLifelineAfter" as T01_S019
+state "stepRegisterObjectLifelineAfter" as T01_S018
+T01_S018 : SMExecute
+T01_S018 --[dotted]> T01_S001
+T01_S018 --> T01_S018 : [!stepUpdate.IsEmpty()]
+T01_S018 --> T01_S019
+state "stepRegisterObjectLifelineAfter.1" as T01_S019
 T01_S019 : SMExecute
 T01_S019 --[dotted]> T01_S001
-T01_S019 --> T01_S019 : [!stepUpdate.IsEmpty()]
+T01_S019 --[dashed]> T01_S019 : [ctx.Acquire().IsNotPassed()]\nSleep
 T01_S019 --> T01_S020
 state "stepRegisterOutgoing" as T01_S030
 T01_S030 : SMExecute
@@ -160,6 +160,7 @@ T01_S030 --> T01_S031 : CallSubroutine
 state "stepRegisterOutgoing.2" as T01_S032
 T01_S032 : SMExecute
 T01_S032 --[dotted]> T01_S021
+T01_S032 --> [*] : [ctx.GetError()!=nil]\nError
 T01_S032 --> T01_S033
 state "stepRegisterOutgoing.subroutineSM.1" as T01_S031 <<sdlreceive>>
 T01_S031 --> T01_S032
@@ -170,6 +171,7 @@ T01_S041 --> T01_S042 : CallSubroutine
 state "stepSaveExecutionResult.2" as T01_S043
 T01_S043 : SMExecute
 T01_S043 --[dotted]> T01_S021
+T01_S043 --> [*] : [ctx.GetError()!=nil]\nError
 T01_S043 --> T01_S044
 state "stepSaveExecutionResult.subroutineSM.1" as T01_S042 <<sdlreceive>>
 T01_S042 --> T01_S043
