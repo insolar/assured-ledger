@@ -35,7 +35,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -146,9 +145,9 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 		ns.transports[i] = delayTransport
 
 		controller := consensus.New(ctx, consensus.Dep{
-			KeyProcessor:       keyProcessor,
-			CertificateManager: certificateManager,
-			KeyStore:           keystore.NewInplaceKeyStore(nodes.meta[i].privateKey),
+			KeyProcessor:          keyProcessor,
+			CertificateManager:    certificateManager,
+			KeyStore:              keystore.NewInplaceKeyStore(nodes.meta[i].privateKey),
 			TransportCryptography: adapters.NewTransportCryptographyFactory(scheme),
 
 			NodeKeeper:        nodeKeeper,

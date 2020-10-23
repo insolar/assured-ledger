@@ -10,22 +10,22 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
 const permitTTL = 300
 
 // CreatePermit creates permit as signed protobuf for joiner node to
-func CreatePermit(authorityNodeRef reference.Holder, reconnectHost *legacyhost.Host, joinerPublicKey []byte, signer cryptography.Signer) (*rms.Permit, error) {
+func CreatePermit(authorityNodeRef reference.Holder, reconnectHost nwapi.Address, joinerPublicKey []byte, signer cryptography.Signer) (*rms.Permit, error) {
 	payload := rms.PermitPayload{
 		AuthorityNodeRef: rms.NewReference(authorityNodeRef),
 		ExpireTimestamp:  time.Now().Unix() + permitTTL,
-		ReconnectTo:      *reconnectHost,
+		ReconnectTo:      reconnectHost,
 		JoinerPublicKey:  joinerPublicKey,
 	}
 

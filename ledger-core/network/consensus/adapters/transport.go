@@ -9,29 +9,40 @@ import (
 	"context"
 
 	transport2 "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 )
 
 type PacketSender struct {
-	datagramTransport transport.DatagramTransport
+	unifiedServer *uniserver.UnifiedServer
 }
 
-func NewPacketSender(datagramTransport transport.DatagramTransport) *PacketSender {
+func NewPacketSender(unifiedServer *uniserver.UnifiedServer) *PacketSender {
 	return &PacketSender{
-		datagramTransport: datagramTransport,
+		unifiedServer: unifiedServer,
 	}
 }
 
 func (ps *PacketSender) SendPacketToTransport(ctx context.Context, to transport2.TargetProfile, sendOptions transport2.PacketSendOptions, payload interface{}) {
 	addr := to.GetStatic().GetDefaultEndpoint().GetIPAddress().String()
 
-	ctx, logger := inslogger.WithFields(ctx, map[string]interface{}{
+	_, logger := inslogger.WithFields(ctx, map[string]interface{}{
 		"receiver_addr": addr,
 	})
 
-	err := ps.datagramTransport.SendDatagram(ctx, addr, payload.([]byte))
+	// nwapi.NewHostAndPort()
+	peerAddr := nwapi.NewHostPort(addr, false)
+
+	peer, err := ps.unifiedServer.PeerManager().Manager().ConnectPeer(peerAddr)
+	if err != nil {
+		logger.Error("Failed to connect to peer: ", err)
+	}
+
+	packet := &ConsensusPacket{Payload: payload.([]byte)}
+	err = peer.SendPacket(uniproto.SessionlessNoQuota, packet)
 	if err != nil {
 		logger.Error("Failed to send datagram: ", err)
 	}

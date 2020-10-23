@@ -10,18 +10,16 @@ func _() {
 	var x [1]struct{}
 	_ = x[Unknown-0]
 	_ = x[RPC-1]
-	_ = x[Pulse-2]
-	_ = x[Bootstrap-3]
-	_ = x[Authorize-4]
-	_ = x[Disconnect-5]
-	_ = x[SignCert-6]
-	_ = x[UpdateSchedule-7]
-	_ = x[Reconnect-8]
+	_ = x[Bootstrap-2]
+	_ = x[Authorize-3]
+	_ = x[SignCert-4]
+	_ = x[UpdateSchedule-5]
+	_ = x[Reconnect-6]
 }
 
-const _PacketType_name = "UnknownRPCPulseBootstrapAuthorizeDisconnectSignCertUpdateScheduleReconnect"
+const _PacketType_name = "UnknownRPCBootstrapAuthorizeSignCertUpdateScheduleReconnect"
 
-var _PacketType_index = [...]uint8{0, 7, 10, 15, 24, 33, 43, 51, 65, 74}
+var _PacketType_index = [...]uint8{0, 7, 10, 19, 28, 36, 50, 59}
 
 func (i PacketType) String() string {
 	if i < 0 || i >= PacketType(len(_PacketType_index)-1) {

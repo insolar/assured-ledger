@@ -7,6 +7,7 @@ package pulsenetwork
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,70 +20,54 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
-	"github.com/insolar/assured-ledger/ledger-core/network/transport"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
 const (
 	PULSENUMBER = pulse.MinTimePulse + 155
 )
 
-func createHostNetwork(t *testing.T) (network.HostNetwork, error) {
-	m := mock.NewRoutingTableMock(t)
+type pProcessor struct{}
 
-	cm1 := component.NewManager(nil)
-	cm1.SetLogger(global.Logger())
-
-	f1 := transport.NewFactory(configuration.NewHostNetwork().Transport)
-	n1, err := hostnetwork.NewHostNetwork(gen.UniqueGlobalRef().String())
-	if err != nil {
-		return nil, err
-	}
-	cm1.Inject(f1, n1, m)
-
-	ctx := context.Background()
-
-	err = n1.Start(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return n1, nil
+func (pp *pProcessor) ProcessPacket(ctx context.Context, payload transport.PacketParser, from endpoints.Inbound) error {
+	fmt.Printf("ProcessPacket from %s : %v", from.GetNameAddress(), payload)
+	return nil
 }
 
 func TestDistributor_Distribute(t *testing.T) {
 	instestlogger.SetTestOutput(t)
 
-	n1, err := createHostNetwork(t)
-	require.NoError(t, err)
+	nodeServ := NewPulsarUniserver()
+	pulsarServ := NewPulsarUniserver()
+	nodeServ.StartListen()
+	pulsarServ.StartListen()
+
 	ctx := context.Background()
 
-	handler := func(ctx context.Context, r network.ReceivedPacket) (network.Packet, error) {
-		global.Info("handle Pulse")
-		pulse := r.GetRequest().GetPulse()
-		assert.EqualValues(t, PULSENUMBER, pulse.Pulse.PulseNumber)
-		return nil, nil
-	}
-	n1.RegisterRequestHandler(types.Pulse, handler)
+	// handler := func(ctx context.Context, r network.ReceivedPacket) (network.Packet, error) {
+	// 	global.Info("handle Pulse")
+	// 	pulse := r.GetRequest().GetPulse()
+	// 	assert.EqualValues(t, PULSENUMBER, pulse.Pulse.PulseNumber)
+	// 	return nil, nil
+	// }
+	// n1.RegisterRequestHandler(types.Pulse, handler)
 
-	err = n1.Start(ctx)
-	require.NoError(t, err)
-	defer func() {
-		err = n1.Stop(ctx)
-		require.NoError(t, err)
-	}()
+	// err = n1.Start(ctx)
+	// require.NoError(t, err)
+	// defer func() {
+	// 	err = n1.Stop(ctx)
+	// 	require.NoError(t, err)
+	// }()
+
+	address := nodeServ.PeerManager().Local().GetPrimary().String()
 
 	pulsarCfg := configuration.NewPulsar()
-	pulsarCfg.DistributionTransport.Address = "127.0.0.1:0"
-	pulsarCfg.PulseDistributor.BootstrapHosts = []string{n1.PublicAddress()}
+	pulsarCfg.PulseDistributor.BootstrapHosts = []string{address}
 
-	d, err := NewDistributor(pulsarCfg.PulseDistributor)
+	d, err := NewDistributor(pulsarCfg.PulseDistributor, pulsarServ)
 	require.NoError(t, err)
 	assert.NotNil(t, d)
 
@@ -92,7 +77,7 @@ func TestDistributor_Distribute(t *testing.T) {
 	key, err := platformpolicy.NewKeyProcessor().GeneratePrivateKey()
 	require.NoError(t, err)
 
-	cm.Inject(d, transport.NewFactory(pulsarCfg.DistributionTransport), platformpolicy.NewPlatformCryptographyScheme(), keystore.NewInplaceKeyStore(key))
+	cm.Inject(d, platformpolicy.NewPlatformCryptographyScheme(), keystore.NewInplaceKeyStore(key))
 	err = cm.Init(ctx)
 	require.NoError(t, err)
 	err = cm.Start(ctx)

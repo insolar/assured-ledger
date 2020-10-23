@@ -14,15 +14,14 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
 func newPacket() *rms.Packet {
-	sender, _ := legacyhost.NewHostN("127.0.0.1:31337", gen.UniqueGlobalRef())
-	receiver, _ := legacyhost.NewHostN("127.0.0.2:31338", gen.UniqueGlobalRef())
-	return packet.NewPacket(sender, receiver, types.Pulse, 123)
+	sender := nwapi.NewHost("127.0.0.1:31337")
+	receiver := nwapi.NewHost("127.0.0.2:31338")
+	return packet.NewPacket(sender, receiver, types.Authorize, 123)
 }
 
 func TestNewPacketHandler(t *testing.T) {
@@ -36,7 +35,7 @@ func TestPacketHandler_Handle_Response(t *testing.T) {
 	ph := NewPacketHandler(m)
 
 	req := newPacket()
-	req.SetRequest(&rms.PulseRequest{})
+	req.SetRequest(&rms.AuthorizeRequest{})
 
 	future := m.Create(req)
 	resp := newPacket()
@@ -77,7 +76,7 @@ func TestPacketHandler_Handle_NotProcessable(t *testing.T) {
 	ph := NewPacketHandler(m)
 
 	req := newPacket()
-	req.SetRequest(&rms.PulseRequest{})
+	req.SetRequest(&rms.AuthorizeRequest{})
 	future := m.Create(req)
 
 	resp := newPacket()

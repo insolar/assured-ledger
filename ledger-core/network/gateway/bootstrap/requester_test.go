@@ -14,16 +14,16 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
-	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
 func TestRequester_Authorize(t *testing.T) {
@@ -47,7 +47,7 @@ func TestRequester_Bootstrap(t *testing.T) {
 	options := network.ConfigureOptions(configuration.NewConfiguration())
 
 	hn := mock.NewHostNetworkMock(t)
-	hn.SendRequestToHostMock.Set(func(p context.Context, p1 types.PacketType, p2 interface{}, p3 *legacyhost.Host) (r network.Future, r1 error) {
+	hn.SendRequestToHostMock.Set(func(p context.Context, p1 types.PacketType, p2 interface{}, p3 nwapi.Address) (r network.Future, r1 error) {
 		return nil, errors.New("123")
 	})
 

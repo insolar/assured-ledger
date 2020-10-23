@@ -9,18 +9,17 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/component-manager"
-
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
 type Report struct {
@@ -35,7 +34,7 @@ type Report struct {
 type OnConsensusFinished func(ctx context.Context, report Report)
 
 type BootstrapResult struct {
-	Host *legacyhost.Host
+	Host nwapi.Address
 	// FirstPulseTime    time.Time
 	ReconnectRequired bool
 	NetworkSize       int
@@ -48,16 +47,9 @@ type RequestHandler func(ctx context.Context, request ReceivedPacket) (response 
 
 // HostNetwork simple interface to send network requests and process network responses.
 type HostNetwork interface {
-	component.Starter
-	component.Stopper
-
-	// PublicAddress returns public address that can be published for all nodes.
-	PublicAddress() string
-
-	// SendRequest send request to a remote node addressed by reference.
-	SendRequest(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global) (Future, error)
+	uniproto.Receiver
 	// SendRequestToHost send request packet to a remote host.
-	SendRequestToHost(ctx context.Context, t types.PacketType, requestData interface{}, receiver *legacyhost.Host) (Future, error)
+	SendRequestToHost(ctx context.Context, t types.PacketType, requestData interface{}, receiver nwapi.Address) (Future, error)
 	// RegisterRequestHandler register a handler function to process incoming requests of a specific type.
 	// All RegisterRequestHandler calls should be executed before Start.
 	RegisterRequestHandler(t types.PacketType, handler RequestHandler)
@@ -67,8 +59,7 @@ type HostNetwork interface {
 
 // Packet is a packet that is transported via network by HostNetwork.
 type Packet interface {
-	GetSender() reference.Global
-	GetSenderHost() *legacyhost.Host
+	GetSenderHost() nwapi.Address
 	GetType() types.PacketType
 	GetRequest() *rms.Request
 	GetResponse() *rms.Response
@@ -87,14 +78,6 @@ type Future interface {
 	Response() <-chan ReceivedPacket
 	WaitResponse(duration time.Duration) (ReceivedPacket, error)
 	Cancel()
-}
-
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.RoutingTable -o ../testutils/network -s _mock.go -g
-
-// RoutingTable contains all routing information of the network.
-type RoutingTable interface {
-	// Resolve NodeID -> ShortID, Address. Can initiate network requests.
-	Resolve(reference.Global) (*legacyhost.Host, error)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Gatewayer -o ../testutils/network -s _mock.go -g

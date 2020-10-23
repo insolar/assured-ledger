@@ -64,7 +64,7 @@ func NewMultiServerWithConsensus(configProvider *CloudConfigurationProvider) *in
 		return conf.GetAppConfigs(), nil
 	}
 
-	pulseDistributor, err := pulsenetwork.NewDistributor(configProvider.PulsarConfig.Pulsar.PulseDistributor)
+	pulseDistributor, err := pulsenetwork.NewDistributor(configProvider.PulsarConfig.Pulsar.PulseDistributor, nil)
 	if err != nil {
 		panic(throw.W(err, "Failed to create distributor"))
 	}

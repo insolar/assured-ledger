@@ -16,14 +16,13 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
-	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
 func testRPCPacket() *rms.Packet {
-	sender, _ := legacyhost.NewHostN("127.0.0.1:31337", gen.UniqueGlobalRef())
-	receiver, _ := legacyhost.NewHostN("127.0.0.2:31338", gen.UniqueGlobalRef())
+	sender := nwapi.NewHostPort("127.0.0.1:31337", false)
+	receiver := nwapi.NewHostPort("127.0.0.2:31338", false)
 
 	result := NewPacket(sender, receiver, types.RPC, 123)
 	result.TraceID = "d6b44f62-7b5e-4249-90c7-ccae194a5baa"
@@ -78,7 +77,7 @@ func TestDeserializeBigPacket(t *testing.T) {
 
 type PacketSuite struct {
 	suite.Suite
-	sender *legacyhost.Host
+	sender nwapi.Address
 	packet *rms.Packet
 }
 

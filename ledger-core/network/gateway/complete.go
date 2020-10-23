@@ -7,8 +7,6 @@ package gateway
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	"go.opencensus.io/stats"
 
@@ -25,7 +23,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
-
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -77,33 +74,37 @@ func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Glob
 }
 
 // requestCertSign method requests sign from single discovery node
+// nolint
 func (g *Complete) requestCertSign(ctx context.Context, discoveryNode nodeinfo.DiscoveryNode, registeredNodeRef reference.Global) ([]byte, error) {
-	currentNodeCert := g.CertificateManager.GetCertificate()
+	// currentNodeCert := g.CertificateManager.GetCertificate()
+	//
+	// if discoveryNode.GetNodeRef() == currentNodeCert.GetNodeRef() {
+	// 	sign, err := g.signCert(ctx, registeredNodeRef)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	return sign.Bytes(), nil
+	// }
+	//
+	// request := &rms.SignCertRequest{
+	// 	NodeRef: rms.NewReference(registeredNodeRef),
+	// }
+	// future, err := g.HostNetwork.SendRequest(ctx, types.SignCert, request, discoveryNode.GetNodeRef())
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// p, err := future.WaitResponse(10 * time.Second)
+	// if err != nil {
+	// 	return nil, err
+	// } else if p.GetResponse().GetError() != nil {
+	// 	return nil, fmt.Errorf("[requestCertSign] Remote (%s) said %s", p.GetSender(), p.GetResponse().GetError().Error)
+	// }
+	//
+	// return p.GetResponse().GetSignCert().Sign, nil
 
-	if discoveryNode.GetNodeRef() == currentNodeCert.GetNodeRef() {
-		sign, err := g.signCert(ctx, registeredNodeRef)
-		if err != nil {
-			return nil, err
-		}
-		return sign.Bytes(), nil
-	}
-
-	request := &rms.SignCertRequest{
-		NodeRef: rms.NewReference(registeredNodeRef),
-	}
-	future, err := g.HostNetwork.SendRequest(ctx, types.SignCert, request, discoveryNode.GetNodeRef())
-	if err != nil {
-		return nil, err
-	}
-
-	p, err := future.WaitResponse(10 * time.Second)
-	if err != nil {
-		return nil, err
-	} else if p.GetResponse().GetError() != nil {
-		return nil, fmt.Errorf("[requestCertSign] Remote (%s) said %s", p.GetSender(), p.GetResponse().GetError().Error)
-	}
-
-	return p.GetResponse().GetSignCert().Sign, nil
+	// todo: fix after msgdelivery integration
+	return nil, throw.NotImplemented()
 }
 
 func (g *Complete) getNodeInfo(ctx context.Context, nodeRef reference.Global) (string, string, error) {

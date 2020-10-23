@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
@@ -164,11 +165,11 @@ func TestComplete_handler(t *testing.T) {
 	ctx := context.Background()
 	pa.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 
-	p := packet.NewReceivedPacket(packet.NewPacket(nil, nil, types.SignCert, 1), nil)
+	p := packet.NewReceivedPacket(packet.NewPacket(nwapi.Address{}, nwapi.Address{}, types.SignCert, 1), nil)
 	p.SetRequest(&rms.SignCertRequest{NodeRef: rms.NewReference(nodeRef)})
 
 	hn.BuildResponseMock.Set(func(ctx context.Context, request network.Packet, responseData interface{}) (p1 network.Packet) {
-		r := packet.NewPacket(nil, nil, types.SignCert, 1)
+		r := packet.NewPacket(nwapi.Address{}, nwapi.Address{}, types.SignCert, 1)
 		r.SetResponse(&rms.SignCertResponse{Sign: []byte("test_sig")})
 		return r
 	})

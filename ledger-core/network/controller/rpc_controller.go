@@ -7,18 +7,10 @@ package controller
 
 import (
 	"context"
-	"fmt"
 
-	"go.opencensus.io/stats"
-
-	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insmetrics"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // RemoteProcedure is remote procedure call function.
@@ -42,64 +34,68 @@ func (rpc *rpcController) RemoteProcedureRegister(name string, method RemoteProc
 	rpc.methodTable[name] = method
 }
 
-func (rpc *rpcController) invoke(ctx context.Context, name string, data []byte) ([]byte, error) {
-	method, exists := rpc.methodTable[name]
-	if !exists {
-		return nil, errors.New(fmt.Sprintf("RPC with name %s is not registered", name))
-	}
-	return method(ctx, data)
-}
+// func (rpc *rpcController) invoke(ctx context.Context, name string, data []byte) ([]byte, error) {
+// 	method, exists := rpc.methodTable[name]
+// 	if !exists {
+// 		return nil, errors.New(fmt.Sprintf("RPC with name %s is not registered", name))
+// 	}
+// 	return method(ctx, data)
+// }
 
 func (rpc *rpcController) SendBytes(ctx context.Context, nodeID reference.Global, name string, msgBytes []byte) ([]byte, error) {
-	request := &rms.RPCRequest{
-		Method: name,
-		Data:   msgBytes,
-	}
+	// request := &rms.RPCRequest{
+	// 	Method: name,
+	// 	Data:   msgBytes,
+	// }
+	//
+	// future, err := rpc.Network.SendRequest(ctx, types.RPC, request, nodeID)
+	// if err != nil {
+	// 	return nil, errors.Wrapf(err, "Error sending RPC request to node %s", nodeID.String())
+	// }
+	// ctx, logger := inslogger.WithFields(ctx, map[string]interface{}{
+	// 	"request_id":     future.Request().GetRequestID(),
+	// 	"target_node_id": nodeID.String(),
+	// })
+	// logger.Debug("sent RPC request")
+	// response, err := future.WaitResponse(rpc.options.AckPacketTimeout)
+	// if err != nil {
+	// 	return nil, errors.Wrapf(err, "Error getting RPC response from node %s", nodeID.String())
+	// }
+	// logger.Debug("received RPC response")
+	// if response.GetResponse() == nil || response.GetResponse().GetRPC() == nil {
+	// 	logger.Warnf("Error getting RPC response from node %s: "+
+	// 		"got invalid response protobuf message: %s", nodeID, response)
+	// }
+	// data := response.GetResponse().GetRPC()
+	// if data.Result == nil {
+	// 	return nil, errors.New("RPC call returned error: " + data.Error)
+	// }
+	// stats.Record(ctx, statParcelsReplySizeBytes.M(int64(len(data.Result))))
+	// return data.Result, nil
 
-	future, err := rpc.Network.SendRequest(ctx, types.RPC, request, nodeID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error sending RPC request to node %s", nodeID.String())
-	}
-	ctx, logger := inslogger.WithFields(ctx, map[string]interface{}{
-		"request_id":     future.Request().GetRequestID(),
-		"target_node_id": nodeID.String(),
-	})
-	logger.Debug("sent RPC request")
-	response, err := future.WaitResponse(rpc.options.AckPacketTimeout)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error getting RPC response from node %s", nodeID.String())
-	}
-	logger.Debug("received RPC response")
-	if response.GetResponse() == nil || response.GetResponse().GetRPC() == nil {
-		logger.Warnf("Error getting RPC response from node %s: "+
-			"got invalid response protobuf message: %s", nodeID, response)
-	}
-	data := response.GetResponse().GetRPC()
-	if data.Result == nil {
-		return nil, errors.New("RPC call returned error: " + data.Error)
-	}
-	stats.Record(ctx, statParcelsReplySizeBytes.M(int64(len(data.Result))))
-	return data.Result, nil
+	return nil, throw.Unsupported()
+
 }
 
-func (rpc *rpcController) processMessage(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
-	if request.GetRequest() == nil || request.GetRequest().GetRPC() == nil {
-		inslogger.FromContext(ctx).Warnf("process RPC: got invalid request protobuf message: %s", request)
-	}
-
-	ctx = insmetrics.InsertTag(ctx, tagPacketType, request.GetType().String())
-	stats.Record(ctx, statPacketsReceived.M(1))
-
-	payload := request.GetRequest().GetRPC()
-	result, err := rpc.invoke(ctx, payload.Method, payload.Data)
-	if err != nil {
-		return rpc.Network.BuildResponse(ctx, request, &rms.RPCResponse{Error: err.Error()}), nil
-	}
-	return rpc.Network.BuildResponse(ctx, request, &rms.RPCResponse{Result: result}), nil
-}
+// func (rpc *rpcController) processMessage(context.Context, network.ReceivedPacket) (network.Packet, error) {
+// 	if request.GetRequest() == nil || request.GetRequest().GetRPC() == nil {
+// 		inslogger.FromContext(ctx).Warnf("process RPC: got invalid request protobuf message: %s", request)
+// 	}
+//
+// 	ctx = insmetrics.InsertTag(ctx, tagPacketType, request.GetType().String())
+// 	stats.Record(ctx, statPacketsReceived.M(1))
+//
+// 	payload := request.GetRequest().GetRPC()
+// 	result, err := rpc.invoke(ctx, payload.Method, payload.Data)
+// 	if err != nil {
+// 		return rpc.Network.BuildResponse(ctx, request, &rms.RPCResponse{Error: err.Error()}), nil
+// 	}
+// 	return rpc.Network.BuildResponse(ctx, request, &rms.RPCResponse{Result: result}), nil
+// 	return nil, throw.Unsupported()
+// }
 
 func (rpc *rpcController) Init(ctx context.Context) error {
-	rpc.Network.RegisterRequestHandler(types.RPC, rpc.processMessage)
+	// rpc.Network.RegisterRequestHandler(types.RPC, rpc.processMessage)
 	return nil
 }
 

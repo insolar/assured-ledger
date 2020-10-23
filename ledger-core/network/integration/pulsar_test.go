@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/component-manager"
@@ -19,7 +20,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/pulsenetwork"
-	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar/entropygenerator"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -53,10 +53,15 @@ type testPulsar struct {
 	pulseDelta   uint16
 
 	cancellationToken chan struct{}
+
+	unifiedServer *uniserver.UnifiedServer
 }
 
 func (tp *testPulsar) Start(ctx context.Context, bootstrapHosts []string) error {
 	var err error
+
+	tp.unifiedServer = pulsenetwork.NewPulsarUniserver()
+	// tp.unifiedServer.StartListen()
 
 	distributorCfg := configuration.PulseDistributor{
 		BootstrapHosts:      bootstrapHosts,
@@ -68,7 +73,7 @@ func (tp *testPulsar) Start(ctx context.Context, bootstrapHosts []string) error 
 		return err
 	}
 
-	tp.distributor, err = pulsenetwork.NewDistributor(distributorCfg)
+	tp.distributor, err = pulsenetwork.NewDistributor(distributorCfg, tp.unifiedServer)
 	if err != nil {
 		return errors.W(err, "Failed to create pulse distributor")
 	}
@@ -80,11 +85,7 @@ func (tp *testPulsar) Start(ctx context.Context, bootstrapHosts []string) error 
 
 	cfg := configuration.NewHostNetwork()
 	cfg.Transport.Protocol = "udp"
-	if UseFakeTransport {
-		tp.cm.Register(transport.NewFakeFactory(cfg.Transport))
-	} else {
-		tp.cm.Register(transport.NewFactory(cfg.Transport))
-	}
+
 	tp.cm.Inject(tp.distributor)
 
 	if err = tp.cm.Init(ctx); err != nil {
@@ -204,5 +205,6 @@ func (tp *testPulsar) Stop(ctx context.Context) error {
 		return errors.W(err, "Failed to stop test pulsar components")
 	}
 	close(tp.cancellationToken)
+	tp.unifiedServer.Stop()
 	return nil
 }
