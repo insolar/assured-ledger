@@ -12,22 +12,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type rawValue struct {
-	val reference.Global
-}
-
-func (r rawValue) GetReference() reference.Global {
-	return r.val
-}
-
-func (r rawValue) TryPullReference() reference.Global {
-	return r.val
-}
-
-func NewRawValue(global reference.Global) rmsbox.ReferenceProvider {
-	return &rawValue{val: global}
-}
-
 type IncomingRegistrationStatus int8
 
 const (
@@ -72,8 +56,8 @@ func (c *RegistrationCtx) SetNewReferences(trunk rmsbox.ReferenceProvider, branc
 }
 
 func (c *RegistrationCtx) Init(object reference.Global, trunk reference.Global) {
-	c.objectRef = NewRawValue(object)
-	c.trunkRef = NewRawValue(trunk)
+	c.objectRef = rmsbox.NewRawValueProvider(object)
+	c.trunkRef = rmsbox.NewRawValueProvider(trunk)
 }
 
 func (c *RegistrationCtx) IncrementSafeResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -144,5 +128,5 @@ func NewRegistrationCtx(ctx smachine.InitializationContext) *RegistrationCtx {
 }
 
 func NewDummyRegistrationCtx(trunk reference.Global) *RegistrationCtx {
-	return &RegistrationCtx{trunkRef: NewRawValue(trunk)}
+	return &RegistrationCtx{trunkRef: rmsbox.NewRawValueProvider(trunk)}
 }
