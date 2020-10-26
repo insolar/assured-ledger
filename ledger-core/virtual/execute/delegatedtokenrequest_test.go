@@ -28,12 +28,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
 func TestVDelegatedCallRequest(t *testing.T) {
@@ -107,7 +107,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 				require.Equal(t, objectRef, object)
 				require.Equal(t, migrationPulse, pn)
 			case *rms.LRegisterRequest:
-				key := lmn.ResultAwaitKey{
+				key := vnlmn.ResultAwaitKey{
 					AnticipatedRef: res.AnticipatedRef,
 					RequiredFlag:   rms.RegistrationFlags_Fast,
 				}

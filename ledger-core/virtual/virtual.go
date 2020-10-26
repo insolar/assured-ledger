@@ -25,11 +25,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
 type DefaultHandlersFactory struct {
@@ -81,7 +81,7 @@ type Dispatcher struct {
 	AuthenticationService authentication.Service
 	Affinity              affinity.Helper
 	MemoryCache           memorycache.Service
-	ReferenceBuilder      lmn.RecordReferenceBuilderService
+	ReferenceBuilder      vnlmn.RecordReferenceBuilder
 
 	EventlessSleep            time.Duration
 	FactoryLogContextOverride context.Context
@@ -161,7 +161,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	lr.FlowDispatcher = insconveyor.NewConveyorDispatcher(ctx, lr.Conveyor)
 
-	lr.MessageSender.InterceptorAdd(lmn.LRegisterRequestInterceptor)
+	lr.MessageSender.InterceptorAdd(vnlmn.LRegisterRequestInterceptor)
 
 	return nil
 }

@@ -5,14 +5,13 @@
 
 //go:generate sm-uml-gen -f $GOFILE
 
-package lmn
+package vnlmn
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/execute/shared"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
@@ -28,6 +27,7 @@ type SMWaitSafeResponse struct {
 	ObjectSharedState   object.SharedStateAccessor
 	ExpectedKey         ResultAwaitKey
 	SafeResponseCounter smachine.SharedDataLink
+	LMNContext          *RegistrationCtx
 
 	receivedType    ReceivedType
 	receivedMessage interface{}
@@ -118,7 +118,7 @@ func (s *SMWaitSafeResponse) stepWaitResult(ctx smachine.ExecutionContext) smach
 		panic(throw.IllegalState())
 	}
 
-	stateUpdate := shared.CounterDecrement(ctx, s.SafeResponseCounter)
+	stateUpdate := s.LMNContext.DecrementSafeResponse(ctx)
 	if !stateUpdate.IsEmpty() {
 		return stateUpdate
 	}
