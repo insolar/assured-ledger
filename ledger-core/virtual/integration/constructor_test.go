@@ -27,6 +27,7 @@ import (
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/recordchecker"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -34,6 +35,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
 func TestVirtual_Constructor_BadClassRef(t *testing.T) {
@@ -107,7 +109,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		class        = pl.Callee.GetValue()
 	)
 
-	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 		assert.Equal(t, runnerResult, res.ReturnArguments.GetBytes())
 		assert.Equal(t, objectRef, res.Callee.GetValue())
@@ -136,6 +138,48 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		report.ProvidedContent.LatestValidatedState.Reference = rms.Reference{}
 		utils.AssertVStateReportsEqual(t, expected, report)
 
+		return false
+	})
+	checker := recordchecker.NewChecker(mc)
+	{
+		inb := checker.NewChainFromRLifeline(
+			rms.LRegisterRequest{
+				AnyRecordLazy:  vnlmn.MustRecordToAnyRecordLazy(&rms.RLifelineStart{}),
+				AnticipatedRef: rms.NewReference(objectRef),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLineInboundRequest{}),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+		inb.AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RInboundResponse{}),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+		inb.AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLineMemory{}),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLineActivate{}),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+	}
+	var (
+		chainChecker = checker.GetReadView().GetObjectByReference(objectRef)
+		err          error
+	)
+	typedChecker.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
+		chainChecker, err = chainChecker.Feed(*request)
+		require.NoError(t, err)
+		chainChecker.GetResponseProvider()(*request)
 		return false
 	})
 
@@ -405,6 +449,7 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 	server.Init(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
+	recordChecker := recordchecker.NewChecker(mc)
 
 	var (
 		isolation = contract.ConstructorIsolation()
@@ -465,6 +510,84 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 			},
 		)
 	}
+	{
+		inbA := recordChecker.NewChainFromRLifeline(
+			rms.LRegisterRequest{
+				AnyRecordLazy:  vnlmn.MustRecordToAnyRecordLazy(&rms.RLifelineStart{}),
+				AnticipatedRef: rms.NewReference(objectA),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLineInboundRequest{}),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+		inbA.AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.ROutboundRequest{}),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.ROutboundResponse{}),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RInboundResponse{}),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+		inbA.AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLineMemory{}),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLineActivate{}),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+	}
+	{ // add chain for constructor of object B
+		anticipatedOutgoingWrapper := utils.GenerateVCallRequestConstructor(server)
+		anticipatedOutgoingWrapper.SetCaller(objectA)
+		anticipatedOutgoingWrapper.SetClass(classB)
+		anticipatedOutgoingWrapper.SetCallOutgoing(outgoingA)
+		anticipatedOutgoingWrapper.SetArguments([]byte("123"))
+		objBRef := anticipatedOutgoingWrapper.GetObject()
+		inbB := recordChecker.NewChainFromRLifeline(
+			rms.LRegisterRequest{
+				AnyRecordLazy:  vnlmn.MustRecordToAnyRecordLazy(&rms.RLifelineStart{}),
+				AnticipatedRef: rms.NewReference(objBRef),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLineInboundRequest{}),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+		inbB.AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RInboundResponse{}),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+		inbB.AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLineMemory{}),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLineActivate{}),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+	}
 
 	// add checks to typedChecker
 	{
@@ -476,6 +599,7 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 			assert.Equal(t, uint32(1), request.CallSequence)
 			assert.Equal(t, callFlags, request.CallFlags)
 			assert.Equal(t, server.GetPulseNumber(), request.CallOutgoing.GetPulseOfLocal())
+
 			return true // resend
 		})
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
@@ -494,6 +618,19 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 			}
 			// we should resend that message only if it's CallResult from B to A
 			return res.Caller.GetValue() == objectA
+		})
+		typedChecker.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
+			var (
+				chainChecker recordchecker.ChainChecker
+				err          error
+			)
+			chainChecker = recordChecker.GetReadView().GetObjectByRLifeline(server.GetPulseNumber(), *request)
+			require.NotNil(t, chainChecker)
+			chainChecker, err = chainChecker.Feed(*request)
+			require.NoError(t, err)
+			require.NotNil(t, chainChecker)
+			chainChecker.GetResponseProvider()(*request)
+			return false
 		})
 	}
 
@@ -537,7 +674,18 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 		pl        = plWrapper.Get()
 	)
 
-	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	recordChecker := recordchecker.NewChecker(mc)
+
+	{
+		// TODO: check in docs that we must only register lifeline
+		recordChecker.NewChainFromReference(rms.NewReference(objectRef)).AddMessage(
+			rms.LRegisterRequest{
+				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLifelineStart{}),
+			},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+	}
 
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 		require.Equal(t, objectRef, res.Callee.GetValue())
@@ -548,6 +696,19 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 		require.NoError(t, sysErr)
 
 		return false // no resend msg
+	})
+	typedChecker.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
+		var (
+			chainChecker recordchecker.ChainChecker
+			err          error
+		)
+		chainChecker = recordChecker.GetReadView().GetObjectByReference(objectRef)
+		require.NotNil(t, chainChecker)
+		chainChecker, err = chainChecker.Feed(*request)
+		require.NoError(t, err)
+		require.NotNil(t, chainChecker)
+		chainChecker.GetResponseProvider()(*request)
+		return false
 	})
 
 	server.SendPayload(ctx, &pl)
