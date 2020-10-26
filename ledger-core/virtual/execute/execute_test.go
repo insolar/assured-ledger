@@ -851,6 +851,8 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 			assert.Empty(t, res.LatestValidatedState)
 			close(vStateReportRecv)
 		case *rms.LRegisterRequest:
+			_ = res.AnticipatedRef.Get()
+
 			key := vnlmn.ResultAwaitKey{
 				AnticipatedRef: res.AnticipatedRef,
 				RequiredFlag:   rms.RegistrationFlags_Fast,
