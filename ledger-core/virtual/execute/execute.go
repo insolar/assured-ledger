@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/crypto"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -72,7 +73,7 @@ type SMExecute struct {
 	authenticationService authentication.Service
 	globalSemaphore       tool.RunnerLimiter
 	memoryCache           memoryCacheAdapter.MemoryCache
-	referenceBuilder      vnlmn.RecordReferenceBuilder
+	pcs                   crypto.PlatformScheme
 
 	outgoing            *rms.VCallRequest
 	outgoingObject      reference.Global
@@ -108,7 +109,7 @@ func (*dSMExecute) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotL
 	injector.MustInject(&s.objectCatalog)
 	injector.MustInject(&s.authenticationService)
 	injector.MustInject(&s.globalSemaphore)
-	injector.MustInject(&s.referenceBuilder)
+	injector.MustInject(&s.pcs)
 }
 
 func (*dSMExecute) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -132,7 +133,7 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 
 	if s.Payload.CallType == rms.CallTypeConstructor {
 		s.isConstructor = true
-		s.execution.Object = vnlmn.GetLifelineAnticipatedReference(s.referenceBuilder, s.Payload, currentPulse)
+		s.execution.Object = vnlmn.GetLifelineAnticipatedReference(s.pcs.RecordScheme().ReferenceDigester(), s.Payload, currentPulse)
 	} else {
 		s.execution.Object = s.Payload.Callee.GetValue()
 	}
@@ -551,9 +552,11 @@ func (s *SMExecute) stepRegisterObjectLifeLine(ctx smachine.ExecutionContext) sm
 func (s *SMExecute) stepRegisterObjectLifelineAfter(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	// TODO: we must set initial (empty) descriptor
 	action := func(state *object.SharedState) {
+		trunkRef := s.lmnContext.TrunkRef().GetReference()
+
 		state.SetDescriptorDirty(descriptor.NewObject(
 			s.execution.Object,
-			s.lmnContext.TrunkRef().GetLocal(),
+			trunkRef.GetLocal(),
 			s.Payload.Callee.GetValue(),
 			[]byte(""),
 			false,
@@ -808,7 +811,9 @@ func (s *SMExecute) stepRegisterOutgoing(ctx smachine.ExecutionContext) smachine
 		ctx.Error(err)
 	}
 
-	s.outgoing.CallOutgoing = rms.NewReference(s.lmnContext.BranchRef())
+	branchRef := s.lmnContext.BranchRef().GetReference()
+
+	s.outgoing.CallOutgoing = rms.NewReference(branchRef)
 
 	// someone else can process other requests while we registering outgoing and waiting for outgoing result
 	ctx.Release(s.globalSemaphore.PartialLink())
@@ -833,7 +838,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 	currentPulse := s.pulseSlot.CurrentPulseNumber()
 
 	if s.outgoing.CallType == rms.CallTypeConstructor {
-		s.outgoingObject = vnlmn.GetLifelineAnticipatedReference(s.referenceBuilder, s.outgoing, currentPulse)
+		s.outgoingObject = vnlmn.GetLifelineAnticipatedReference(s.pcs.RecordScheme().ReferenceDigester(), s.outgoing, currentPulse)
 	}
 
 	if s.outgoingSentCounter == 0 {
@@ -1117,9 +1122,11 @@ func (s *SMExecute) stepPublishDataCallSummary(ctx smachine.ExecutionContext) sm
 func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var lastState *rms.ObjectState = nil
 
+	trunkRef := s.lmnContext.TrunkRef().GetReference()
+
 	if s.newObjectDescriptor != nil {
 		lastState = &rms.ObjectState{
-			Reference:   rms.NewReference(s.lmnContext.TrunkRef()),
+			Reference:   rms.NewReference(trunkRef),
 			Memory:      rms.NewBytes(s.executionNewState.Result.Memory),
 			Class:       rms.NewReference(s.newObjectDescriptor.Class()),
 			Deactivated: s.executionNewState.Result.SideEffectType == requestresult.SideEffectDeactivate,
@@ -1153,7 +1160,9 @@ func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, 
 }
 
 func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte, deactivated bool) descriptor.Object {
-	return descriptor.NewObject(s.execution.Object, s.lmnContext.TrunkRef().GetLocal(), class, memory, deactivated)
+	trunkRef := s.lmnContext.TrunkRef().GetReference()
+
+	return descriptor.NewObject(s.execution.Object, trunkRef.GetLocal(), class, memory, deactivated)
 }
 
 func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -1293,12 +1302,12 @@ const (
 )
 
 func (s *SMExecute) constructRegisterRecordBuilder(v RegisterVariant) vnlmn.RegisterRecordBuilder {
-	subroutineSM := vnlmn.RegisterRecordBuilder{
+	helper := vnlmn.RegisterRecordBuilder{
 		Interference: s.methodIsolation.Interference,
 
-		PulseGetter:      s.pulseSlot.CurrentPulseNumber,
-		ReferenceBuilder: s.referenceBuilder,
-		Context:          s.lmnContext,
+		PulseGetter:  s.pulseSlot.CurrentPulseNumber,
+		DataDigester: s.pcs.RecordScheme().ReferenceDigester(),
+		Context:      s.lmnContext,
 	}
 
 	switch v {
@@ -1306,13 +1315,13 @@ func (s *SMExecute) constructRegisterRecordBuilder(v RegisterVariant) vnlmn.Regi
 		if s.lmnContext.IncomingRegistered() {
 			panic(throw.IllegalState())
 		}
-		subroutineSM.Incoming = s.Payload
-		return subroutineSM
+		helper.Incoming = s.Payload
+		return helper
 
 	case RegisterOutgoingRequest, RegisterIncomingResult:
 		if !s.lmnContext.IncomingRegistered() {
 			// TODO: if pulse is changed before
-			subroutineSM.Incoming = s.Payload
+			helper.Incoming = s.Payload
 
 			s.lmnContext.IncomingRegisterNext()
 		}
@@ -1326,8 +1335,8 @@ func (s *SMExecute) constructRegisterRecordBuilder(v RegisterVariant) vnlmn.Regi
 		panic(throw.IllegalValue())
 	}
 
-	subroutineSM.Object = s.execution.Object
-	return subroutineSM
+	helper.Object = s.execution.Object
+	return helper
 }
 
 func (s *SMExecute) constructSubSMRegisterSend(msgs []vnlmn.SerializableBasicMessage) vnlmn.SubSMRegisterRecordSend {

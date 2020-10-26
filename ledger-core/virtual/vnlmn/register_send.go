@@ -131,6 +131,7 @@ func (s *SubSMRegisterRecordSend) stepSendRequest(ctx smachine.ExecutionContext)
 
 	var (
 		anticipatedRef  = msgConverted.GetAnticipatedRef()
+		_               = anticipatedRef.Get()
 		flags, waitFlag = msgConverted.GetFlags(), msgConverted.GetFlags()
 		bargeInKey      ResultAwaitKey
 	)
@@ -179,8 +180,6 @@ func (s *SubSMRegisterRecordSend) stepUpdateSafeCount(ctx smachine.ExecutionCont
 			return stateUpdate
 		}
 	}
-
-	s.requiredSafe = false
 
 	return ctx.Jump(s.stepWaitResponse)
 }

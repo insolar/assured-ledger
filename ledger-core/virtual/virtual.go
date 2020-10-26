@@ -14,6 +14,7 @@ import (
 	testWalletAPIStateMachine "github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/crypto"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -81,7 +82,7 @@ type Dispatcher struct {
 	AuthenticationService authentication.Service
 	Affinity              affinity.Helper
 	MemoryCache           memorycache.Service
-	ReferenceBuilder      vnlmn.RecordReferenceBuilder
+	PlatformScheme        crypto.PlatformScheme
 
 	EventlessSleep            time.Duration
 	FactoryLogContextOverride context.Context
@@ -144,7 +145,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 	lr.Conveyor.AddInterfaceDependency(&lr.messageSenderAdapter)
 	lr.Conveyor.AddInterfaceDependency(&lr.memoryCacheAdapter)
 	lr.Conveyor.AddInterfaceDependency(&lr.AuthenticationService)
-	lr.Conveyor.AddInterfaceDependency(&lr.ReferenceBuilder)
+	lr.Conveyor.AddInterfaceDependency(&lr.PlatformScheme)
 
 	if !lr.Conveyor.TryPutDependency(insapp.LocalNodeRefInjectionID, reference.Copy(lr.Affinity.Me())) {
 		panic(throw.IllegalState())
