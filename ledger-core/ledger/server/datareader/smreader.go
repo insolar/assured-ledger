@@ -8,18 +8,15 @@ package datareader
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/dataextractor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/readersvc"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/readersvc/readbundle"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func NewReader(request *rms.LReadRequest) smachine.SubroutineStateMachine {
-	if request == nil {
-		panic(throw.IllegalValue())
-	}
-	return &SMLineReader{ request: request}
+func NewReader(cfg dataextractor.Config) smachine.SubroutineStateMachine {
+	cfg.Ensure()
+	return &SMLineReader{cfg: cfg}
 }
 
 var _ smachine.SubroutineStateMachine = &SMLineReader{}
@@ -27,7 +24,7 @@ type SMLineReader struct {
 	smachine.StateMachineDeclTemplate
 
 	// input
-	request *rms.LReadRequest
+	cfg dataextractor.Config
 
 	// inject
 	readAdapter readersvc.Adapter
@@ -64,10 +61,10 @@ func (p *SMLineReader) stepInit(ctx smachine.InitializationContext) smachine.Sta
 }
 
 func (p *SMLineReader) stepDirectRead(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	pn := p.request.TargetRef.GetPulseOfLocal()
+	cfg := p.cfg
 
 	return p.readAdapter.PrepareAsync(ctx, func(svc readersvc.Service) smachine.AsyncResultFunc {
-		cab, err := svc.FindCabinet(pn)
+		cab, err := svc.FindCabinet(cfg.Target)
 		switch {
 		case err != nil:
 			panic(err)
@@ -77,17 +74,19 @@ func (p *SMLineReader) stepDirectRead(ctx smachine.ExecutionContext) smachine.St
 			}
 		}
 
-		if err = readDataFromCabinet(svc, cab, 0); err != nil {
-			panic(err)
-		}
+		err = readDataFromCabinet(svc, cab, cfg, 0)
 
 		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("read failed", err)
+				panic(err)
+			}
 			p.ready = true
 		}
 	}).DelayedStart().Sleep().ThenJump(p.stepDone)
 }
 
-func readDataFromCabinet(svc readersvc.Service, cab readersvc.Cabinet, id jet.DropID) (err error) {
+func readDataFromCabinet(svc readersvc.Service, cab readersvc.Cabinet, cfg dataextractor.Config, id jet.DropID) (err error) {
 	defer func() {
 		switch closeErr := cab.Close(); {
 		case closeErr == nil:
@@ -100,9 +99,10 @@ func readDataFromCabinet(svc readersvc.Service, cab readersvc.Cabinet, id jet.Dr
 		err = throw.RW(recover(), err, "readDataFromCabinet")
 	}()
 
-	return svc.ReadFromCabinet(cab, id, func(reader readbundle.Reader) error {
-		panic(throw.NotImplemented()) // TODO
-	})
+	if cfg.Selector.Direction.IsToPast() {
+		return svc.ReadFromCabinet(cab, id, prevReader{ cfg }.ReadData)
+	}
+	return svc.ReadFromCabinet(cab, id, nextReader{ cfg }.ReadData)
 }
 
 func (p *SMLineReader) stepBatchRead(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -118,26 +118,6 @@ func (p *SMLineReader) stepBatchRead(ctx smachine.ExecutionContext) smachine.Sta
 	panic(throw.NotImplemented()) // TODO
 }
 
-// func (p *SMLineReader) stepReadData(ctx smachine.ExecutionContext) smachine.StateUpdate {
-// 	switch {
-// 	case !p.ready:
-// 		return ctx.Sleep().ThenRepeat()
-// 	case p.cabinet == nil:
-// 		return ctx.Error(throw.E("cabinet is not available"))
-// 	}
-//
-// 	// // ledger.ControlSection
-// 	// loc, err := p.reader.FindDirectoryEntry(ledger.DefaultEntrySection, p.request.TargetRef.Get())
-// 	// switch {
-// 	// case err != nil:
-// 	// 	return ctx.Error(err)
-// 	// case loc == 0:
-// 	// 	return ctx.Error(throw.E("filament not found"))
-// 	// }
-//
-// 	panic(throw.NotImplemented()) // TODO
-// }
-
 func (p *SMLineReader) stepDone(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	panic(throw.NotImplemented()) // TODO
+	return ctx.Stop()
 }

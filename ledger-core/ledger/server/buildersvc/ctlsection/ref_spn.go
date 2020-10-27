@@ -6,6 +6,8 @@
 package ctlsection
 
 import (
+	"encoding/binary"
+
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -13,18 +15,20 @@ import (
 )
 
 const SPNControlSection = pulse.Number(127)
-// const SPNControlSection = pulse.Number(127)
 
-func Ref(id ledger.SectionID, summary bool) reference.Global {
-	return reference.New(
-		reference.NewLocal(SPNControlSection, 0, reference.LocalHash{}),
-		reference.NewLocal(SPNControlSection, 0, reference.LocalHash{}), // TODO key
-	)
+func ctlRecordLocalRef(recordType uint64, id uint16) reference.Local {
+	var data reference.LocalHash
+	n := 8
+	binary.LittleEndian.PutUint64(data[n-8:n], recordType)
+	n += 2
+	binary.LittleEndian.PutUint16(data[n-2:n], id)
+	return reference.NewLocal(SPNControlSection, 0, data)
 }
 
-func JetRef(id jet.ID) reference.Global {
-	return reference.New(
-		reference.NewLocal(SPNControlSection, 0, reference.LocalHash{}),
-		reference.NewLocal(SPNControlSection, 0, reference.LocalHash{}), // TODO key
-	)
+func SectionCtlRecordRef(id ledger.SectionID, recordType uint64) reference.Global {
+	return reference.NewSelf(ctlRecordLocalRef(recordType, uint16(id)))
+}
+
+func JetCtlRecordRef(id jet.ID, recordType uint64) reference.Global {
+	return reference.NewSelf(ctlRecordLocalRef(recordType, uint16(id)))
 }

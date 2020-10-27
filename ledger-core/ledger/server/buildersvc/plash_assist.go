@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/merkler"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -54,6 +55,8 @@ type plashAssistant struct {
 	nextReady smsync.BoolConditionalLink
 
 	status atomickit.Uint32
+	sectionSync synckit.ClosableSignalChannel
+
 	commit sync.Mutex // LOCK: Spans across methods
 	merkle merkler.ForkingCalculator
 }
@@ -95,6 +98,9 @@ func (p *plashAssistant) PreparePulseChange(outFn conveyor.PreparePulseCallbackF
 	if !p.status.CompareAndSwap(plashStarted, plashPendingPulse) {
 		p.commit.Unlock()
 		panic(throw.Impossible()) // race with multiple PreparePulseChange() calls?
+	}
+	if p.sectionSync == nil {
+		p.sectionSync = make(synckit.ClosableSignalChannel)
 	}
 
 	forked := p.merkle.ForkCalculator()
@@ -291,6 +297,7 @@ func (p *plashAssistant) writeSectionSummaries() error {
 	if p.status.Load() != plashSummingUp {
 		panic(throw.IllegalState())
 	}
+	defer close(p.sectionSync)
 
 	if err := p.ctlWriter.WriteSectionSummary(p.dirtyReader, ledger.DefaultEntrySection); err != nil {
 		return err
@@ -323,6 +330,7 @@ func (p *plashAssistant) finalizeDropSummary(id jet.DropID) (catalog.DropReport,
 	if p.status.Load() != plashSummingUp {
 		panic(throw.IllegalState())
 	}
+	<- p.sectionSync
 
 	return p.ctlWriter.WriteDropSummary(id, p.runFinalizeSummaryWrites)
 }

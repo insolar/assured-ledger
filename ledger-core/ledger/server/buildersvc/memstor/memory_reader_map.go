@@ -12,7 +12,8 @@ import (
 )
 
 type DirectoryMap interface {
-	Find(reference.Holder) ledger.StorageLocator
+	FindLocator(reference.Holder) ledger.StorageLocator
+	FindOrdinal(reference.Holder) ledger.Ordinal
 	GetByOrdinal(ledger.Ordinal) ledger.StorageLocator
 }
 
@@ -32,15 +33,17 @@ func newInMemoryDirectoryMap(directoryEntries [][]bundle.DirectoryEntry) Directo
 
 	dm := directoryMap{
 		entries: make([]ledger.StorageLocator, 0, n),
-		entryMap: make(map[reference.Global]ledger.StorageLocator, n - 1), // zero index is always empty
+		entryMap: make(map[reference.Global]ledger.Ordinal, n - 1), // zero index is always empty
 	}
 
+	ord := ledger.Ordinal(0)
 	for _, pg := range directoryEntries {
 		for _, entry := range pg {
 			dm.entries = append(dm.entries, entry.Loc)
 			if entry.Loc != 0 && !entry.Key.IsEmpty() {
-				dm.entryMap[entry.Key] = entry.Loc
+				dm.entryMap[entry.Key] = ord
 			}
+			ord++
 		}
 	}
 
@@ -49,10 +52,14 @@ func newInMemoryDirectoryMap(directoryEntries [][]bundle.DirectoryEntry) Directo
 
 type directoryMap struct {
 	entries  []ledger.StorageLocator
-	entryMap map[reference.Global]ledger.StorageLocator
+	entryMap map[reference.Global]ledger.Ordinal
 }
 
-func (v directoryMap) Find(ref reference.Holder) ledger.StorageLocator {
+func (v directoryMap) FindLocator(ref reference.Holder) ledger.StorageLocator {
+	return v.GetByOrdinal(v.FindOrdinal(ref))
+}
+
+func (v directoryMap) FindOrdinal(ref reference.Holder) ledger.Ordinal {
 	if reference.IsEmpty(ref) {
 		return 0
 	}

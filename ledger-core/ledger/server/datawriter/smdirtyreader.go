@@ -9,19 +9,17 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datareader"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/dataextractor"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func NewDirtyReader(request *rms.LReadRequest, pn pulse.Number) smachine.SubroutineStateMachine {
-	if request == nil {
-		panic(throw.IllegalValue())
-	}
-	return &SubSMDirtyReader{request: request, pn: pn}
+func NewDirtyReader(cfg dataextractor.Config) smachine.SubroutineStateMachine {
+	cfg.Ensure()
+	return &SubSMDirtyReader{cfg: cfg}
 }
 
 var _ smachine.SubroutineStateMachine = &SubSMDirtyReader{}
@@ -29,17 +27,18 @@ type SubSMDirtyReader struct {
 	smachine.StateMachineDeclTemplate
 
 	// input
-	request *rms.LReadRequest
-	pn      pulse.Number
+	cfg dataextractor.Config
 
 	// injected
 	cataloger LineCataloger
 	reader    buildersvc.ReadAdapter
 
 	// runtime
-	sdl       LineDataLink
-	dropID    jet.DropID
-	extractor datareader.SequenceExtractor
+	sdl     LineDataLink
+	dropID  jet.DropID
+	selfRef reference.Local
+
+	sequence dirtyIterator
 }
 
 func (p *SubSMDirtyReader) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -60,31 +59,35 @@ func (p *SubSMDirtyReader) GetInitStateFor(smachine.StateMachine) smachine.InitF
 }
 
 func (p *SubSMDirtyReader) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
-	switch {
-	case p.request.TargetRef.IsEmpty():
-		return ctx.Error(throw.E("missing target"))
-	case p.request.Flags & (rms.ReadFlags_ExplicitRedirection|rms.ReadFlags_IgnoreRedirection) != 0:
-		panic(throw.NotImplemented())
-	}
-
-	if tpn := p.request.TargetRef.Get().GetLocal().Pulse(); tpn != p.pn {
-		return ctx.Error(throw.E("wrong target pulse", struct { TargetPN, SlotPN pulse.Number }{ tpn, p.pn}))
-	}
+	// switch {
+	// case p.request.TargetStartRef.IsEmpty():
+	// 	return ctx.Error(throw.E("missing target"))
+	// case p.request.Flags != 0:
+	// 	panic(throw.NotImplemented())
+	// }
+	//
+	// if tpn := p.request.TargetStartRef.Get().GetLocal().Pulse(); tpn != p.pn {
+	// 	return ctx.Error(throw.E("wrong target pulse", struct { TargetPN, SlotPN pulse.Number }{ tpn, p.pn}))
+	// }
 
 	// p.request.LimitCount
 	// p.request.LimitSize
 	// p.request.LimitRef
 	// p.request.Flags
 
-	p.extractor = &datareader.WholeExtractor{ReadAll: true}
+	switch notReason, selectorRef := p.cfg.Selector.GetSelectorRef(); {
+	case notReason:
+		p.selfRef = reference.NormCopy(selectorRef).GetBase()
+	default:
+		panic(throw.NotImplemented())
+	}
 
 	return ctx.Jump(p.stepFindLine)
 }
 
 func (p *SubSMDirtyReader) stepFindLine(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if p.sdl.IsZero() {
-		normTargetRef := reference.NormCopy(p.request.TargetRef.Get())
-		lineRef := reference.NewSelf(normTargetRef.GetBase())
+		lineRef := reference.NewSelf(p.selfRef)
 
 		p.sdl = p.cataloger.Get(ctx, lineRef)
 		if p.sdl.IsZero() {
@@ -125,17 +128,14 @@ func (p *SubSMDirtyReader) stepLineIsReady(ctx smachine.ExecutionContext) smachi
 	valid := false
 
 	switch p.sdl.TryAccess(ctx, func(sd *LineSharedData) (wakeup bool) {
-		if !sd.IsValid() {
+		if !sd.IsValidForRead() {
 			return
 		}
 		valid = true
 		p.dropID = sd.DropID()
-
 		sd.TrimStages()
 
-		normTargetRef := reference.NormCopy(p.request.TargetRef.Get())
-		// TODO do a few sub-cycles when too many record
-		_, future = sd.FindSequence(normTargetRef, p.extractor.AddLineRecord)
+		_, future = p.findExpectedRecords(sd)
 
 		return false
 	}) {
@@ -151,7 +151,7 @@ func (p *SubSMDirtyReader) stepLineIsReady(ctx smachine.ExecutionContext) smachi
 	case !valid:
 		return ctx.Jump(p.stepResponse)
 	case future == nil:
-		return ctx.Jump(p.stepPrepareData)
+		return ctx.Jump(p.stepPrepareDataWithReader)
 	}
 
 	ready := future.GetReadySync()
@@ -174,8 +174,7 @@ func (p *SubSMDirtyReader) stepDataIsReady(ctx smachine.ExecutionContext) smachi
 	switch p.sdl.TryAccess(ctx, func(sd *LineSharedData) (wakeup bool) {
 		sd.TrimStages()
 
-		normTargetRef := reference.NormCopy(p.request.TargetRef.Get())
-		if _, future := sd.FindSequence(normTargetRef, p.extractor.AddLineRecord); future != nil {
+		if _, future := p.findExpectedRecords(sd); future != nil {
 			panic(throw.Impossible())
 		}
 
@@ -189,24 +188,18 @@ func (p *SubSMDirtyReader) stepDataIsReady(ctx smachine.ExecutionContext) smachi
 		panic(throw.IllegalState())
 	}
 
-	return ctx.Jump(p.stepPrepareData)
-}
-
-func (p *SubSMDirtyReader) stepPrepareData(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if p.extractor.NeedsDirtyReader() {
-		return ctx.Jump(p.stepPrepareDataWithReader)
-	}
-
-	if p.extractor.ExtractMoreRecords(100) {
-		return ctx.Repeat(100)
-	}
-
-	return ctx.Jump(p.stepResponse)
+	return ctx.Jump(p.stepPrepareDataWithReader)
 }
 
 func (p *SubSMDirtyReader) stepPrepareDataWithReader(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return p.reader.PrepareAsync(ctx, func(svc buildersvc.ReadService) smachine.AsyncResultFunc {
-		err := svc.DropReadDirty(p.dropID, p.extractor.ExtractAllRecordsWithReader)
+		extractor := dataextractor.NewSequenceReader(&p.sequence, p.cfg.Limiter, p.cfg.Output)
+
+		err := svc.DropReadDirty(p.dropID, func(reader bundle.DirtyReader) error {
+			extractor.SetReader(reader)
+			return extractor.ReadAll()
+		})
+
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				panic(err)
@@ -217,14 +210,20 @@ func (p *SubSMDirtyReader) stepPrepareDataWithReader(ctx smachine.ExecutionConte
 }
 
 func (p *SubSMDirtyReader) stepResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	response := &rms.LReadResponse{}
-
-	response.Entries = p.extractor.GetExtractRecords()
-
-	nextInfo := p.extractor.GetExtractedTail()
-	response.NextRecordSize = uint32(nextInfo.NextRecordSize)
-	response.NextRecordPayloadsSize = uint32(nextInfo.NextRecordPayloadsSize)
-
-	ctx.SetTerminationResult(response)
 	return ctx.Stop()
+}
+
+func (p *SubSMDirtyReader) findExpectedRecords(sd *LineSharedData) (bool, *buildersvc.Future) {
+	// TODO do a few sub-cycles when too many record
+
+	lim := p.cfg.Limiter.Clone()
+
+	return sd.FindSequence(p.cfg.Selector, func(record lineage.ReadRecord) bool {
+		lim.Next(0, record.RecRef)
+		if lim.CanRead() {
+			p.sequence.addExpected(record.StorageIndex)
+			return false
+		}
+		return true
+	})
 }

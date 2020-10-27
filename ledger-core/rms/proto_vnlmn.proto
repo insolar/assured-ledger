@@ -5,7 +5,7 @@ package rms;
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "github.com/insolar/assured-ledger/ledger-core/insproto/ins.proto";
 import "rms.proto";
-// import "proto_records.proto";
+import "proto_catalog.proto";
 
 option (insproto.notation_all) = true;
 option (insproto.context_all) = "MessageVisitor";
@@ -74,16 +74,24 @@ message LRegisterResponse {
 }
 
 enum ReadFlags {
-    option allow_alias = true;
+//    option allow_alias = true;
 
-    IgnoreAllPayloads = 0;
-    TakeEarliestPayload = 1;
-    TakeLatestPayload = 2;
-    TakeAllPayloads = 4; // Supersedes TakeEarliest and TakeLatest
+    PastToPresent = 0;
+    PresentToPast = 1;
 
-    TransparentRedirection = 0;
-    ExplicitRedirection = 8;
-    IgnoreRedirection = 16; // Supersedes ExplicitRedirection
+    ExcludeStart = 2;
+    ExcludeStop  = 4;
+
+    IgnoreBranch = 8;
+    FollowBranch = 16;
+    IncludeBranch = 24; // 8 + 16
+
+    IncludePrevReport = 32;
+    IncludeNextReport = 64;
+
+//    TransparentRedirection = 0;
+//    ExplicitRedirection = 8;
+//    IgnoreRedirection = 16; // Supersedes ExplicitRedirection
 }
 
 message LReadRequest {
@@ -96,10 +104,18 @@ message LReadRequest {
     // Add custom fields below
 
     ReadFlags Flags = 1800;
-    Reference TargetRef = 1801;
-    Reference LimitRef = 1802;
-    uint32    LimitCount = 1803;
-    uint32    LimitSize = 1804;
+    uint32    TargetPulse = 1801 [(gogoproto.casttype) = "PulseNumber"];
+    Reference TargetRootRef = 1802;
+    Reference TargetStartRef = 1803;
+    Reference TargetStopRef = 1804;
+    Reference TargetReasonRef = 1805;
+
+    uint64 LimitSize = 1810;
+    uint32 LimitCount = 1811;
+    uint32 LimitRecordWithExcerptCount = 1812;
+    uint32 LimitRecordWithBodyCount = 1813;
+    uint32 LimitRecordWithPayloadCount = 1814;
+    uint32 LimitRecordWithExtensionsCount = 1815;
 }
 
 message LReadResponse {
@@ -115,30 +131,15 @@ message LReadResponse {
     repeated Entry Entries = 1800;
 
     message Entry {
-        uint32 RecordType = 16;
+        CatalogEntryData EntryData = 17;
 
-        repeated bytes Payloads = 17;
-        bytes RecordBinary = 18;
-        RecordBodyDigests PayloadDigests = 19;
-        Reference RecordRef = 20;
+        repeated bytes Payloads = 18;
+        Binary RecordBinary = 19;
 
-        Reference PrevRef = 24;
-        Reference RootRef = 25;
-        Reference ReasonRef = 26;
-        Reference RedirectRef = 27;
-        Reference RejoinRef = 28;
-
-        Binary ProducerSignature = 39;
-        Reference ProducedBy = 42;
-        // Token ProducerToken = 43;
-        Binary RegistrarSignature = 44;
-        Reference RegisteredBy = 45;
-        // Token RegistrarToken = 46;
-
-        uint32   RecordSize = 1801;
-        uint32   RecordPayloadsSize = 1802;
+//        uint32   RecordSize = 1801;
+//        uint32   RecordPayloadsSize = 1802;
     }
 
-    uint32   NextRecordSize = 1801;
-    uint32   NextRecordPayloadsSize = 1802;
+//    uint32   NextRecordSize = 1801;
+//    uint32   NextRecordPayloadsSize = 1802;
 }

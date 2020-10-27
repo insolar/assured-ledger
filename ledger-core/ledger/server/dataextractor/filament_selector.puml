@@ -1,0 +1,31 @@
+@startuml
+start
+if (req.StartRef.IsEmpty && req.StopRef.IsEmpty) then
+    :find recEarliest / recLatest records
+    by StartRef / StopRef and direction;
+
+    if (recEarliest.RootRef == recLatest.RootRef) then (yes)
+        :fil = recEarliest.Filament;
+    elseif (recEarliest == recLatest.RootRef) then (yes)
+        :fil = recLatest.Filament;
+    else
+        end
+    endif
+
+    if (req.RootRef.IsEmpty || fil.RootRef == req.RootRef) then (yes)
+    else
+        end
+    endif
+(yes) elseif (req.RootRef.IsEmpty) then
+    :find local filament\n by req.RootRef;
+else (yes)
+    end
+endif
+
+if (req.ReasonRef.IsEmpty || fil.ReasonRef == req.ReasonRef) then (yes)
+else
+    end
+endif
+
+stop
+@enduml

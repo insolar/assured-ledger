@@ -13,10 +13,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp/lmntestapp"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/readersvc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/requests"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -126,25 +129,15 @@ func TestAddRecords(t *testing.T) {
 	// repeat the same sequence
 	genNewLine.seqNo.Store(0)
 
-	t.Run("read", func(t *testing.T) {
-		for N := 20; N > 0; N-- {
-			recordSet := genNewLine.makeSet(reasonRef)
+	t.Run("dirty-read toPast", func(t *testing.T) {
+		genNewLine.testReadToPast(t, reasonRef, 20)
+	})
 
-			// take the last and read to first
-			resp, err := genNewLine.callRead(recordSet.Requests[2].AnticipatedRef.Get())
-			require.NoError(t, err)
-			require.NotNil(t, resp)
-			require.Len(t, resp.Entries, 3)
+	// repeat the same sequence
+	genNewLine.seqNo.Store(0)
 
-			for i := range resp.Entries {
-				expected := recordSet.Requests[2-i]
-				actual := &resp.Entries[i]
-				require.Equal(t, expected.AnticipatedRef.GetValue(), actual.RecordRef.GetValue(), i)
-				require.NotEmpty(t, actual.RecordBinary)
-
-				require.True(t, expected.AnyRecordLazy.TryGetLazy().EqualBytes(actual.RecordBinary))
-			}
-		}
+	t.Run("dirty-read toPresent", func(t *testing.T) {
+		genNewLine.testReadToPresent(t, reasonRef, 20)
 	})
 }
 
@@ -153,9 +146,11 @@ func TestAddRecordsThenChangePulse(t *testing.T) {
 	defer server.Stop()
 
 	var recBuilder lmntestapp.RecordBuilder
+	jrn := journal.New()
 
 	server.SetImposer(func(params *insconveyor.ImposedParams) {
 		recBuilder = lmntestapp.NewRecordBuilderFromDependencies(params.AppInject)
+		params.EventJournal = jrn
 	})
 
 	server.Start()
@@ -166,6 +161,8 @@ func TestAddRecordsThenChangePulse(t *testing.T) {
 		server.Injector().MustInject(&readAdapter)
 		readSvc = readersvc.GetServiceForTestOnly(readAdapter)
 	}
+
+	ch2 := jrn.WaitStopOf(&datawriter.SMDropBuilder{}, 1 + 1<<datawriter.DefaultGenesisSplitDepth)
 
 	server.RunGenesis()
 	server.IncrementPulse()
@@ -183,19 +180,37 @@ func TestAddRecordsThenChangePulse(t *testing.T) {
 
 	var bundleSignatures [][]cryptkit.Signature
 
-	for N := 10; N > 0; N-- {
+	const TotalN = 10
+
+	ch := jrn.WaitStopOf(&requests.SMRegisterRecordSet{}, TotalN)
+
+	for N := TotalN; N > 0; N-- {
 		// one bundle per object
-		sg, err := genNewLine.registerNewLine(reasonRef)
+		recordSet := genNewLine.makeSet(reasonRef)
+		sg, err := genNewLine.callRegister(recordSet)
 		require.NoError(t, err)
 		require.Len(t, sg, 3)
 		bundleSignatures = append(bundleSignatures, sg)
 	}
 
-	server.IncrementPulse()
-
-	time.Sleep(2*time.Second) // TODO
+	<- ch
 
 	server.IncrementPulse()
+
+	t.Run("past-dirty-read", func(t *testing.T) {
+		t.Run("toPast", func(t *testing.T) {
+			// repeat the same sequence
+			genNewLine.seqNo.Store(0)
+			genNewLine.testReadToPast(t, reasonRef, TotalN)
+		})
+		t.Run("toPresent", func(t *testing.T) {
+			// repeat the same sequence
+			genNewLine.seqNo.Store(0)
+			genNewLine.testReadToPresent(t, reasonRef, TotalN)
+		})
+	})
+
+	<- ch2
 
 	require.Eventually(t, func() bool {
 		cab, err := readSvc.FindCabinet(pn)
@@ -203,6 +218,21 @@ func TestAddRecordsThenChangePulse(t *testing.T) {
 
 		return cab != nil
 	}, 2*time.Second, 10*time.Millisecond)
+
+	server.IncrementPulse()
+
+	t.Run("clean-read", func(t *testing.T) {
+		t.Run("toPast", func(t *testing.T) {
+			// repeat the same sequence
+			genNewLine.seqNo.Store(0)
+			genNewLine.testReadToPast(t, reasonRef, TotalN)
+		})
+		t.Run("toPresent", func(t *testing.T) {
+			// repeat the same sequence
+			genNewLine.seqNo.Store(0)
+			genNewLine.testReadToPresent(t, reasonRef, TotalN)
+		})
+	})
 }
 
 func BenchmarkWriteNew(b *testing.B) {
@@ -321,7 +351,7 @@ func benchmarkWriteRead(b *testing.B, bodySize int, parallel bool) {
 			b.RunParallel(func(pb *testing.PB) {
 				idx := rand.Intn(len(refs))
 				for pb.Next() {
-					resp, _ := genNewLine.callRead(refs[idx])
+					resp, _ := genNewLine.callRead(refs[idx], false)
 					genNewLine.sumUpRead(resp)
 					idx++
 					idx %= len(refs)
@@ -331,7 +361,7 @@ func benchmarkWriteRead(b *testing.B, bodySize int, parallel bool) {
 		} else {
 			idx := rand.Intn(len(refs))
 			for i := b.N; i > 0; i-- {
-				resp, _ := genNewLine.callRead(refs[idx])
+				resp, _ := genNewLine.callRead(refs[idx], false)
 				genNewLine.sumUpRead(resp)
 				idx++
 				idx %= len(refs)

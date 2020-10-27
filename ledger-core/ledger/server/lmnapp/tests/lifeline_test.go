@@ -7,7 +7,11 @@ package tests
 
 import (
 	"context"
+	"math"
 	"strconv"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -115,11 +119,18 @@ func (p *generatorNewLifeline) registerNewLine(reasonRef reference.Holder) ([]cr
 	return p.callRegister(recordSet)
 }
 
-func (p *generatorNewLifeline) callRead(ref reference.Holder) (*rms.LReadResponse, error) {
+func (p *generatorNewLifeline) callRead(ref reference.Holder, pastToPresent bool) (*rms.LReadResponse, error) {
 	pn := p.recBuilder.RefTemplate.LocalHeader().Pulse()
 
 	request := &rms.LReadRequest{}
-	request.TargetRef.Set(ref)
+	request.TargetStartRef.Set(ref)
+	request.LimitRecordWithPayloadCount = math.MaxUint32
+	request.LimitRecordWithExtensionsCount = math.MaxUint32
+	if pastToPresent {
+		request.Flags |= rms.ReadFlags_PastToPresent
+	} else {
+		request.Flags |= rms.ReadFlags_PresentToPast
+	}
 
 	ch := make(chan smachine.TerminationData, 1)
 	err := p.conv.AddInputExt(pn,
@@ -151,3 +162,41 @@ func (p *generatorNewLifeline) sumUpRead(response *rms.LReadResponse) {
 	p.totalBytes.Add(uint64(setSize))
 }
 
+func (p *generatorNewLifeline) testReadToPast(t *testing.T, reasonRef reference.Holder, N int) {
+	for ; N > 0; N-- {
+		recordSet := p.makeSet(reasonRef)
+
+		lastRec := recordSet.Requests[2].AnticipatedRef.Get()
+
+		// take the last and read to first
+		resp, err := p.callRead(lastRec, false)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Len(t, resp.Entries, 3)
+
+		for i := range resp.Entries {
+			expected := recordSet.Requests[2-i]
+			actual := &resp.Entries[i]
+			require.Equal(t, expected.AnticipatedRef.GetValue(), actual.EntryData.RecordRef.GetValue(), i)
+			require.True(t, expected.AnyRecordLazy.TryGetLazy().EqualBytes(actual.RecordBinary.GetBytes()))
+		}
+	}
+}
+
+func (p *generatorNewLifeline) testReadToPresent(t *testing.T, reasonRef reference.Holder, N int) {
+	for ; N > 0; N-- {
+		recordSet := p.makeSet(reasonRef)
+
+		resp, err := p.callRead(recordSet.Requests[0].AnticipatedRef.Get(), true)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Len(t, resp.Entries, 3)
+
+		for i := range resp.Entries {
+			expected := recordSet.Requests[i]
+			actual := &resp.Entries[i]
+			require.Equal(t, expected.AnticipatedRef.GetValue(), actual.EntryData.RecordRef.GetValue(), i)
+			require.True(t, expected.AnyRecordLazy.TryGetLazy().EqualBytes(actual.RecordBinary.GetBytes()))
+		}
+	}
+}

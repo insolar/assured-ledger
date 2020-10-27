@@ -16,7 +16,7 @@ message RecordExcerptForCatalogEntry {
     uint32 RecordType = 16;
     RecordBodyDigests PayloadDigests = 19;
 
-    // MUST match with Excerpt portion of CatalogEntry
+    // MUST match with Excerpt portion of CatalogEntryData
     Reference PrevRef = 24;
     Reference RootRef = 25;
     Reference ReasonRef = 26;
@@ -31,22 +31,26 @@ message RecordBodyForLazy {
 
 message CatalogEntry {
     reserved 1 to 15, 29 to 38;
-    // bytes padding = 1;
 
-    // Start of fixed-size portion.
-    // Use of fixed-size fields allows direct memory mapping for fast access to a few critical fields
     fixed64 DropOrdinal = 16 [(gogoproto.casttype)="DropOrdinal"];
     fixed64 BodyLoc = 17 [(gogoproto.casttype)="StorageLocator"];
     fixed64 PayloadLoc = 18 [(gogoproto.casttype)="StorageLocator"];
     fixed64 BodyPayloadSizes = 19; // low32 - bodySize, high32 - payloadSize
-    // End of fixed-size portion.
 
-    uint32 RecordType = 20;
-    RecordBodyDigests PayloadDigests = 21;
-    ExtLocators ExtensionLoc = 22;
+    ExtLocators ExtensionLoc = 20;
+    CatalogEntryData EntryData = 21;
+}
+
+message CatalogEntryData {
+    reserved 1 to 15, 17, 20 to 23, 1800 to max;
+
+    uint32 RecordType = 16;
+
+    Binary BodyDigest = 18;
+    RecordBodyDigests PayloadDigests = 19;
 
     // Start of Excerpt portion
-    // MUST match with RecordExcerpt
+    // Fields below MUST be identical with RecordExcerptForCatalogEntry
     Reference PrevRef = 24;
     Reference RootRef = 25;
     Reference ReasonRef = 26;
@@ -54,14 +58,15 @@ message CatalogEntry {
     Reference RejoinRef = 28;
     // End of Excerpt field portion
 
-    Binary ProducerSignature = 39;
-    Reference RecapRef = 40;
-
+    Reference RecordRef = 40;
+    Binary ProducerSignature = 41;
     Reference ProducedBy = 42;
     // Token ProducerToken = 43;
     Binary RegistrarSignature = 44;
     Reference RegisteredBy = 45;
     // Token RegistrarToken = 46;
+
+    Reference RecapRef = 50;
 }
 
 message ExtLocators {
