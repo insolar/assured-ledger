@@ -103,6 +103,8 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		func(msg rmsreg.GoGoSerializable) {
 			switch res := msg.(type) {
 			case *rms.LRegisterRequest:
+				_ = res.AnticipatedRef.Get()
+
 				key := vnlmn.ResultAwaitKey{
 					AnticipatedRef: res.AnticipatedRef,
 					RequiredFlag:   rms.RegistrationFlags_Fast,
@@ -236,6 +238,8 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		func(msg rmsreg.GoGoSerializable) {
 			switch res := msg.(type) {
 			case *rms.LRegisterRequest:
+				_ = res.AnticipatedRef.Get()
+
 				key := vnlmn.ResultAwaitKey{
 					AnticipatedRef: res.AnticipatedRef,
 					RequiredFlag:   rms.RegistrationFlags_Fast,
@@ -340,6 +344,8 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		func(msg rmsreg.GoGoSerializable) {
 			switch res := msg.(type) {
 			case *rms.LRegisterRequest:
+				_ = res.AnticipatedRef.Get()
+
 				key := vnlmn.ResultAwaitKey{
 					AnticipatedRef: res.AnticipatedRef,
 					RequiredFlag:   rms.RegistrationFlags_Fast,
@@ -442,6 +448,8 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		func(msg rmsreg.GoGoSerializable) {
 			switch res := msg.(type) {
 			case *rms.LRegisterRequest:
+				_ = res.AnticipatedRef.Get()
+
 				key := vnlmn.ResultAwaitKey{
 					AnticipatedRef: res.AnticipatedRef,
 					RequiredFlag:   rms.RegistrationFlags_Fast,

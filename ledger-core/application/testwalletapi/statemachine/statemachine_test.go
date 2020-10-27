@@ -16,6 +16,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/crypto"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
@@ -32,7 +33,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	virtualtestutils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
 func TestBuiltinTestAPIEchoValue(t *testing.T) {
@@ -67,8 +67,8 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 	slotMachine.AddInterfaceDependency(&memoryCache)
 
-	var referenceBuilder vnlmn.RecordReferenceBuilder = virtualtestutils.GetReferenceBuilder(meRef)
-	slotMachine.AddInterfaceDependency(&referenceBuilder)
+	var platformScheme crypto.PlatformScheme = virtualtestutils.GetPCS(meRef)
+	slotMachine.AddInterfaceDependency(&platformScheme)
 
 	if !slotMachine.SlotMachine.TryPutDependency(insapp.LocalNodeRefInjectionID, meRef) {
 		panic(throw.IllegalState())
@@ -151,8 +151,8 @@ func TestSMTestAPICall_MethodEcho(t *testing.T) {
 	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 	slotMachine.AddInterfaceDependency(&memoryCache)
 
-	var referenceBuilder vnlmn.RecordReferenceBuilder = virtualtestutils.GetReferenceBuilder(meRef)
-	slotMachine.AddInterfaceDependency(&referenceBuilder)
+	var platformScheme crypto.PlatformScheme = virtualtestutils.GetPCS(meRef)
+	slotMachine.AddInterfaceDependency(&platformScheme)
 
 	if !slotMachine.SlotMachine.TryPutDependency(insapp.LocalNodeRefInjectionID, meRef) {
 		panic(throw.IllegalState())
@@ -202,8 +202,8 @@ func TestSMTestAPICall_Constructor(t *testing.T) {
 	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 	slotMachine.AddInterfaceDependency(&memoryCache)
 
-	var referenceBuilder vnlmn.RecordReferenceBuilder = virtualtestutils.GetReferenceBuilder(meRef)
-	slotMachine.AddInterfaceDependency(&referenceBuilder)
+	var platformScheme crypto.PlatformScheme = virtualtestutils.GetPCS(meRef)
+	slotMachine.AddInterfaceDependency(&platformScheme)
 
 	if !slotMachine.SlotMachine.TryPutDependency(insapp.LocalNodeRefInjectionID, meRef) {
 		panic(throw.IllegalState())
@@ -261,8 +261,8 @@ func TestSMTestAPICall_RetriesExceeded(t *testing.T) {
 	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 	slotMachine.AddInterfaceDependency(&memoryCache)
 
-	var referenceBuilder vnlmn.RecordReferenceBuilder = virtualtestutils.GetReferenceBuilder(meRef)
-	slotMachine.AddInterfaceDependency(&referenceBuilder)
+	var platformScheme crypto.PlatformScheme = virtualtestutils.GetPCS(meRef)
+	slotMachine.AddInterfaceDependency(&platformScheme)
 
 	if !slotMachine.SlotMachine.TryPutDependency(insapp.LocalNodeRefInjectionID, meRef) {
 		panic(throw.IllegalState())

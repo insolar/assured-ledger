@@ -12,6 +12,7 @@ import (
 )
 
 var _ ReferenceProvider = &refProvider{}
+var _ ReferenceProvider = &rawValueProvider{}
 
 type refProvider struct {
 	digestProvider *digestProvider
@@ -68,4 +69,20 @@ func (p *refProvider) TryPullReference() reference.Global {
 		p.pullFn()
 	}
 	return p.getReference()
+}
+
+type rawValueProvider struct {
+	val reference.Global
+}
+
+func (r rawValueProvider) GetReference() reference.Global {
+	return r.val
+}
+
+func (r rawValueProvider) TryPullReference() reference.Global {
+	return r.val
+}
+
+func NewRawValueProvider(global reference.Global) ReferenceProvider {
+	return &rawValueProvider{val: global}
 }

@@ -58,7 +58,7 @@ func (s *SMWaitSafeResponse) bargeInLRegisterResponseHandler(param interface{}) 
 	}
 
 	return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-		if res.AnticipatedRef != s.ExpectedKey.AnticipatedRef || res.Flags != s.ExpectedKey.RequiredFlag {
+		if !res.AnticipatedRef.Equal(&s.ExpectedKey.AnticipatedRef) || res.Flags != s.ExpectedKey.RequiredFlag {
 			panic(throw.IllegalValue())
 		}
 
