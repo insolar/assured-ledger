@@ -51,7 +51,7 @@ func TestChecker_HappyPath(t *testing.T) {
 
 	checker := NewChecker(mc)
 	{ // object A
-		lineInboundConstructor := checker.NewChainFromRLifeline(
+		lineInboundConstructor := checker.CreateChainFromRLifeline(
 			rms.LRegisterRequest{
 				AnyRecordLazy:  recordToAnyRecordLazy(&rms.RLifelineStart{}),
 				AnticipatedRef: objARef,
@@ -109,7 +109,7 @@ func TestChecker_HappyPath(t *testing.T) {
 		)
 	}
 	{ // object B
-		lineInboundConstructor := checker.NewChainFromRLifeline(
+		lineInboundConstructor := checker.CreateChainFromRLifeline(
 			rms.LRegisterRequest{
 				AnyRecordLazy:  recordToAnyRecordLazy(&rms.RLifelineStart{}),
 				AnticipatedRef: objBRef,
@@ -147,7 +147,7 @@ func TestChecker_HappyPath(t *testing.T) {
 
 	{ // constructor A with outgoing
 		var (
-			chainAChecker = checker.GetReadView().GetObjectByReference(objARef.GetValue())
+			chainAChecker = checker.GetChainValidatorList().GetChainValidatorByReference(objARef.GetValue())
 			err           error
 			messages      = []rms.LRegisterRequest{
 				{
@@ -212,7 +212,7 @@ func TestChecker_HappyPath(t *testing.T) {
 	}
 	{ // constructor B with call A method
 		var (
-			chainBChecker = checker.GetReadView().GetObjectByReference(objBRef.GetValue())
+			chainBChecker = checker.GetChainValidatorList().GetChainValidatorByReference(objBRef.GetValue())
 			err           error
 			messages      = []rms.LRegisterRequest{
 				{
@@ -244,7 +244,7 @@ func TestChecker_HappyPath(t *testing.T) {
 	}
 	{ // call A method
 		var (
-			chainAChecker = checker.GetReadView().GetObjectByReference(objARef.GetValue())
+			chainAChecker = checker.GetChainValidatorList().GetChainValidatorByReference(objARef.GetValue())
 			err           error
 			messages      = []rms.LRegisterRequest{
 				{
@@ -280,7 +280,7 @@ func TestChecker_HappyPath(t *testing.T) {
 	}
 	{ // done constructor B
 		var (
-			chainBChecker = checker.GetReadView().GetObjectByReference(objBRef.GetValue())
+			chainBChecker = checker.GetChainValidatorList().GetChainValidatorByReference(objBRef.GetValue())
 			err           error
 			messages      = []rms.LRegisterRequest{
 				{
@@ -322,19 +322,19 @@ func TestChecker_UnregisteredMessage(t *testing.T) {
 	var (
 		mc           = minimock.NewController(t)
 		objRef       = rms.NewReference(gen.UniqueGlobalRef())
-		chainChecker ChainChecker
+		chainChecker ChainValidator
 		err          error
 	)
 
 	checker := NewChecker(mc)
-	chain := checker.NewChainFromReference(objRef)
+	chain := checker.CreateChainFromReference(objRef)
 	chain.AddMessage(
 		rms.LRegisterRequest{
 			AnyRecordLazy: recordToAnyRecordLazy(&rms.RLifelineStart{}),
 		},
 		nil,
 	)
-	chainChecker = checker.GetReadView().GetObjectByReference(objRef.GetValue())
+	chainChecker = checker.GetChainValidatorList().GetChainValidatorByReference(objRef.GetValue())
 	chainChecker, err = chainChecker.Feed(rms.LRegisterRequest{
 		AnyRecordLazy:  recordToAnyRecordLazy(&rms.RLifelineStart{}),
 		AnticipatedRef: objRef,
@@ -355,12 +355,12 @@ func TestChecker_UnregisteredMessage(t *testing.T) {
 func TestChecker_UnsentMessage(t *testing.T) {
 	var (
 		objRef       = rms.NewReference(gen.UniqueGlobalRef())
-		chainChecker ChainChecker
+		chainChecker ChainValidator
 		err          error
 	)
 
 	checker := NewChecker(nil)
-	chain := checker.NewChainFromReference(objRef)
+	chain := checker.CreateChainFromReference(objRef)
 	chain.AddMessage(
 		rms.LRegisterRequest{
 			AnyRecordLazy: recordToAnyRecordLazy(&rms.RLifelineStart{}),
@@ -372,12 +372,12 @@ func TestChecker_UnsentMessage(t *testing.T) {
 		},
 		nil,
 	)
-	chainChecker = checker.GetReadView().GetObjectByReference(objRef.GetValue())
+	chainChecker = checker.GetChainValidatorList().GetChainValidatorByReference(objRef.GetValue())
 	chainChecker, err = chainChecker.Feed(rms.LRegisterRequest{
 		AnyRecordLazy:  recordToAnyRecordLazy(&rms.RLifelineStart{}),
 		AnticipatedRef: objRef,
 	})
 	require.NoError(t, err)
 
-	require.False(t, checker.GetReadView().IsFinished())
+	require.False(t, checker.GetChainValidatorList().IsFinished())
 }

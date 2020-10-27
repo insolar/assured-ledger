@@ -142,7 +142,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 	})
 	checker := recordchecker.NewChecker(mc)
 	{
-		inb := checker.NewChainFromRLifeline(
+		inb := checker.CreateChainFromRLifeline(
 			rms.LRegisterRequest{
 				AnyRecordLazy:  vnlmn.MustRecordToAnyRecordLazy(&rms.RLifelineStart{}),
 				AnticipatedRef: rms.NewReference(objectRef),
@@ -173,13 +173,13 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		)
 	}
 	var (
-		chainChecker = checker.GetReadView().GetObjectByReference(objectRef)
+		chainChecker = checker.GetChainValidatorList().GetChainValidatorByReference(objectRef)
 		err          error
 	)
 	typedChecker.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
 		chainChecker, err = chainChecker.Feed(*request)
 		require.NoError(t, err)
-		chainChecker.GetResponseProvider()(*request)
+		chainChecker.GetProduceResponseFunc()(*request)
 		return false
 	})
 
@@ -511,7 +511,7 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 		)
 	}
 	{
-		inbA := recordChecker.NewChainFromRLifeline(
+		inbA := recordChecker.CreateChainFromRLifeline(
 			rms.LRegisterRequest{
 				AnyRecordLazy:  vnlmn.MustRecordToAnyRecordLazy(&rms.RLifelineStart{}),
 				AnticipatedRef: rms.NewReference(objectA),
@@ -558,7 +558,7 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 		anticipatedOutgoingWrapper.SetCallOutgoing(outgoingA)
 		anticipatedOutgoingWrapper.SetArguments([]byte("123"))
 		objBRef := anticipatedOutgoingWrapper.GetObject()
-		inbB := recordChecker.NewChainFromRLifeline(
+		inbB := recordChecker.CreateChainFromRLifeline(
 			rms.LRegisterRequest{
 				AnyRecordLazy:  vnlmn.MustRecordToAnyRecordLazy(&rms.RLifelineStart{}),
 				AnticipatedRef: rms.NewReference(objBRef),
@@ -621,15 +621,15 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 		})
 		typedChecker.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
 			var (
-				chainChecker recordchecker.ChainChecker
+				chainChecker recordchecker.ChainValidator
 				err          error
 			)
-			chainChecker = recordChecker.GetReadView().GetObjectByRLifeline(server.GetPulseNumber(), *request)
+			chainChecker = recordChecker.GetChainValidatorList().GetChainValidatorByRLifeline(server.GetPulseNumber(), *request)
 			require.NotNil(t, chainChecker)
 			chainChecker, err = chainChecker.Feed(*request)
 			require.NoError(t, err)
 			require.NotNil(t, chainChecker)
-			chainChecker.GetResponseProvider()(*request)
+			chainChecker.GetProduceResponseFunc()(*request)
 			return false
 		})
 	}
@@ -679,7 +679,7 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 
 	{
 		// TODO: check in docs that we must only register lifeline
-		recordChecker.NewChainFromReference(rms.NewReference(objectRef)).AddMessage(
+		recordChecker.CreateChainFromReference(rms.NewReference(objectRef)).AddMessage(
 			rms.LRegisterRequest{
 				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLifelineStart{}),
 			},
@@ -699,15 +699,15 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 	})
 	typedChecker.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
 		var (
-			chainChecker recordchecker.ChainChecker
+			chainChecker recordchecker.ChainValidator
 			err          error
 		)
-		chainChecker = recordChecker.GetReadView().GetObjectByReference(objectRef)
+		chainChecker = recordChecker.GetChainValidatorList().GetChainValidatorByReference(objectRef)
 		require.NotNil(t, chainChecker)
 		chainChecker, err = chainChecker.Feed(*request)
 		require.NoError(t, err)
 		require.NotNil(t, chainChecker)
-		chainChecker.GetResponseProvider()(*request)
+		chainChecker.GetProduceResponseFunc()(*request)
 		return false
 	})
 

@@ -1063,7 +1063,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 
 			// setup LMN record checker
 			{
-				chain := recordChecker.NewChainFromReference(rms.NewReference(objectRef))
+				chain := recordChecker.CreateChainFromReference(rms.NewReference(objectRef))
 				switch testCase.isolation.Interference {
 				case isolation.CallIntolerable:
 					inbound := chain.AddMessage(
@@ -1168,15 +1168,15 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 				})
 				typedChecker.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
 					var (
-						chainChecker recordchecker.ChainChecker
+						chainChecker recordchecker.ChainValidator
 						err          error
 					)
-					chainChecker = recordChecker.GetReadView().GetObjectByReference(objectRef)
+					chainChecker = recordChecker.GetChainValidatorList().GetChainValidatorByReference(objectRef)
 					require.NotNil(t, chainChecker)
 					chainChecker, err = chainChecker.Feed(*request)
 					require.NoError(t, err)
 					require.NotNil(t, chainChecker)
-					chainChecker.GetResponseProvider()(*request)
+					chainChecker.GetProduceResponseFunc()(*request)
 					return false
 				})
 			}

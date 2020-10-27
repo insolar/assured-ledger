@@ -27,7 +27,7 @@ func RecordFromLRegisterRequest(msg rms.LRegisterRequest) rms.BasicRecord {
 	return actualRecord
 }
 
-func ProduceResponse(ctx context.Context, sender publisher.Sender) ResponseProducer {
+func ProduceResponse(ctx context.Context, sender publisher.Sender) ProduceResponseFunc {
 	return func(request rms.LRegisterRequest) {
 		if request.Flags == rms.RegistrationFlags_FastSafe {
 			sender.SendPayload(ctx, &rms.LRegisterResponse{

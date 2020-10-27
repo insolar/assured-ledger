@@ -64,7 +64,7 @@ func TestVirtual_ConstructorWithLMN(t *testing.T) {
 
 	checker := recordchecker.NewChecker(mc)
 	{
-		inb := checker.NewChainFromReference(rms.NewReference(objectRef)).AddMessage(
+		inb := checker.CreateChainFromReference(rms.NewReference(objectRef)).AddMessage(
 			rms.LRegisterRequest{
 				AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLifelineStart{}),
 			},
@@ -94,14 +94,14 @@ func TestVirtual_ConstructorWithLMN(t *testing.T) {
 		)
 	}
 	var (
-		chainChecker = checker.GetReadView().GetObjectByReference(objectRef)
+		chainChecker = checker.GetChainValidatorList().GetChainValidatorByReference(objectRef)
 		err          error
 	)
 	typedChecker.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
 		chainChecker, err = chainChecker.Feed(*request)
 		require.NoError(t, err)
 		require.NotNil(t, chainChecker)
-		chainChecker.GetResponseProvider()(*request)
+		chainChecker.GetProduceResponseFunc()(*request)
 		return false
 	})
 
