@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
@@ -30,7 +31,6 @@ import (
 
 // NewHostNetwork constructor creates new NewHostNetwork component
 func NewHostNetwork(nodeRef string) (network.HostNetwork, error) {
-
 	id, err := reference.GlobalFromString(nodeRef)
 	if err != nil {
 		return nil, errors.W(err, "invalid nodeRef")
@@ -49,11 +49,27 @@ func NewHostNetwork(nodeRef string) (network.HostNetwork, error) {
 	return result, nil
 }
 
+func NewNetwork(host legacyhost.Host) (network.HostNetwork, error) {
+	futureManager := future.NewManager()
+
+	result := &hostNetwork{
+		handlers:          make(map[types.PacketType]network.RequestHandler),
+		sequenceGenerator: sequence.NewGenerator(),
+		nodeID:            host.NodeID,
+		shortID:           host.ShortID,
+		futureManager:     futureManager,
+		responseHandler:   future.NewPacketHandler(futureManager),
+	}
+
+	return result, nil
+}
+
 type hostNetwork struct {
 	Resolver network.RoutingTable `inject:""`
 	Factory  transport.Factory    `inject:""`
 
 	nodeID            reference.Global
+	shortID           node.ShortNodeID
 	started           uint32
 	transport         transport.StreamTransport
 	sequenceGenerator sequence.Generator
@@ -91,7 +107,7 @@ func (hn *hostNetwork) Start(ctx context.Context) error {
 		return errors.W(err, "failed to start stream transport")
 	}
 
-	h, err := legacyhost.NewHostN(hn.transport.Address(), hn.nodeID)
+	h, err := legacyhost.NewHostNS(hn.transport.Address(), hn.nodeID, hn.shortID)
 	if err != nil {
 		return errors.W(err, "failed to create host")
 	}
