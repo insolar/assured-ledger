@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/crypto"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
@@ -46,11 +47,11 @@ type SMTestAPICall struct {
 	messageSentTimes atomickit.Uint32
 
 	// injected arguments
-	pulseSlot        *conveyor.PulseSlot
-	messageSender    messageSenderAdapter.MessageSender
-	memoryCache      memoryCacheAdapter.MemoryCache
-	referenceBuilder vnlmn.RecordReferenceBuilder
-	nodeReference    reference.Global
+	pulseSlot     *conveyor.PulseSlot
+	messageSender messageSenderAdapter.MessageSender
+	memoryCache   memoryCacheAdapter.MemoryCache
+	nodeReference reference.Global
+	pcs           crypto.PlatformScheme
 }
 
 /* -------- Declaration ------------- */
@@ -67,7 +68,7 @@ func (*dSMTestAPICall) InjectDependencies(sm smachine.StateMachine, _ smachine.S
 	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.memoryCache)
-	injector.MustInject(&s.referenceBuilder)
+	injector.MustInject(&s.pcs)
 
 	injector.MustInjectByID(insapp.LocalNodeRefInjectionID, &s.nodeReference)
 }
@@ -98,14 +99,14 @@ func (s *SMTestAPICall) stepSend(ctx smachine.ExecutionContext) smachine.StateUp
 	s.requestPayload.Caller.Set(APICaller)
 
 	// probably APICaller is not the best that may be here
-	outLocal := vnlmn.GetOutgoingAnticipatedReference(s.referenceBuilder, &s.requestPayload, APICaller, s.pulseSlot.CurrentPulseNumber())
+	outLocal := vnlmn.GetOutgoingAnticipatedReference(s.pcs.RecordScheme().ReferenceDigester(), &s.requestPayload, APICaller, s.pulseSlot.CurrentPulseNumber())
 	s.requestPayload.CallOutgoing.Set(outLocal)
 
 	switch s.requestPayload.CallType {
 	case rms.CallTypeMethod:
 		s.object = s.requestPayload.Callee.GetValue()
 	case rms.CallTypeConstructor:
-		s.object = vnlmn.GetLifelineAnticipatedReference(s.referenceBuilder, &s.requestPayload, s.pulseSlot.CurrentPulseNumber())
+		s.object = vnlmn.GetLifelineAnticipatedReference(s.pcs.RecordScheme().ReferenceDigester(), &s.requestPayload, s.pulseSlot.CurrentPulseNumber())
 	default:
 		panic(throw.IllegalValue())
 	}
