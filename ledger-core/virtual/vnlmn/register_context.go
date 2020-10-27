@@ -8,6 +8,7 @@ package vnlmn
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsbox"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -21,24 +22,24 @@ const (
 )
 
 type RegistrationCtx struct {
-	prevBranchRef reference.Global
-	branchRef     reference.Global
+	prevBranchRef rmsbox.ReferenceProvider
+	branchRef     rmsbox.ReferenceProvider
 
-	prevTrunkRef reference.Global
-	trunkRef     reference.Global
+	prevTrunkRef rmsbox.ReferenceProvider
+	trunkRef     rmsbox.ReferenceProvider
 
 	incomingRegistrationStatus IncomingRegistrationStatus
 
-	objectRef                  reference.Global
+	objectRef                  rmsbox.ReferenceProvider
 	safeResponseCounter        SafeResponseCounter
 	lmnSafeResponseCounterLink smachine.SharedDataLink
 }
 
 func (c *RegistrationCtx) Rollback() {
-	if c.prevBranchRef.IsEmpty() {
+	if c.prevBranchRef == nil {
 		panic(throw.IllegalState())
 	}
-	if c.prevTrunkRef.IsEmpty() {
+	if c.prevTrunkRef == nil {
 		panic(throw.IllegalState())
 	}
 
@@ -46,7 +47,7 @@ func (c *RegistrationCtx) Rollback() {
 	c.trunkRef = c.prevTrunkRef
 }
 
-func (c *RegistrationCtx) SetNewReferences(trunk reference.Global, branch reference.Global) {
+func (c *RegistrationCtx) SetNewReferences(trunk rmsbox.ReferenceProvider, branch rmsbox.ReferenceProvider) {
 	c.prevTrunkRef = c.trunkRef
 	c.prevBranchRef = c.branchRef
 
@@ -55,8 +56,8 @@ func (c *RegistrationCtx) SetNewReferences(trunk reference.Global, branch refere
 }
 
 func (c *RegistrationCtx) Init(object reference.Global, trunk reference.Global) {
-	c.objectRef = object
-	c.trunkRef = trunk
+	c.objectRef = rmsbox.NewRawValueProvider(object)
+	c.trunkRef = rmsbox.NewRawValueProvider(trunk)
 }
 
 func (c *RegistrationCtx) IncrementSafeResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -71,18 +72,11 @@ func (c *RegistrationCtx) WaitForAllSafeResponses(ctx smachine.ExecutionContext)
 	return CounterAwaitZero(ctx, c.lmnSafeResponseCounterLink)
 }
 
-func (c *RegistrationCtx) GetObjectReference() reference.Global {
-	if c.objectRef.IsEmpty() {
-		panic(throw.FailHere("should be called only after Lifeline creation"))
-	}
-	return c.objectRef
-}
-
-func (c *RegistrationCtx) BranchRef() reference.Global {
+func (c *RegistrationCtx) BranchRef() rmsbox.ReferenceProvider {
 	return c.branchRef
 }
 
-func (c *RegistrationCtx) TrunkRef() reference.Global {
+func (c *RegistrationCtx) TrunkRef() rmsbox.ReferenceProvider {
 	return c.trunkRef
 }
 
@@ -134,5 +128,5 @@ func NewRegistrationCtx(ctx smachine.InitializationContext) *RegistrationCtx {
 }
 
 func NewDummyRegistrationCtx(trunk reference.Global) *RegistrationCtx {
-	return &RegistrationCtx{trunkRef: trunk}
+	return &RegistrationCtx{trunkRef: rmsbox.NewRawValueProvider(trunk)}
 }

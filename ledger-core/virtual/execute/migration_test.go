@@ -79,7 +79,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 		},
 		authenticationService: authentication.NewService(ctx, jetCoordinatorMock),
 		messageSender:         senderAdapter.Mock(),
-		referenceBuilder:      virtualtestutils.GetReferenceBuilder(meRef),
+		pcs:                   virtualtestutils.GetPCS(meRef),
 	}
 
 	stepChecker := stepchecker.New()

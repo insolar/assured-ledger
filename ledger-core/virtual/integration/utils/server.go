@@ -50,7 +50,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 )
 
 type Server struct {
@@ -228,7 +227,7 @@ func newServerExt(ctx context.Context, t Tester, opts ServerOpts) (*Server, cont
 	virtualDispatcher.EventlessSleep = -1 // disable EventlessSleep for proper WaitActiveThenIdleConveyor behavior
 	virtualDispatcher.MachineLogger = machineLogger
 	virtualDispatcher.MaxRunners = 4
-	virtualDispatcher.ReferenceBuilder = vnlmn.NewRecordReferenceBuilder(s.platformScheme.RecordScheme(), s.caller)
+	virtualDispatcher.PlatformScheme = s.platformScheme
 	s.virtual = virtualDispatcher
 
 	// re HTTP testing
