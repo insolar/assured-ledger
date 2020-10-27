@@ -56,7 +56,7 @@ func NewNetwork(host legacyhost.Host) (network.HostNetwork, error) {
 		handlers:          make(map[types.PacketType]network.RequestHandler),
 		sequenceGenerator: sequence.NewGenerator(),
 		nodeID:            host.NodeID,
-		shortId:           host.ShortID,
+		shortID:           host.ShortID,
 		futureManager:     futureManager,
 		responseHandler:   future.NewPacketHandler(futureManager),
 	}
@@ -69,7 +69,7 @@ type hostNetwork struct {
 	Factory  transport.Factory    `inject:""`
 
 	nodeID            reference.Global
-	shortId           node.ShortNodeID
+	shortID           node.ShortNodeID
 	started           uint32
 	transport         transport.StreamTransport
 	sequenceGenerator sequence.Generator
@@ -107,7 +107,7 @@ func (hn *hostNetwork) Start(ctx context.Context) error {
 		return errors.W(err, "failed to start stream transport")
 	}
 
-	h, err := legacyhost.NewHostNS(hn.transport.Address(), hn.nodeID, hn.shortId)
+	h, err := legacyhost.NewHostNS(hn.transport.Address(), hn.nodeID, hn.shortID)
 	if err != nil {
 		return errors.W(err, "failed to create host")
 	}
