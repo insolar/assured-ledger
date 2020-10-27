@@ -77,6 +77,7 @@ func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 		Interference: sm.Payload.CallFlags.GetInterference(),
 		State:        sm.Payload.CallFlags.GetState(),
 	}
+	sm.lmnContext = vnlmn.NewDummyRegistrationCtx(sm.execution.Object)
 	return sm
 }
 
@@ -115,7 +116,7 @@ func TestSMExecute_Init(t *testing.T) {
 			Payload:           request,
 			pulseSlot:         &pulseSlot,
 			objectSharedState: smObjectAccessor,
-			referenceBuilder:  virtualtestutils.GetReferenceBuilder(meRef),
+			pcs:               virtualtestutils.GetPCS(meRef),
 		}
 	)
 
@@ -850,6 +851,8 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 			assert.Empty(t, res.LatestValidatedState)
 			close(vStateReportRecv)
 		case *rms.LRegisterRequest:
+			_ = res.AnticipatedRef.Get()
+
 			key := vnlmn.ResultAwaitKey{
 				AnticipatedRef: res.AnticipatedRef,
 				RequiredFlag:   rms.RegistrationFlags_Fast,

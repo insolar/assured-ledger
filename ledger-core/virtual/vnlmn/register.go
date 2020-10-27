@@ -12,19 +12,22 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsbox"
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
-type SerializableBasicRecord interface {
+type SerializableReferencableBasicRecord interface {
 	rmsreg.GoGoSerializable
 	rms.BasicRecord
+	rmsbox.Referencable
 }
 
-func mustRecordToAnyRecordLazy(rec SerializableBasicRecord) rms.AnyRecordLazy {
+func mustRecordToAnyRecordLazy(rec SerializableReferencableBasicRecord) rms.AnyRecordLazy {
 	if rec == nil {
 		panic(throw.IllegalValue())
 	}
@@ -50,18 +53,17 @@ type RegisterRecordBuilder struct {
 
 	// output arguments
 	Context       *RegistrationCtx
-	lastBranchRef reference.Global
-	lastTrunkRef  reference.Global
+	lastBranchRef rmsbox.ReferenceProvider
+	lastTrunkRef  rmsbox.ReferenceProvider
 	Messages      []SerializableBasicMessage
 
 	// DI
-	PulseGetter      func() pulse.Number
-	ReferenceBuilder RecordReferenceBuilder
+	PulseGetter  func() pulse.Number
+	DataDigester cryptkit.DataDigester
 }
 
-func (s *RegisterRecordBuilder) getRecordAnticipatedRef(record SerializableBasicRecord) reference.Global {
+func (s *RegisterRecordBuilder) getRecordAnticipatedRef(record SerializableReferencableBasicRecord) rmsbox.ReferenceProvider {
 	var (
-		data        = make([]byte, record.ProtoSize())
 		pulseNumber = s.PulseNumber
 	)
 
@@ -72,11 +74,31 @@ func (s *RegisterRecordBuilder) getRecordAnticipatedRef(record SerializableBasic
 		pulseNumber = s.PulseGetter()
 	}
 
-	_, err := record.MarshalTo(data)
-	if err != nil {
-		panic(throw.W(err, "Fail to serialize record"))
+	refTemplate := reference.NewRefTemplate(s.Object, pulseNumber)
+	rmsbox.InitReferenceFactory(record, s.DataDigester, refTemplate)
+	rmsbox.SetReferenceFactoryCanPull(record, true)
+
+	return rmsbox.DefaultLazyReferenceTo(record)
+}
+
+//nolint:interfacer
+func (s *RegisterRecordBuilder) getObjectAnticipatedRef(record SerializableReferencableBasicRecord) rmsbox.ReferenceProvider {
+	var (
+		pulseNumber = s.PulseNumber
+	)
+
+	if pulseNumber == pulse.Unknown {
+		if s.PulseGetter == nil {
+			panic(throw.IllegalState())
+		}
+		pulseNumber = s.PulseGetter()
 	}
-	return s.ReferenceBuilder.AnticipatedRefFromBytes(s.Object, pulseNumber, data)
+
+	refTemplate := reference.NewSelfRefTemplate(pulseNumber, reference.SelfScopeLifeline)
+	rmsbox.InitReferenceFactory(record, s.DataDigester, refTemplate)
+	rmsbox.SetReferenceFactoryCanPull(record, true)
+
+	return rmsbox.DefaultLazyReferenceTo(record)
 }
 
 //nolint:unparam
@@ -87,7 +109,7 @@ func (s *RegisterRecordBuilder) registerMessage(msg SerializableBasicMessage) er
 }
 
 func GetLifelineAnticipatedReference(
-	builder RecordReferenceBuilder,
+	digester cryptkit.DataDigester,
 	request *rms.VCallRequest,
 	_ pulse.Number,
 ) reference.Global {
@@ -100,27 +122,27 @@ func GetLifelineAnticipatedReference(
 	}
 
 	sm := RegisterRecordBuilder{
-		PulseNumber:      request.CallOutgoing.GetPulseOfLocal(),
-		Incoming:         request,
-		ReferenceBuilder: builder,
+		PulseNumber:  request.CallOutgoing.GetPulseOfLocal(),
+		Incoming:     request,
+		DataDigester: digester,
 	}
-	return sm.getRecordAnticipatedRef(sm.getLifelineRecord())
+	return sm.getObjectAnticipatedRef(sm.getLifelineRecord()).TryPullReference()
 }
 
 func GetOutgoingAnticipatedReference(
-	builder RecordReferenceBuilder,
+	digester cryptkit.DataDigester,
 	request *rms.VCallRequest,
 	previousRef reference.Global,
 	pn pulse.Number,
 ) reference.Global {
 	sm := RegisterRecordBuilder{
-		PulseNumber:      pn,
-		Object:           request.Callee.GetValue(),
-		Outgoing:         request,
-		ReferenceBuilder: builder,
-		Context:          NewDummyRegistrationCtx(previousRef),
+		PulseNumber:  pn,
+		Object:       request.Callee.GetValue(),
+		Outgoing:     request,
+		Context:      NewDummyRegistrationCtx(previousRef),
+		DataDigester: digester,
 	}
-	return sm.getRecordAnticipatedRef(sm.GetOutboundRecord())
+	return sm.getRecordAnticipatedRef(sm.GetOutboundRecord()).TryPullReference()
 }
 
 func (s *RegisterRecordBuilder) GetOutboundRecord() *rms.ROutboundRequest {
@@ -137,10 +159,10 @@ func (s *RegisterRecordBuilder) getOutboundRecord() *rms.ROutboundRequest {
 
 	// first outgoing of incoming should be branched from
 	prevRef := s.lastBranchRef
-	if prevRef.IsEmpty() {
+	if prevRef == nil {
 		prevRef = s.lastTrunkRef
 	}
-	if prevRef.IsEmpty() {
+	if prevRef == nil {
 		panic(throw.IllegalState())
 	}
 
@@ -160,10 +182,10 @@ func (s *RegisterRecordBuilder) getLifelineRecord() *rms.RLifelineStart {
 		panic(throw.IllegalState())
 	}
 
-	return s.getCommonOutboundRecord(s.Incoming, reference.Global{})
+	return s.getCommonOutboundRecord(s.Incoming, nil)
 }
 
-func (s *RegisterRecordBuilder) getCommonOutboundRecord(msg *rms.VCallRequest, prevRef reference.Global) *rms.ROutboundRequest {
+func (s *RegisterRecordBuilder) getCommonOutboundRecord(msg *rms.VCallRequest, prevRef rmsbox.ReferenceProvider) *rms.ROutboundRequest {
 	record := &rms.ROutboundRequest{
 		CallType:            msg.CallType,
 		CallFlags:           msg.CallFlags,
@@ -186,9 +208,9 @@ func (s *RegisterRecordBuilder) getCommonOutboundRecord(msg *rms.VCallRequest, p
 		Arguments: msg.Arguments, // TODO: move later to RecordBody
 	}
 
-	if !prevRef.IsEmpty() {
+	if prevRef != nil {
 		record.RootRef.Set(s.Object)
-		record.PrevRef.Set(prevRef)
+		record.PrevRef.SetLazy(prevRef)
 	}
 
 	return record
@@ -198,7 +220,7 @@ func (s *RegisterRecordBuilder) getInboundRecord() *rms.RInboundRequest {
 	switch {
 	case s.Incoming == nil:
 		panic(throw.IllegalState())
-	case s.lastTrunkRef.IsEmpty():
+	case s.lastTrunkRef == nil:
 		panic(throw.IllegalState())
 	case s.Object.IsEmpty():
 		panic(throw.IllegalState())
@@ -211,7 +233,7 @@ func (s *RegisterRecordBuilder) getLineInboundRecord() *rms.RLineInboundRequest 
 	switch {
 	case s.Incoming == nil:
 		panic(throw.IllegalState())
-	case s.lastTrunkRef.IsEmpty():
+	case s.lastTrunkRef == nil:
 		panic(throw.IllegalState())
 	case s.Object.IsEmpty():
 		panic(throw.IllegalState())
@@ -224,9 +246,12 @@ func (s *RegisterRecordBuilder) BuildLifeline() error {
 	s.lastTrunkRef = s.Context.TrunkRef()
 	s.lastBranchRef = s.Context.BranchRef()
 
-	if !s.Object.IsEmpty() {
+	switch {
+	case !s.Object.IsEmpty():
 		panic(throw.IllegalValue())
-	} else if !s.lastTrunkRef.IsEmpty() || !s.lastBranchRef.IsEmpty() {
+	case s.lastTrunkRef != nil:
+		panic(throw.IllegalValue())
+	case s.lastBranchRef != nil:
 		panic(throw.IllegalValue())
 	}
 
@@ -234,13 +259,13 @@ func (s *RegisterRecordBuilder) BuildLifeline() error {
 
 	var (
 		record         = s.getLifelineRecord()
-		anticipatedRef = s.getRecordAnticipatedRef(record)
+		anticipatedRef = s.getObjectAnticipatedRef(record)
 	)
 
 	s.PulseNumber = pulse.Unknown
 
 	if err := s.registerMessage(&rms.LRegisterRequest{
-		AnticipatedRef: rms.NewReference(anticipatedRef),
+		AnticipatedRef: rms.NewReferenceLazy(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
 		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // it should be based on
 		// TODO: here we should set all overrides, since RLifelineStart contains
@@ -258,7 +283,7 @@ func (s *RegisterRecordBuilder) BuildLifeline() error {
 }
 
 func (s *RegisterRecordBuilder) buildRegisterIncomingRequest() error {
-	var record SerializableBasicRecord
+	var record SerializableReferencableBasicRecord
 
 	switch s.Interference {
 	case isolation.CallTolerable:
@@ -277,7 +302,7 @@ func (s *RegisterRecordBuilder) buildRegisterIncomingRequest() error {
 	}
 
 	if err := s.registerMessage(&rms.LRegisterRequest{
-		AnticipatedRef: rms.NewReference(anticipatedRef),
+		AnticipatedRef: rms.NewReferenceLazy(anticipatedRef),
 		Flags:          flags,
 		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
 	}); err != nil {
@@ -304,7 +329,7 @@ func (s *RegisterRecordBuilder) BuildRegisterOutgoingRequest() error {
 		}
 	}
 
-	var record SerializableBasicRecord
+	var record SerializableReferencableBasicRecord
 	switch {
 	case s.Outgoing.CallType == rms.CallTypeConstructor && s.OutgoingRepeat:
 		record = s.getOutboundRetryRequest()
@@ -317,7 +342,7 @@ func (s *RegisterRecordBuilder) BuildRegisterOutgoingRequest() error {
 	var anticipatedRef = s.getRecordAnticipatedRef(record)
 
 	if err := s.registerMessage(&rms.LRegisterRequest{
-		AnticipatedRef: rms.NewReference(anticipatedRef),
+		AnticipatedRef: rms.NewReferenceLazy(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
 		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
 	}); err != nil {
@@ -332,19 +357,19 @@ func (s *RegisterRecordBuilder) BuildRegisterOutgoingResult() error {
 	s.lastTrunkRef = s.Context.TrunkRef()
 	s.lastBranchRef = s.Context.BranchRef()
 
-	if s.lastBranchRef.IsEmpty() {
+	if s.lastBranchRef == nil {
 		panic(throw.IllegalState())
 	}
 
 	record := &rms.ROutboundResponse{
 		RootRef: rms.NewReference(s.Object),
-		PrevRef: rms.NewReference(s.lastBranchRef),
+		PrevRef: rms.NewReferenceLazy(s.lastBranchRef),
 	}
 
 	var anticipatedRef = s.getRecordAnticipatedRef(record)
 
 	if err := s.registerMessage(&rms.LRegisterRequest{
-		AnticipatedRef: rms.NewReference(anticipatedRef),
+		AnticipatedRef: rms.NewReferenceLazy(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
 		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
 	}); err != nil {
@@ -380,23 +405,23 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 
 	{ // result of execution
 		prevRef := s.lastBranchRef
-		if prevRef.IsEmpty() {
+		if prevRef == nil {
 			haveFilament = false
 			prevRef = s.lastTrunkRef
 		}
-		if prevRef.IsEmpty() {
+		if prevRef == nil {
 			panic(throw.IllegalState())
 		}
 
 		record := &rms.RInboundResponse{
 			RootRef: rms.NewReference(s.Object),
-			PrevRef: rms.NewReference(prevRef),
+			PrevRef: rms.NewReferenceLazy(prevRef),
 		}
 
 		var anticipatedRef = s.getRecordAnticipatedRef(record)
 
 		if err := s.registerMessage(&rms.LRegisterRequest{
-			AnticipatedRef: rms.NewReference(anticipatedRef),
+			AnticipatedRef: rms.NewReferenceLazy(anticipatedRef),
 			Flags:          rms.RegistrationFlags_Safe,
 			AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
 		}); err != nil {
@@ -408,11 +433,11 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 
 	// TODO: RejoinRef to LastFilamentRef
 	{ // new memory (if needed)
-		if s.lastTrunkRef.IsEmpty() {
+		if s.lastTrunkRef == nil {
 			panic(throw.IllegalState())
 		}
 
-		var record SerializableBasicRecord
+		var record SerializableReferencableBasicRecord
 
 		switch {
 		case isIntolerable:
@@ -420,7 +445,7 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 		case !haveFilament && isConstructor:
 			record = &rms.RLineMemoryInit{
 				RootRef: rms.NewReference(s.Object),
-				PrevRef: rms.NewReference(s.lastTrunkRef),
+				PrevRef: rms.NewReferenceLazy(s.lastTrunkRef),
 			}
 		case isDestructor:
 			record = nil
@@ -431,12 +456,12 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 			// TODO: we should post here a link to previous memory
 			record = &rms.RLineMemoryReuse{
 				RootRef: rms.NewReference(s.Object),
-				PrevRef: rms.NewReference(s.lastTrunkRef),
+				PrevRef: rms.NewReferenceLazy(s.lastTrunkRef),
 			}
 		default:
 			record = &rms.RLineMemory{
 				RootRef: rms.NewReference(s.Object),
-				PrevRef: rms.NewReference(s.lastTrunkRef),
+				PrevRef: rms.NewReferenceLazy(s.lastTrunkRef),
 			}
 		}
 
@@ -444,7 +469,7 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 			var anticipatedRef = s.getRecordAnticipatedRef(record)
 
 			if err := s.registerMessage(&rms.LRegisterRequest{
-				AnticipatedRef: rms.NewReference(anticipatedRef),
+				AnticipatedRef: rms.NewReferenceLazy(anticipatedRef),
 				Flags:          rms.RegistrationFlags_Safe,
 				AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
 			}); err != nil {
@@ -457,18 +482,18 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 
 	// TODO: RejoinRef to LastFilamentRef
 	{
-		var record SerializableBasicRecord
+		var record SerializableReferencableBasicRecord
 
 		switch {
 		case isConstructor:
 			record = &rms.RLineActivate{
 				RootRef: rms.NewReference(s.Object),
-				PrevRef: rms.NewReference(s.lastTrunkRef),
+				PrevRef: rms.NewReferenceLazy(s.lastTrunkRef),
 			}
 		case isDestructor:
 			record = &rms.RLineDeactivate{
 				RootRef: rms.NewReference(s.Object),
-				PrevRef: rms.NewReference(s.lastTrunkRef),
+				PrevRef: rms.NewReferenceLazy(s.lastTrunkRef),
 			}
 		default:
 			record = nil
@@ -478,7 +503,7 @@ func (s *RegisterRecordBuilder) BuildRegisterIncomingResult() error {
 			var anticipatedRef = s.getRecordAnticipatedRef(record)
 
 			if err := s.registerMessage(&rms.LRegisterRequest{
-				AnticipatedRef: rms.NewReference(anticipatedRef),
+				AnticipatedRef: rms.NewReferenceLazy(anticipatedRef),
 				Flags:          rms.RegistrationFlags_Safe,
 				AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
 			}); err != nil {

@@ -107,6 +107,8 @@ func TestVDelegatedCallRequest(t *testing.T) {
 				require.Equal(t, objectRef, object)
 				require.Equal(t, migrationPulse, pn)
 			case *rms.LRegisterRequest:
+				_ = res.AnticipatedRef.Get()
+
 				key := vnlmn.ResultAwaitKey{
 					AnticipatedRef: res.AnticipatedRef,
 					RequiredFlag:   rms.RegistrationFlags_Fast,
