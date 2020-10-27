@@ -18,6 +18,7 @@ const (
 	ToPast = true
 )
 
+//nolint:gosimple
 func (v Direction) IsToPast() bool {
 	return v == ToPast
 }

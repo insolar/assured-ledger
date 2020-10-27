@@ -79,8 +79,8 @@ func reqValue(v, def uint32) uint32 {
 	return v - 1
 }
 
-func (p *SMRead) getExtractorSelector() (selector dataextractor.Selector, err error) {
-	selector = dataextractor.Selector{
+func (p *SMRead) getExtractorSelector() dataextractor.Selector {
+	selector := dataextractor.Selector{
 		RootRef:   p.request.TargetRootRef.Get(),
 		ReasonRef: p.request.TargetReasonRef.Get(),
 		StartRef:  p.request.TargetStartRef.Get(),
@@ -106,7 +106,7 @@ func (p *SMRead) getExtractorSelector() (selector dataextractor.Selector, err er
 
 	// TODO check refs
 	// normRoot := reference.NormCopy(selector.RootRef)
-	return selector, nil
+	return selector
 }
 
 func (p *SMRead) getExtractorConfig(selector dataextractor.Selector) dataextractor.Config {
@@ -147,20 +147,14 @@ func (p *SMRead) getExtractorConfig(selector dataextractor.Selector) dataextract
 }
 
 func (p *SMRead) stepCleanRead(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	selector, err := p.getExtractorSelector()
-	if err != nil {
-		return ctx.Error(err)
-	}
+	selector := p.getExtractorSelector()
 	cfg := p.getExtractorConfig(selector)
 
 	return ctx.CallSubroutine(datareader.NewReader(cfg), nil, p.subrReadDone)
 }
 
 func (p *SMRead) stepDirtyRead(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	selector, err := p.getExtractorSelector()
-	if err != nil {
-		return ctx.Error(err)
-	}
+	selector := p.getExtractorSelector()
 	cfg := p.getExtractorConfig(selector)
 
 	switch {
