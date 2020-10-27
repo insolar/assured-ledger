@@ -6,6 +6,7 @@
 package utils
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/crypto"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
@@ -19,7 +20,7 @@ import (
 type VCallRequestConstructorHandler struct {
 	request rms.VCallRequest
 	pn      pulse.Number
-	builder vnlmn.RecordReferenceBuilder
+	scheme  crypto.PlatformScheme
 
 	object      reference.Global
 	previousRef reference.Global
@@ -45,16 +46,18 @@ func (h VCallRequestConstructorHandler) Get() rms.VCallRequest {
 }
 
 func (h *VCallRequestConstructorHandler) regenerate() {
+	digester := h.scheme.RecordScheme().ReferenceDigester()
+
 	if !h.outgoingRewritten {
 		duplicateRequest := h.request
 		duplicateRequest.CallOutgoing = rms.NewReference(reference.Global{})
 
-		h.outgoing = vnlmn.GetOutgoingAnticipatedReference(h.builder, &duplicateRequest, h.previousRef, h.pn)
+		h.outgoing = vnlmn.GetOutgoingAnticipatedReference(digester, &duplicateRequest, h.previousRef, h.pn)
 	}
 
 	h.request.CallOutgoing = rms.NewReference(h.outgoing)
 
-	h.object = vnlmn.GetLifelineAnticipatedReference(h.builder, &h.request, h.pn)
+	h.object = vnlmn.GetLifelineAnticipatedReference(digester, &h.request, h.pn)
 
 }
 
@@ -114,7 +117,7 @@ func generateVCallRequestConstructorForPulse(server *Server, pn pulse.Number) VC
 			CallSequence:   1,
 			Arguments:      rms.NewBytes(arguments),
 		},
-		builder:     server.virtual.ReferenceBuilder,
+		scheme:      server.platformScheme,
 		pn:          pn,
 		previousRef: gen.UniqueGlobalRefWithPulse(pn),
 	}
