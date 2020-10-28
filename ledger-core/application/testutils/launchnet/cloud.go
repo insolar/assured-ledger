@@ -257,7 +257,7 @@ func (cr CloudRunner) SetupControlledRun() (*Helper, func(), error) {
 	s.WaitStarted()
 
 	for i := 0; i < 2; i++ {
-		helper.IncrementPulse(nil)
+		helper.IncrementPulse(context.TODO())
 	}
 
 	nodes := make([]nodeConfig, 0, len(cr.ConfProvider.GetAppConfigs()))

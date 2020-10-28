@@ -28,29 +28,29 @@ type Helper struct {
 	ConfigurationProvider *cloud.ConfigurationProvider
 }
 
-func (h *Helper) IncrementPulse(context.Context) {
+func (h *Helper) IncrementPulse(ctx context.Context) {
 	h.pulseLock.Lock()
 	defer h.pulseLock.Unlock()
 
-	h.incrementPulse()
+	h.incrementPulse(ctx)
 }
 
-func (h *Helper) incrementPulse() {
+func (h *Helper) incrementPulse(ctx context.Context) {
 	h.pulseGenerator.Generate()
 
-	h.NetworkController.Distribute(nil, h.pulseGenerator.GetLastPulsePacket())
+	h.NetworkController.Distribute(ctx, h.pulseGenerator.GetLastPulsePacket())
 }
 
-func (h *Helper) SyncPulse(context.Context) {
-	h.NetworkController.Distribute(nil, h.pulseGenerator.GetLastPulsePacket())
+func (h *Helper) SyncPulse(ctx context.Context) {
+	h.NetworkController.Distribute(ctx, h.pulseGenerator.GetLastPulsePacket())
 }
 
-func (h *Helper) PartialPulse(_ context.Context, packet pulsar.PulsePacket, whiteList map[reference.Global]struct{}) {
+func (h *Helper) PartialPulse(ctx context.Context, packet pulsar.PulsePacket, whiteList map[reference.Global]struct{}) {
 	h.pulseLock.Lock()
 	defer h.pulseLock.Unlock()
 
 	h.pulseGenerator.Generate()
-	h.NetworkController.PartialDistribute(nil, packet, whiteList)
+	h.NetworkController.PartialDistribute(ctx, packet, whiteList)
 }
 
 func (h *Helper) AddNode(role member.PrimaryRole) reference.Global {
@@ -74,10 +74,9 @@ func (h *Helper) StopNode(role member.PrimaryRole, nodeRef reference.Global) {
 	if !stopped {
 		panic(throw.E("failed to stop node"))
 	}
-	return
 }
 
-func (h *Helper) GetApiAddresses() []string {
+func (h *Helper) GetAPIAddresses() []string {
 	appConfigs := h.ConfigurationProvider.GetAppConfigs()
 	apiAddresses := make([]string, 0, len(appConfigs))
 	for _, el := range appConfigs {

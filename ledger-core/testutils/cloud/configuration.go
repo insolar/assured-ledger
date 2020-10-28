@@ -41,6 +41,10 @@ func NewConfigurationProvider(cloudSettings Settings) *ConfigurationProvider {
 }
 
 func (cp *ConfigurationProvider) GetAppConfigs() []configuration.Configuration {
+	if cp.FixedConfigs != nil {
+		return cp.FixedConfigs
+	}
+
 	appConfigs := make([]configuration.Configuration, 0, cp.runningNodeCount)
 	for _, nodes := range cp.runningNodesByRole {
 		for _, nodeRef := range nodes {
@@ -131,6 +135,8 @@ type ConfigurationProvider struct {
 	BaseConfig         configuration.Configuration
 	CertificateFactory insapp.CertManagerFactoryFunc
 	KeyFactory         insapp.KeyStoreFactoryFunc
+
+	FixedConfigs []configuration.Configuration
 }
 
 func (cp *ConfigurationProvider) SetFileLogging() {

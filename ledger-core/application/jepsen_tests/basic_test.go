@@ -37,7 +37,7 @@ func TestMultiNode_FakeNetwork(t *testing.T) {
 	assert.NoError(t, cloudRunner.ControlledRun(
 		func(helper *launchnet.Helper) error {
 
-			testutils.SetAPIPortsByAddresses(helper.GetApiAddresses())
+			testutils.SetAPIPortsByAddresses(helper.GetAPIAddresses())
 
 			ctx := context.Background()
 			for i := 0; i < 100; i++ {
@@ -53,7 +53,7 @@ func TestMultiNode_FakeNetwork(t *testing.T) {
 
 			helper.IncrementPulse(ctx)
 
-			testutils.SetAPIPortsByAddresses(helper.GetApiAddresses())
+			testutils.SetAPIPortsByAddresses(helper.GetAPIAddresses())
 
 			for i := 0; i < 100; i++ {
 				_, err := testutils.CreateSimpleWallet(ctx)
@@ -66,7 +66,7 @@ func TestMultiNode_FakeNetwork(t *testing.T) {
 
 			helper.IncrementPulse(ctx)
 
-			testutils.SetAPIPortsByAddresses(helper.GetApiAddresses())
+			testutils.SetAPIPortsByAddresses(helper.GetAPIAddresses())
 
 			for i := 0; i < 100; i++ {
 				_, err := testutils.CreateSimpleWallet(ctx)

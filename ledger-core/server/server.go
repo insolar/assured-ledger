@@ -37,9 +37,6 @@ func NewControlledMultiServer(controller *cloud.NetworkController, configProvide
 
 func NewMultiServer(configProvider *cloud.ConfigurationProvider) *insapp.Server {
 	controller := cloud.NewController()
-	if configProvider.GetAppConfigs == nil {
-		panic("GetAppConfigs cannot be nil")
-	}
 
 	multiFn := func(provider insapp.ConfigurationProvider) ([]configuration.Configuration, insapp.NetworkInitFunc) {
 		conf := provider.(*cloud.ConfigurationProvider)
@@ -56,10 +53,6 @@ func NewMultiServer(configProvider *cloud.ConfigurationProvider) *insapp.Server 
 }
 
 func NewMultiServerWithConsensus(configProvider *cloud.ConfigurationProvider) *insapp.Server {
-	if configProvider.GetAppConfigs == nil {
-		panic("GetAppConfigs cannot be nil")
-	}
-
 	multiFn := func(provider insapp.ConfigurationProvider) ([]configuration.Configuration, insapp.NetworkInitFunc) {
 		conf := provider.(*cloud.ConfigurationProvider)
 		return conf.GetAppConfigs(), nil
