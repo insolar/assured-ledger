@@ -9,8 +9,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -31,21 +31,39 @@ const (
 	ManualPulsar
 )
 
-func WithNumVirtual(num int) func(runner *CloudRunner) {
+func WithMinRoles(virtual, light, heavy uint) func(runner *CloudRunner) {
 	return func(runner *CloudRunner) {
-		runner.numVirtual = num
+		runner.MinRoles = cloud.NodeConfiguration{
+			Virtual:       virtual,
+			LightMaterial: light,
+			HeavyMaterial: heavy,
+		}
 	}
 }
 
-func WithNumLightMaterials(num int) func(runner *CloudRunner) {
+func WithPrepared(virtual, light, heavy uint) func(runner *CloudRunner) {
 	return func(runner *CloudRunner) {
-		runner.numLightMaterials = num
+		runner.Prepared = cloud.NodeConfiguration{
+			Virtual:       virtual,
+			LightMaterial: light,
+			HeavyMaterial: heavy,
+		}
 	}
 }
 
-func WithNumHeavyMaterials(num int) func(runner *CloudRunner) {
+func WithRunning(virtual, light, heavy uint) func(runner *CloudRunner) {
 	return func(runner *CloudRunner) {
-		runner.numHeavyMaterials = num
+		runner.Running = cloud.NodeConfiguration{
+			Virtual:       virtual,
+			LightMaterial: light,
+			HeavyMaterial: heavy,
+		}
+	}
+}
+
+func WithMajorityRule(num int) func(runner *CloudRunner) {
+	return func(runner *CloudRunner) {
+		runner.majorityRule = num
 	}
 }
 
@@ -61,6 +79,12 @@ func WithPulsarMode(mode PulsarMode) func(runner *CloudRunner) {
 	}
 }
 
+func WithCloudFileLogging() func(runner *CloudRunner) {
+	return func(runner *CloudRunner) {
+		runner.cloudFileLogging = true
+	}
+}
+
 func PrepareCloudRunner(options ...cloudOption) *CloudRunner {
 	cr := CloudRunner{
 		defaultLogLevel: log.DebugLevel,
@@ -73,52 +97,57 @@ func PrepareCloudRunner(options ...cloudOption) *CloudRunner {
 	return &cr
 }
 
-func prepareConfigProvider(numVirtual, numLightMaterials, numHeavyMaterials int, defaultLogLevel log.Level) *server.CloudConfigurationProvider {
-	cloudSettings := CloudSettings{
-		Virtual: numVirtual,
-		Light:   numLightMaterials,
-		Heavy:   numHeavyMaterials,
-		API: struct {
-			TestWalletAPIPortStart int
-			AdminPort              int
-		}{TestWalletAPIPortStart: 32302, AdminPort: 19002},
-		Log: struct{ Level string }{Level: defaultLogLevel.String()},
-	}
-
-	cloudSettings.Pulsar = struct{ PulseTime int }{PulseTime: GetPulseTime()}
-
-	appConfigs, cloudConfig, certFactory, keyFactory := PrepareCloudConfiguration(cloudSettings)
-
-	baseConf := configuration.Configuration{}
-	baseConf.Log = cloudConfig.Log
-	return &server.CloudConfigurationProvider{
-		BaseConfig:         baseConf,
-		PulsarConfig:       cloudConfig.PulsarConfiguration,
-		CertificateFactory: certFactory,
-		KeyFactory:         keyFactory,
-		GetAppConfigs: func() []configuration.Configuration {
-			return appConfigs
-		},
-	}
-}
-
 type CloudRunner struct {
-	numVirtual, numLightMaterials, numHeavyMaterials int
+	MinRoles cloud.NodeConfiguration
+	Prepared cloud.NodeConfiguration
+	Running  cloud.NodeConfiguration
+
+	majorityRule int
 
 	pulsarMode PulsarMode
 
 	defaultLogLevel log.Level
 
-	ConfProvider *server.CloudConfigurationProvider
+	cloudFileLogging bool
+
+	ConfProvider *cloud.ConfigurationProvider
 }
 
 func (cr *CloudRunner) PrepareConfig() {
-	cr.ConfProvider = prepareConfigProvider(cr.numVirtual, cr.numLightMaterials, cr.numHeavyMaterials, cr.defaultLogLevel)
+	if cr.Running.IsZero() {
+		panic("No running nodes")
+	}
+
+	if cr.Prepared.IsZero() {
+		cr.Prepared = cr.Running
+	}
+
+	if cr.MinRoles.IsZero() {
+		cr.MinRoles = cr.Running
+	}
+
+	if cr.majorityRule == 0 {
+		cr.majorityRule = int(cr.Running.Virtual + cr.Running.LightMaterial + cr.Running.HeavyMaterial)
+	}
+
+	cloudSettings := cloud.Settings{
+		MinRoles: cr.MinRoles,
+		Prepared: cr.Prepared,
+		Running:  cr.Running,
+
+		MajorityRule:     cr.majorityRule,
+		CloudFileLogging: cr.cloudFileLogging,
+
+		Log:    struct{ Level string }{Level: cr.defaultLogLevel.String()},
+		Pulsar: struct{ PulseTime int }{PulseTime: GetPulseTime()},
+	}
+
+	cr.ConfProvider = cloud.NewConfigurationProvider(cloudSettings)
 }
 
-func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider) *insapp.Server {
+func prepareCloudForOneShotMode(confProvider *cloud.ConfigurationProvider) *insapp.Server {
 	controller := cloud.NewController()
-	s := server.NewControlledMultiServer(controller, confProvider)
+	s, _ := server.NewControlledMultiServer(controller, confProvider)
 	go func() {
 		s.WaitStarted()
 
@@ -169,7 +198,7 @@ func (cr CloudRunner) SetupCloudCustom(pulsarMode PulsarMode) (func(), error) {
 		s.Serve()
 	}()
 
-	var nodes []nodeConfig
+	nodes := make([]nodeConfig, 0, len(cr.ConfProvider.GetAppConfigs()))
 	for _, appCfg := range cr.ConfProvider.GetAppConfigs() {
 		nodes = append(nodes, nodeConfig{
 			AdminAPIRunner: appCfg.AdminAPIRunner,
@@ -194,14 +223,70 @@ func (cr *CloudRunner) Run(cb func([]string) int) int {
 	}
 
 	apiAddresses := make([]string, 0, len(cr.ConfProvider.GetAppConfigs()))
+	adminAddresses := make([]string, 0, len(cr.ConfProvider.GetAppConfigs()))
 	for _, el := range cr.ConfProvider.GetAppConfigs() {
 		apiAddresses = append(apiAddresses, el.TestWalletAPI.Address)
+		adminAddresses = append(adminAddresses, el.AdminAPIRunner.Address)
 	}
 
 	code := cb(apiAddresses)
 
 	if code != 0 {
-		pulsewatcher.OneShot(apiAddresses)
+		pulsewatcher.OneShot(adminAddresses)
 	}
 	return code
+}
+
+func (cr CloudRunner) SetupControlledRun() (*Helper, func(), error) {
+	var s *insapp.Server
+	controller := cloud.NewController()
+	s, nodeController := server.NewControlledMultiServer(controller, cr.ConfProvider)
+	go func() {
+		s.Serve()
+	}()
+
+	helper := &Helper{
+		pulseLock: &sync.Mutex{},
+		pulseGenerator: testutils.NewPulseGenerator(
+			uint16(cr.ConfProvider.PulsarConfig.Pulsar.NumberDelta), nil, nil),
+		NodeController:        nodeController,
+		NetworkController:     controller,
+		ConfigurationProvider: cr.ConfProvider,
+	}
+
+	s.WaitStarted()
+
+	for i := 0; i < 2; i++ {
+		helper.IncrementPulse(nil)
+	}
+
+	nodes := make([]nodeConfig, 0, len(cr.ConfProvider.GetAppConfigs()))
+	for _, appCfg := range cr.ConfProvider.GetAppConfigs() {
+		nodes = append(nodes, nodeConfig{
+			AdminAPIRunner: appCfg.AdminAPIRunner,
+			TestWalletAPI:  appCfg.TestWalletAPI,
+		})
+	}
+
+	SetVerbose(false)
+	err := waitForNetworkState(appConfig{Nodes: nodes}, network.CompleteNetworkState)
+	if err != nil {
+		return nil, s.Stop, throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
+	}
+	return helper, s.Stop, nil
+}
+
+func (cr *CloudRunner) ControlledRun(cb func(helper *Helper) error) error {
+	helper, teardown, err := cr.SetupControlledRun()
+	defer teardown()
+	if err != nil {
+		fmt.Println("error while setup, skip tests: ", err)
+		return err
+	}
+
+	err = cb(helper)
+	if err != nil {
+		pulsewatcher.OneShot(helper.GetAdminAddresses())
+	}
+	return err
 }

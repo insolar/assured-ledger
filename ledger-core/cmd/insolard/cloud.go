@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/server"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/cloud"
 )
 
 func readConfig(cfgPath string) configuration.Configuration {
@@ -45,7 +46,7 @@ func runInsolardCloud(configPath string) {
 
 	baseConfig := configuration.Configuration{}
 	baseConfig.Log = cloudConf.Log
-	configProvider := &server.CloudConfigurationProvider{
+	configProvider := &cloud.ConfigurationProvider{
 		CertificateFactory: mandates.NewManagerReadCertificate,
 		KeyFactory:         keystore.NewKeyStore,
 		BaseConfig:         baseConfig,
