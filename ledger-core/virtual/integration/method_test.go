@@ -21,10 +21,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/recordchecker"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/vnlmn"
 
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
@@ -1047,7 +1049,8 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 				server.Init(ctx)
 			}
 
-			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			recordChecker := recordchecker.NewChecker(mc)
 
 			var (
 				class     = server.RandomGlobalWithPulse()
@@ -1057,6 +1060,45 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 
 			server.IncrementPulseAndWaitIdle(ctx)
 			outgoing := server.BuildRandomOutgoingWithPulse()
+
+			// setup LMN record checker
+			{
+				chain := recordChecker.CreateChainFromReference(rms.NewReference(objectRef))
+				switch testCase.isolation.Interference {
+				case isolation.CallIntolerable:
+					inbound := chain.AddMessage(
+						rms.LRegisterRequest{
+							AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RInboundRequest{}),
+						},
+						recordchecker.ProduceResponse(ctx, server),
+					)
+					inbound.AddMessage(
+						rms.LRegisterRequest{
+							AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RInboundResponse{}),
+						},
+						recordchecker.ProduceResponse(ctx, server),
+					)
+				case isolation.CallTolerable:
+					inbound := chain.AddMessage(
+						rms.LRegisterRequest{
+							AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLineInboundRequest{}),
+						},
+						recordchecker.ProduceResponse(ctx, server),
+					)
+					inbound.AddMessage(
+						rms.LRegisterRequest{
+							AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RInboundResponse{}),
+						},
+						recordchecker.ProduceResponse(ctx, server),
+					)
+					inbound.AddMessage(
+						rms.LRegisterRequest{
+							AnyRecordLazy: vnlmn.MustRecordToAnyRecordLazy(&rms.RLineMemory{}),
+						},
+						recordchecker.ProduceResponse(ctx, server),
+					)
+				}
+			}
 
 			// add ExecutionMock to runnerMock
 			{
@@ -1122,6 +1164,19 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 					default:
 						t.Fatal("StateStatusInvalid test case isolation interference")
 					}
+					return false
+				})
+				typedChecker.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
+					var (
+						chainChecker recordchecker.ChainValidator
+						err          error
+					)
+					chainChecker = recordChecker.GetChainValidatorList().GetChainValidatorByReference(objectRef)
+					require.NotNil(t, chainChecker)
+					chainChecker, err = chainChecker.Feed(*request)
+					require.NoError(t, err)
+					require.NotNil(t, chainChecker)
+					chainChecker.GetProduceResponseFunc()(*request)
 					return false
 				})
 			}
@@ -1301,7 +1356,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				objectRef   = server.RandomGlobalWithPulse()
+				objectRef = server.RandomGlobalWithPulse()
 			)
 
 			{ // send object state to server

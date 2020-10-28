@@ -67,6 +67,12 @@ func (h *VCallRequestConstructorHandler) SetClass(ref reference.Global) {
 	h.regenerate()
 }
 
+//nolint:interfacer
+func (h *VCallRequestConstructorHandler) SetCaller(ref reference.Global) {
+	h.request.Caller.Set(ref)
+	h.regenerate()
+}
+
 func (h *VCallRequestConstructorHandler) SetCallFlags(flags rms.CallFlags) {
 	h.request.CallFlags = flags
 	h.regenerate()
