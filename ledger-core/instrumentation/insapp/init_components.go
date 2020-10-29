@@ -15,28 +15,45 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/crypto"
 	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
-	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type PreComponents struct {
-	CryptographyService        cryptography.Service
-	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme
-	KeyStore                   cryptography.KeyStore
-	KeyProcessor               cryptography.KeyProcessor
-	CryptoScheme               crypto.PlatformScheme
-	CertificateManager         nodeinfo.CertificateManager
+type AppInitializer struct {
+	appFn        AppFactoryFunc
+	extra        []interface{}
+	confProvider ConfigurationProvider
 }
 
-func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) PreComponents {
+type LoggerInitFunc = func(ctx context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context
+
+func (s *AppInitializer) StartComponents(ctx context.Context, cfg configuration.Configuration,
+	networkFn NetworkInitFunc, loggerFn LoggerInitFunc,
+) (*component.Manager, func()) {
+	preComponents := s.initBootstrapComponents(ctx, cfg)
+
+	nodeCert := preComponents.CertificateManager.GetCertificate()
+	nodeRole := nodeCert.GetRole()
+	nodeRef := nodeCert.GetNodeRef().String()
+
+	ctx = loggerFn(ctx, cfg.Log, nodeRef, nodeRole.String())
+	traceID := trace.RandID() + "_main"
+
+	if cfg.Tracer.Jaeger.AgentEndpoint != "" {
+		jaegerFlush := jaeger(ctx, cfg.Tracer.Jaeger, traceID, nodeRef, nodeRole.String())
+		defer jaegerFlush()
+	}
+
+	return s.initComponents(ctx, cfg, networkFn, preComponents)
+}
+
+func (s *AppInitializer) initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) PreComponents {
 	earlyComponents := component.NewManager(nil)
 	logger := inslogger.FromContext(ctx)
 	earlyComponents.SetLogger(logger)
@@ -68,7 +85,7 @@ func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.
 }
 
 // initComponents creates and links all insolard components
-func (s *Server) initComponents(ctx context.Context, cfg configuration.Configuration, networkFn NetworkInitFunc,
+func (s *AppInitializer) initComponents(ctx context.Context, cfg configuration.Configuration, networkFn NetworkInitFunc,
 	comps PreComponents) (*component.Manager, func()) {
 	cm := component.NewManager(nil)
 	logger := inslogger.FromContext(ctx)

@@ -58,16 +58,11 @@ var (
 	rootOnce    sync.Once
 	projectRoot string
 
-	verbose          = true
-	cloudFileLogging = false
+	verbose = true
 )
 
 func SetVerbose(v bool) {
 	verbose = v
-}
-
-func SetCloudFileLogging(v bool) {
-	cloudFileLogging = v
 }
 
 type OneShotMode int
@@ -160,8 +155,8 @@ type User struct {
 	MigrationAddress string
 }
 
-// launchnetPath builds a path from either INSOLAR_FUNC_KEYS_PATH or LAUNCHNET_BASE_DIR
-func launchnetPath(a ...string) string { // nolint:unparam
+// Path builds a path from either INSOLAR_FUNC_KEYS_PATH or LAUNCHNET_BASE_DIR
+func Path(a ...string) string { // nolint:unparam
 	// Path set in Enviroment
 	keysPath := os.Getenv(keysPathVar)
 	if keysPath != "" {
@@ -188,7 +183,7 @@ func GetDiscoveryNodesCount() (int, error) {
 
 	var conf nodesConf
 
-	buff, err := ioutil.ReadFile(launchnetPath("bootstrap.yaml"))
+	buff, err := ioutil.ReadFile(Path("bootstrap.yaml"))
 	if err != nil {
 		return 0, throw.W(err, "[ getNumberNodes ] Can't read bootstrap config")
 	}
@@ -209,7 +204,7 @@ func GetNodesCount() (int, error) {
 
 	var conf nodesConf
 
-	buff, err := ioutil.ReadFile(launchnetPath("bootstrap.yaml"))
+	buff, err := ioutil.ReadFile(Path("bootstrap.yaml"))
 	if err != nil {
 		return 0, throw.W(err, "[ getNumberNodes ] Can't read bootstrap config")
 	}
@@ -455,7 +450,7 @@ func readAppConfig() (appConfig, error) {
 
 func readNodeConfig(path string) (nodeConfig, error) {
 	var conf nodeConfig
-	buff, err := ioutil.ReadFile(launchnetPath(path))
+	buff, err := ioutil.ReadFile(Path(path))
 	if err != nil {
 		return conf, throw.W(err, "[ getNumberNodes ] Can't read bootstrap config")
 	}

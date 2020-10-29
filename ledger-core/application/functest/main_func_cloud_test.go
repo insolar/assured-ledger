@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/gops/agent"
 
+	"github.com/insolar/assured-ledger/ledger-core/application/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 )
@@ -35,19 +36,17 @@ func getNodesCount() (int, error) {
 func TestMain(m *testing.M) {
 	instestlogger.SetTestOutputWithStub()
 
-	launchnet.SetCloudFileLogging(true)
-
 	numVirtual, numLight, numHeavy := getTestNodesSetup()
 
-	numNodes = numVirtual + numLight + numHeavy
+	numNodes = int(numVirtual + numLight + numHeavy)
 
 	cloudRunner := launchnet.PrepareCloudRunner(
-		launchnet.WithNumVirtual(numVirtual),
-		launchnet.WithNumLightMaterials(numLight),
-		launchnet.WithNumHeavyMaterials(numHeavy))
+		launchnet.WithRunning(numVirtual, 0, 0),
+		launchnet.WithCloudFileLogging())
 
 	os.Exit(cloudRunner.Run(
 		func(apiAddresses []string) int {
+			testutils.SetAPIPortsByAddresses(apiAddresses)
 			return m.Run()
 		},
 	))

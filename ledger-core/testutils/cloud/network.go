@@ -37,7 +37,7 @@ type cloudStatus struct {
 
 	cfg configuration.Configuration
 
-	net *Controller
+	net *NetworkController
 }
 
 func (s *cloudStatus) Start(_ context.Context) error {
@@ -52,6 +52,12 @@ func (s *cloudStatus) Start(_ context.Context) error {
 		cfg:                        s.cfg,
 		keyProcessor:               s.KeyProcessor,
 	})
+
+	return nil
+}
+
+func (s *cloudStatus) Stop(_ context.Context) error {
+	s.net.nodeLeave(s.Certificate.GetNodeRef())
 
 	return nil
 }
@@ -77,7 +83,7 @@ func (s *cloudStatus) FindAnyLatestNodeSnapshot() beat.NodeSnapshot {
 	panic("implement me")
 }
 
-func (s *cloudStatus) GetCert(ctx context.Context, global reference.Global) (nodeinfo.Certificate, error) {
+func (s *cloudStatus) GetCert(_ context.Context, global reference.Global) (nodeinfo.Certificate, error) {
 	node, err := s.net.getNode(global)
 	if err != nil {
 		return nil, throw.E("node not found")

@@ -103,32 +103,32 @@ func unmarshalCallResponse(t testing.TB, body []byte, response *requester.Contra
 	require.NoError(t, err)
 }
 
-func getTestNodesSetup() (numVirtual int, numLight int, numHeavy int) {
+func getTestNodesSetup() (numVirtual uint, numLight uint, numHeavy uint) {
 	// default num nodes
 	{
 		numVirtual, numLight, numHeavy = 5, 0, 0
 	}
 
-	var (
-		err error
-	)
 	if numVirtualStr := os.Getenv("NUM_DISCOVERY_VIRTUAL_NODES"); numVirtualStr != "" {
-		numVirtual, err = strconv.Atoi(numVirtualStr)
+		num, err := strconv.Atoi(numVirtualStr)
 		if err != nil {
 			panic(err)
 		}
+		numVirtual = uint(num)
 	}
 	if numLightStr := os.Getenv("NUM_DISCOVERY_LIGHT_NODES"); numLightStr != "" {
-		numLight, err = strconv.Atoi(numLightStr)
+		num, err := strconv.Atoi(numLightStr)
 		if err != nil {
 			panic(err)
 		}
+		numLight = uint(num)
 	}
 	if numHeavyStr := os.Getenv("NUM_DISCOVERY_HEAVY_NODES"); numHeavyStr != "" {
-		numHeavy, err = strconv.Atoi(numHeavyStr)
+		num, err := strconv.Atoi(numHeavyStr)
 		if err != nil {
 			panic(err)
 		}
+		numHeavy = uint(num)
 	}
 	return numVirtual, numLight, numHeavy
 }

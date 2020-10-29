@@ -11,38 +11,43 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/server"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/cloud"
 )
 
 // this is not actually test, but it provides convenient way to start cloud network with breakpoints
 func Test_RunCloud(t *testing.T) {
 	t.Skip()
 	var (
-		numVirtual        = 10
-		numLightMaterials = 0
-		numHeavyMaterials = 0
+		numVirtual        = uint(10)
+		numLightMaterials = uint(0)
+		numHeavyMaterials = uint(0)
 	)
+
+	majorityRule := int(numVirtual + numLightMaterials + numHeavyMaterials)
+
+	nodeConfiguration := cloud.NodeConfiguration{
+		Virtual:       numVirtual,
+		HeavyMaterial: numHeavyMaterials,
+		LightMaterial: numLightMaterials,
+	}
 
 	signChan := make(chan os.Signal, 1)
 	signal.Notify(signChan, os.Interrupt, syscall.SIGTERM)
 
-	cloudSettings := CloudSettings{Virtual: numVirtual, Light: numLightMaterials, Heavy: numHeavyMaterials}
+	cloudSettings := cloud.Settings{
+		Running:      nodeConfiguration,
+		Prepared:     nodeConfiguration,
+		MinRoles:     nodeConfiguration,
+		MajorityRule: majorityRule,
 
-	appConfigs, cloudBaseConf, certFactory, keyFactory := PrepareCloudConfiguration(cloudSettings)
-	baseConfig := configuration.Configuration{}
-	baseConfig.Log = cloudBaseConf.Log
-
-	confProvider := &server.CloudConfigurationProvider{
-		PulsarConfig:       cloudBaseConf.PulsarConfiguration,
-		BaseConfig:         baseConfig,
-		CertificateFactory: certFactory,
-		KeyFactory:         keyFactory,
-		GetAppConfigs: func() []configuration.Configuration {
-			return appConfigs
-		},
+		Log:    struct{ Level string }{Level: log.DebugLevel.String()},
+		Pulsar: struct{ PulseTime int }{PulseTime: GetPulseTime()},
 	}
+
+	confProvider := cloud.NewConfigurationProvider(cloudSettings)
 
 	s := server.NewMultiServer(confProvider)
 	go func() {
