@@ -35,8 +35,6 @@ func getNodesCount() (int, error) {
 func TestMain(m *testing.M) {
 	instestlogger.SetTestOutputWithStub()
 
-	launchnet.SetCloudFileLogging(true)
-
 	numVirtual, numLight, numHeavy := getTestNodesSetup()
 
 	numNodes = numVirtual + numLight + numHeavy

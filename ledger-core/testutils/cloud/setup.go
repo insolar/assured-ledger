@@ -3,11 +3,10 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package launchnet
+package cloud
 
 import (
 	"crypto"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -26,99 +25,76 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
+
+func preparePulsarKeys(cfg configuration.BaseCloudConfig) nodeInfo {
+	pulsarKeys, err := makeNodeWithKeys()
+	if err != nil {
+		panic(throw.W(err, "Failed to gen pulsar keys"))
+	}
+	pulsarKeys.stringReference = cfg.PulsarConfiguration.KeysPath // hack for pulsar keys
+	return pulsarKeys
+}
 
 func makeNodeWithKeys() (nodeInfo, error) {
 	pair, err := secrets.GenerateKeyPair()
 
 	if err != nil {
-		return nodeInfo{}, errors.W(err, "couldn't generate keys")
+		return nodeInfo{}, throw.W(err, "couldn't generate keys")
 	}
 
 	ks := platformpolicy.NewKeyProcessor()
 	if err != nil {
-		return nodeInfo{}, errors.W(err, "couldn't export private key")
+		return nodeInfo{}, throw.W(err, "couldn't export private key")
 	}
 
 	pubKeyStr, err := ks.ExportPublicKeyPEM(pair.Public)
 	if err != nil {
-		return nodeInfo{}, errors.W(err, "couldn't export public key")
+		return nodeInfo{}, throw.W(err, "couldn't export public key")
 	}
 
 	var node nodeInfo
 	node.publicKey = string(pubKeyStr)
 	node.privateKey = pair.Private
+	node.reference = genesisrefs.GenesisRef(node.publicKey)
+	node.stringReference = node.reference.String()
 
 	return node, nil
 }
 
-func generateNodeKeys(num int) ([]nodeInfo, error) {
+func generateNodeKeys(cfg *NodeConfiguration) ([]nodeInfo, error) {
+	num := cfg.Virtual + cfg.LightMaterial + cfg.HeavyMaterial
 	nodes := make([]nodeInfo, 0, num)
-	for i := 0; i < num; i++ {
+	for i := uint(0); i < num; i++ {
 		node, err := makeNodeWithKeys()
 		if err != nil {
-			return nil, errors.W(err, "couldn't make node with keys")
+			return nil, throw.W(err, "couldn't make node with keys")
 		}
+		node.role = getRole(&cfg.Virtual, &cfg.LightMaterial, &cfg.HeavyMaterial)
 		nodes = append(nodes, node)
 	}
 
 	return nodes, nil
 }
 
-type inMemoryKeyStore struct {
-	key crypto.PrivateKey
-}
-
-func (ks inMemoryKeyStore) GetPrivateKey(string) (crypto.PrivateKey, error) {
-	return ks.key, nil
-}
-func makeKeyFactory(nodes []nodeInfo) insapp.KeyStoreFactory {
+func makeKeyFactory(nodes []nodeInfo) insapp.KeyStoreFactoryFunc {
 	keysMap := make(map[string]crypto.PrivateKey)
 	for _, n := range nodes {
-		if _, ok := keysMap[n.keyName]; ok {
-			panic("Key duplicate: " + n.keyName)
+		if _, ok := keysMap[n.stringReference]; ok {
+			panic("Key duplicate: " + n.reference.String())
 		}
-		keysMap[n.keyName] = n.privateKey
+		keysMap[n.stringReference] = n.privateKey
 	}
 
 	return func(path string) (cryptography.KeyStore, error) {
 		if _, ok := keysMap[path]; !ok {
 			panic("NO KEY: " + path)
 		}
-		return &inMemoryKeyStore{keysMap[path]}, nil
+		return &InMemoryKeyStore{Key: keysMap[path]}, nil
 	}
 }
 
-func generatePulsarConfig(nodes []nodeInfo, settings CloudSettings) configuration.PulsarConfiguration {
-	pulsarConfig := configuration.NewPulsarConfiguration()
-	var bootstrapNodes []string
-	for _, el := range nodes {
-		bootstrapNodes = append(bootstrapNodes, el.host)
-	}
-	pulsarConfig.Pulsar.PulseDistributor.BootstrapHosts = bootstrapNodes
-	pulsarConfig.KeysPath = "pulsar.yaml"
-	if settings.Pulsar.PulseTime != 0 {
-		pulsarConfig.Pulsar.PulseTime = int32(settings.Pulsar.PulseTime)
-	}
-
-	if cloudFileLogging {
-		pulsarConfig.Log.OutputType = logoutput.FileOutput.String()
-		pulsarConfig.Log.OutputParams = launchnetPath("logs", "pulsar.log")
-	}
-
-	return pulsarConfig
-}
-
-func generateBaseCloudConfig(nodes []nodeInfo, settings CloudSettings) configuration.BaseCloudConfig {
-	return configuration.BaseCloudConfig{
-		Log:                 configuration.NewLog(),
-		PulsarConfiguration: generatePulsarConfig(nodes, settings),
-	}
-
-}
-
-func getRole(virtual, light, heavy *int) member.PrimaryRole {
+func getRole(virtual, light, heavy *uint) member.PrimaryRole {
 	switch {
 	case *virtual > 0:
 		*virtual--
@@ -134,37 +110,26 @@ func getRole(virtual, light, heavy *int) member.PrimaryRole {
 	}
 }
 
-func generateNodeConfigs(nodes []nodeInfo, cloudSettings CloudSettings) []configuration.Configuration {
+func generateNodeConfigs(nodes []nodeInfo, cloudSettings Settings) map[reference.Global]configuration.Configuration {
 	var (
 		metricsPort      = 8001
 		LRRPCPort        = 13001
 		APIPort          = 18001
-		adminAPIPort     = 23001
+		adminAPIPort     = 19001
 		testWalletPort   = 33001
 		introspectorPort = 38001
 		netPort          = 43001
 
-		defaultHost     = "127.0.0.1"
-		certificatePath = "cert_%d.json"
-		keyPath         = "node_%d.json"
-		logLevel        = log.DebugLevel.String()
+		defaultHost = "127.0.0.1"
+		logLevel    = log.DebugLevel.String()
 	)
 
-	if cloudSettings.API.TestWalletAPIPortStart != 0 {
-		testWalletPort = cloudSettings.API.TestWalletAPIPortStart
-	}
-	if cloudSettings.API.AdminPort != 0 {
-		adminAPIPort = cloudSettings.API.AdminPort
-	}
 	if cloudSettings.Log.Level != "" {
 		logLevel = cloudSettings.Log.Level
 	}
 
-	appConfigs := make([]configuration.Configuration, 0, len(nodes))
+	appConfigs := make(map[reference.Global]configuration.Configuration, len(nodes))
 	for i := 0; i < len(nodes); i++ {
-		role := getRole(&cloudSettings.Virtual, &cloudSettings.Light, &cloudSettings.Heavy)
-		nodes[i].role = role.String()
-
 		conf := configuration.NewConfiguration()
 		conf.AvailabilityChecker.Enabled = false
 		{
@@ -198,55 +163,47 @@ func generateNodeConfigs(nodes []nodeInfo, cloudSettings CloudSettings) []config
 			introspectorPort++
 		}
 		{
-			conf.KeysPath = fmt.Sprintf(keyPath, i+1)
-			conf.CertificatePath = fmt.Sprintf(certificatePath, i+1)
-			nodes[i].certName = conf.CertificatePath
-			nodes[i].keyName = conf.KeysPath
+			conf.KeysPath = nodes[i].reference.String()
+			conf.CertificatePath = nodes[i].reference.String()
 		}
 		conf.Log.Level = logLevel
 
-		if cloudFileLogging {
+		if cloudSettings.CloudFileLogging {
 			// prepare directory for logs
-			if err := os.MkdirAll(launchnetPath("logs", "discoverynodes", strconv.Itoa(i+1)), os.ModePerm); err != nil {
+			if err := os.MkdirAll(filepath.Join(defaults.RootModuleDir(), ".artifacts", "launchnet", "logs", "discoverynodes", strconv.Itoa(i+1)), os.ModePerm); err != nil {
 				panic(err)
 			}
 
 			conf.Log.OutputType = logoutput.FileOutput.String()
-			conf.Log.OutputParams = launchnetPath("logs", "discoverynodes", strconv.Itoa(i+1), "output.log")
+			conf.Log.OutputParams = filepath.Join(defaults.RootModuleDir(), ".artifacts", "launchnet", "logs", "discoverynodes", strconv.Itoa(i+1), "output.log")
 		}
 
-		appConfigs = append(appConfigs, conf)
+		appConfigs[nodes[i].reference] = conf
 	}
 
 	return appConfigs
 }
 
-func makeCertManagerFactory(certs map[string]*mandates.Certificate) insapp.CertManagerFactory {
+func makeCertManagerFactory(certs map[string]*mandates.Certificate) insapp.CertManagerFactoryFunc {
 	return func(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*mandates.CertificateManager, error) {
 		return mandates.NewCertificateManager(certs[certPath]), nil
 	}
 }
 
 type nodeInfo struct {
+	stringReference string
+
+	reference reference.Global
+
 	privateKey crypto.PrivateKey
 	publicKey  string
-	role       string
+	role       member.PrimaryRole
 	host       string
-	certName   string
-	keyName    string
-}
-
-func (ni nodeInfo) reference() reference.Global {
-	return genesisrefs.GenesisRef(ni.publicKey)
 }
 
 type netSettings struct {
 	majorityRule int
-	minRoles     struct {
-		virtual       uint
-		lightMaterial uint
-		heavyMaterial uint
-	}
+	minRoles     NodeConfiguration
 }
 
 func generateCertificates(nodesInfo []nodeInfo, settings netSettings) (map[string]*mandates.Certificate, error) {
@@ -256,27 +213,27 @@ func generateCertificates(nodesInfo []nodeInfo, settings netSettings) (map[strin
 		c := &mandates.Certificate{
 			AuthorizationCertificate: mandates.AuthorizationCertificate{
 				PublicKey: node.publicKey,
-				Role:      node.role,
-				Reference: node.reference().String(),
+				Role:      node.role.String(),
+				Reference: node.reference.String(),
 			},
 			MajorityRule: settings.majorityRule,
 		}
 
-		c.MinRoles.Virtual = settings.minRoles.virtual
-		c.MinRoles.HeavyMaterial = settings.minRoles.heavyMaterial
-		c.MinRoles.LightMaterial = settings.minRoles.lightMaterial
+		c.MinRoles.Virtual = settings.minRoles.Virtual
+		c.MinRoles.HeavyMaterial = settings.minRoles.HeavyMaterial
+		c.MinRoles.LightMaterial = settings.minRoles.LightMaterial
 		c.BootstrapNodes = []mandates.BootstrapNode{}
 
 		for _, n2 := range nodesInfo {
 			c.BootstrapNodes = append(c.BootstrapNodes, mandates.BootstrapNode{
 				PublicKey: n2.publicKey,
 				Host:      n2.host,
-				NodeRef:   n2.reference().String(),
-				NodeRole:  n2.role,
+				NodeRef:   n2.reference.String(),
+				NodeRole:  n2.role.String(),
 			})
 		}
 
-		certs[node.certName] = c
+		certs[node.reference.String()] = c
 	}
 
 	var err error
@@ -284,18 +241,18 @@ func generateCertificates(nodesInfo []nodeInfo, settings netSettings) (map[strin
 		for j := range nodesInfo {
 			dn := nodesInfo[j]
 
-			certName := nodesInfo[i].certName
+			certName := nodesInfo[i].reference.String()
 
 			certs[certName].BootstrapNodes[j].NetworkSign, err = certs[certName].SignNetworkPart(dn.privateKey)
 			if err != nil {
 				return nil, throw.W(err, "can't SignNetworkPart for %s",
-					dn.reference())
+					dn.reference)
 			}
 
 			certs[certName].BootstrapNodes[j].NodeSign, err = certs[certName].SignNodePart(dn.privateKey)
 			if err != nil {
 				return nil, throw.W(err, "can't SignNodePart for %s",
-					dn.reference())
+					dn.reference)
 			}
 		}
 	}
@@ -323,48 +280,22 @@ func generateCertificates(nodesInfo []nodeInfo, settings netSettings) (map[strin
 	return certs, nil
 }
 
-type CloudSettings struct {
-	Virtual, Light, Heavy int
-
-	API struct {
-		TestWalletAPIPortStart int
-		AdminPort              int
-	}
-	Pulsar struct {
-		PulseTime int
-	}
-	Log struct {
-		Level string
-	}
-}
-
-// PrepareCloudConfiguration generates all configs and factories for launching cloud mode
+// prepareCloudConfiguration generates all configs and factories for launching cloud mode
 // It doesn't use file system at all. Everything generated in memory
-func PrepareCloudConfiguration(cloudSettings CloudSettings) (
-	[]configuration.Configuration,
+func prepareCloudConfiguration(cloudSettings Settings) (
+	map[reference.Global]configuration.Configuration,
 	configuration.BaseCloudConfig,
-	insapp.CertManagerFactory,
-	insapp.KeyStoreFactory,
+	map[string]*mandates.Certificate,
+	[]nodeInfo,
 ) {
-	totalNum := cloudSettings.Virtual + cloudSettings.Light + cloudSettings.Heavy
-	if totalNum < 1 {
-		panic("no nodes given")
-	}
-	nodes, err := generateNodeKeys(totalNum)
+	nodes, err := generateNodeKeys(&cloudSettings.Prepared)
 	if err != nil {
 		panic(throw.W(err, "Failed to gen keys"))
 	}
 
-	appConfigs := generateNodeConfigs(nodes, cloudSettings)
-
 	settings := netSettings{
-		majorityRule: totalNum,
-		minRoles: struct {
-			virtual       uint
-			lightMaterial uint
-			heavyMaterial uint
-		}{virtual: uint(cloudSettings.Virtual), lightMaterial: uint(cloudSettings.Light), heavyMaterial: uint(cloudSettings.Heavy)},
-	}
+		majorityRule: cloudSettings.MajorityRule,
+		minRoles:     cloudSettings.MinRoles}
 	certs, err := generateCertificates(nodes, settings)
 	if err != nil {
 		panic(throw.W(err, "Failed to gen certificates"))
@@ -372,11 +303,34 @@ func PrepareCloudConfiguration(cloudSettings CloudSettings) (
 
 	baseCloudConf := generateBaseCloudConfig(nodes, cloudSettings)
 
-	pulsarKeys, err := makeNodeWithKeys()
-	if err != nil {
-		panic(throw.W(err, "Failed to gen pulsar keys"))
-	}
-	pulsarKeys.keyName = baseCloudConf.PulsarConfiguration.KeysPath
+	appConfigs := generateNodeConfigs(nodes, cloudSettings)
 
-	return appConfigs, baseCloudConf, makeCertManagerFactory(certs), makeKeyFactory(append(nodes, pulsarKeys))
+	return appConfigs, baseCloudConf, certs, nodes
+}
+
+func generatePulsarConfig(nodes []nodeInfo, settings Settings) configuration.PulsarConfiguration {
+	pulsarConfig := configuration.NewPulsarConfiguration()
+	var bootstrapNodes []string
+	for _, el := range nodes {
+		bootstrapNodes = append(bootstrapNodes, el.host)
+	}
+	pulsarConfig.Pulsar.PulseDistributor.BootstrapHosts = bootstrapNodes
+	pulsarConfig.KeysPath = "pulsar.yaml"
+	if settings.Pulsar.PulseTime != 0 {
+		pulsarConfig.Pulsar.PulseTime = int32(settings.Pulsar.PulseTime)
+	}
+
+	if settings.CloudFileLogging {
+		pulsarConfig.Log.OutputType = logoutput.FileOutput.String()
+		pulsarConfig.Log.OutputParams = filepath.Join(defaults.RootModuleDir(), ".artifacts", "launchnet", "logs", "pulsar.log")
+	}
+
+	return pulsarConfig
+}
+
+func generateBaseCloudConfig(nodes []nodeInfo, settings Settings) configuration.BaseCloudConfig {
+	return configuration.BaseCloudConfig{
+		Log:                 configuration.NewLog(),
+		PulsarConfiguration: generatePulsarConfig(nodes, settings),
+	}
 }

@@ -70,11 +70,17 @@ func init() {
 // createHTTPClient for connection re-use
 func createHTTPClient() *http.Client {
 	client := &http.Client{
-		Transport: &http.Transport{},
-		Timeout:   requestTimeout,
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: 1000,
+		},
+		Timeout: requestTimeout,
 	}
 
 	return client
+}
+
+func ResetHTTPClient() {
+	httpClient.CloseIdleConnections()
 }
 
 // Creates http.Request with all necessary fields.

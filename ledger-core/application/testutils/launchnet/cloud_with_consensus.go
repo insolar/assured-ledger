@@ -14,16 +14,53 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/server"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/cloud"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func RunCloudWithConsensus(numVirtual, numLight, numHeavy int, cb func() int) int {
+func RunCloudWithConsensus(numVirtual, numLight, numHeavy uint, cb func() int) int {
 	fmt.Println("Run tests on cloud with consensus")
 
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	confProvider := prepareConfigProvider(numVirtual, numLight, numHeavy, log.DebugLevel)
+	minRoleConfiguration := cloud.NodeConfiguration{
+		Virtual:       numVirtual,
+		LightMaterial: numLight,
+		HeavyMaterial: numHeavy,
+	}
+
+	preparedConfiguration := cloud.NodeConfiguration{
+		Virtual:       numVirtual,
+		LightMaterial: numLight,
+		HeavyMaterial: numHeavy,
+	}
+
+	runningConfiguration := cloud.NodeConfiguration{
+		Virtual:       numVirtual,
+		LightMaterial: numLight,
+		HeavyMaterial: numHeavy,
+	}
+
+	majorityRule := int(numVirtual + numLight + numHeavy)
+
+	confProvider := cloud.NewConfigurationProvider(cloud.Settings{
+		Prepared:     preparedConfiguration,
+		Running:      runningConfiguration,
+		MinRoles:     minRoleConfiguration,
+		MajorityRule: majorityRule,
+		Pulsar: struct {
+			PulseTime int
+		}{
+			PulseTime: GetPulseTime(),
+		},
+		Log: struct {
+			Level string
+		}{
+			Level: log.DebugLevel.String(),
+		},
+		CloudFileLogging: true,
+	})
 
 	s := server.NewMultiServerWithConsensus(confProvider)
 
