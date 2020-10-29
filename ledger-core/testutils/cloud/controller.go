@@ -36,43 +36,32 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type controlledNode struct {
-	beatAppender               beat.Appender
-	dispatcher                 beat.Dispatcher
-	router                     watermill.Router
-	platformCryptographyScheme cryptography.PlatformCryptographyScheme
-	keyProcessor               cryptography.KeyProcessor
-	cfg                        configuration.Configuration
-
-	svf cryptkit.SignatureVerifierFactory
-
-	cert nodeinfo.Certificate
-
-	profile *adapters.StaticProfile
-}
-
-func NewController() Controller {
-	return Controller{
-		lock:  &sync.RWMutex{},
-		nodes: make(map[reference.Global]*controlledNode),
-		start: time.Now(),
+func NewController() *NetworkController {
+	return &NetworkController{
+		lock:    &sync.RWMutex{},
+		nodes:   make(map[reference.Global]*controlledNode),
+		start:   time.Now(),
+		joiners: make(map[reference.Global]*controlledNode),
 	}
 }
 
-type Controller struct {
+type NetworkController struct {
 	lock  *sync.RWMutex
 	start time.Time
 	nodes map[reference.Global]*controlledNode
+
+	joiners map[reference.Global]*controlledNode
+	leavers []reference.Global
 }
 
-func (n Controller) nodeCount() int {
+func (n NetworkController) nodeCount() int {
 	n.lock.RLock()
 	defer n.lock.RUnlock()
 
 	return len(n.nodes)
 }
 
-func (n Controller) addNode(nodeRef reference.Global, netNode controlledNode) {
+func (n *NetworkController) addNode(nodeRef reference.Global, netNode controlledNode) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
@@ -93,17 +82,34 @@ func (n Controller) addNode(nodeRef reference.Global, netNode controlledNode) {
 		),
 	)
 
-	n.nodes[nodeRef] = &netNode
+	n.joiners[nodeRef] = &netNode
 }
 
-func (n Controller) getNode(nodeID reference.Global) (*controlledNode, error) {
+func (n *NetworkController) nodeLeave(nodeRef reference.Global) {
+	n.lock.Lock()
+	defer n.lock.Unlock()
+
+	if _, exists := n.nodes[nodeRef]; !exists {
+		panic(throw.IllegalValue())
+	}
+
+	for _, leaveNode := range n.leavers {
+		if leaveNode == nodeRef {
+			panic(throw.IllegalValue())
+		}
+	}
+
+	n.leavers = append(n.leavers, nodeRef)
+}
+
+func (n *NetworkController) getNode(nodeID reference.Global) (*controlledNode, error) {
 	n.lock.RLock()
 	defer n.lock.RUnlock()
 
 	return n.unsafeGetNode(nodeID)
 }
 
-func (n Controller) unsafeGetNode(nodeID reference.Global) (*controlledNode, error) {
+func (n *NetworkController) unsafeGetNode(nodeID reference.Global) (*controlledNode, error) {
 	node, ok := n.nodes[nodeID]
 	if !ok {
 		return nil, throw.E("no node found for ref", struct{ reference reference.Global }{reference: nodeID})
@@ -111,7 +117,7 @@ func (n Controller) unsafeGetNode(nodeID reference.Global) (*controlledNode, err
 	return node, nil
 }
 
-func (n Controller) sendMessageHandler(msg *message.Message) error {
+func (n *NetworkController) sendMessageHandler(msg *message.Message) error {
 	receiver := msg.Metadata.Get(defaults.Receiver)
 	if receiver == "" {
 		return throw.E("failed to send message: Receiver in message metadata is not set")
@@ -160,19 +166,32 @@ func updatePulseOnNode(netNode *controlledNode, newBeatData beat.Beat, profiles 
 	netNode.dispatcher.CommitBeat(newBeat)
 }
 
-func (n Controller) PartialDistribute(_ context.Context, packet pulsar.PulsePacket, whiteList map[reference.Global]struct{}) {
-	n.lock.Lock()
-	defer n.lock.Unlock()
+func (n *NetworkController) prepareNodeProfiles() []profiles.StaticProfile {
+	for _, leaverNode := range n.leavers {
+		delete(n.nodes, leaverNode)
+	}
+	n.leavers = nil
+
+	for joinerRef, joinerNode := range n.joiners {
+		if _, exists := n.nodes[joinerRef]; exists {
+			panic(throw.IllegalState())
+		}
+		n.nodes[joinerRef] = joinerNode
+	}
+	n.joiners = make(map[reference.Global]*controlledNode)
 
 	profiles := make([]profiles.StaticProfile, 0, len(n.nodes))
 	for _, netNode := range n.nodes {
 		profiles = append(profiles, netNode.profile)
 	}
+	return profiles
+}
 
-	// sort profiles by shortID
-	sort.Slice(profiles, func(i, j int) bool {
-		return profiles[j].GetStaticNodeID() < profiles[i].GetStaticNodeID()
-	})
+func (n *NetworkController) PartialDistribute(_ context.Context, packet pulsar.PulsePacket, whiteList map[reference.Global]struct{}) {
+	n.lock.Lock()
+	defer n.lock.Unlock()
+
+	profiles := n.prepareNodeProfiles()
 
 	newBeatData := beat.Beat{
 		Data:      adapters.NewPulseData(packet),
@@ -187,19 +206,11 @@ func (n Controller) PartialDistribute(_ context.Context, packet pulsar.PulsePack
 	}
 }
 
-func (n Controller) Distribute(_ context.Context, packet pulsar.PulsePacket) {
+func (n *NetworkController) Distribute(_ context.Context, packet pulsar.PulsePacket) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	profiles := make([]profiles.StaticProfile, 0, len(n.nodes))
-	for _, netNode := range n.nodes {
-		profiles = append(profiles, netNode.profile)
-	}
-
-	// sort profiles by shortID
-	sort.Slice(profiles, func(i, j int) bool {
-		return profiles[j].GetStaticNodeID() < profiles[i].GetStaticNodeID()
-	})
+	profiles := n.prepareNodeProfiles()
 
 	newBeatData := beat.Beat{
 		Data:      adapters.NewPulseData(packet),
@@ -243,11 +254,26 @@ func prepareManyNodePopulation(id node.ShortNodeID, op censusimpl.ManyNodePopula
 	return ap
 }
 
-func (n Controller) NetworkInitFunc(cfg configuration.Configuration, cm *component.Manager) (insapp.NetworkSupport, network.Status, error) {
+func (n *NetworkController) NetworkInitFunc(cfg configuration.Configuration, cm *component.Manager) (insapp.NetworkSupport, network.Status, error) {
 	statusNetwork := &cloudStatus{
-		net: &n,
+		net: n,
 		cfg: cfg,
 	}
 
 	return statusNetwork, statusNetwork, nil
+}
+
+type controlledNode struct {
+	beatAppender               beat.Appender
+	dispatcher                 beat.Dispatcher
+	router                     watermill.Router
+	platformCryptographyScheme cryptography.PlatformCryptographyScheme
+	keyProcessor               cryptography.KeyProcessor
+	cfg                        configuration.Configuration
+
+	svf cryptkit.SignatureVerifierFactory
+
+	cert nodeinfo.Certificate
+
+	profile *adapters.StaticProfile
 }

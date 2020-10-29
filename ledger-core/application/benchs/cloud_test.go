@@ -19,10 +19,10 @@ func Benchmark_MultiPulseOnCloud_Timed(b *testing.B) {
 
 	instestlogger.SetTestOutput(b)
 
-	for numNodes := 2; numNodes <= 5; numNodes++ {
+	for numNodes := uint(2); numNodes <= 5; numNodes++ {
 		b.Run(fmt.Sprintf("Nodes %d", numNodes), func(b *testing.B) {
 			cloudRunner := launchnet.PrepareCloudRunner(
-				launchnet.WithNumVirtual(numNodes),
+				launchnet.WithRunning(numNodes, 0, 0),
 				launchnet.WithDefaultLogLevel(log.FatalLevel))
 			if res := cloudRunner.Run(func(apiAddresses []string) int {
 				runner := benchRunner{
@@ -42,11 +42,12 @@ func Benchmark_MultiPulseOnCloud_Timed(b *testing.B) {
 
 func Benchmark_SinglePulseOnCloud_N(b *testing.B) {
 	instestlogger.SetTestOutput(b)
-	for numNodes := 2; numNodes <= 5; numNodes++ {
+	for numNodes := uint(2); numNodes <= 5; numNodes++ {
 		b.Run(fmt.Sprintf("Nodes %d", numNodes), func(b *testing.B) {
 			cloudRunner := launchnet.PrepareCloudRunner(
-				launchnet.WithNumVirtual(numNodes),
+				launchnet.WithRunning(numNodes, 0, 0),
 				launchnet.WithDefaultLogLevel(log.FatalLevel),
+				launchnet.WithCloudFileLogging(),
 				launchnet.WithPulsarMode(launchnet.ManualPulsar))
 			if res := cloudRunner.Run(func(apiAddresses []string) int {
 				runner := benchRunner{

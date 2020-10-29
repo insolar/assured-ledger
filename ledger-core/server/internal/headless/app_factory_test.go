@@ -37,8 +37,9 @@ func TestAppFactory(t *testing.T) {
 	cfg.AdminAPIRunner.SwaggerPath = "../../../application/api/spec/api-exported.yaml"
 
 	server := insapp.New(cfg, nil, &AppComponent{})
+	initer := server.GetInitializerForTest()
 
-	cm, stopWatermill := server.StartComponents(ctx, cfg, nil, func(context.Context, configuration.Log, string, string) context.Context {
+	cm, stopWatermill := initer.StartComponents(ctx, cfg, nil, func(context.Context, configuration.Log, string, string) context.Context {
 		return ctx
 	})
 

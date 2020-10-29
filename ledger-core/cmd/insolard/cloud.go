@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/server"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/cloud"
 )
 
 func readConfig(cfgPath string) configuration.Configuration {
@@ -43,26 +44,25 @@ func runInsolardCloud(configPath string) {
 		global.Fatal("Failed to parse YAML file", err)
 	}
 
+	appConfigs := make([]configuration.Configuration, 0, len(cloudConf.NodeConfigPaths))
+	for i, conf := range cloudConf.NodeConfigPaths {
+		cfgHolder := configuration.NewHolder(conf)
+		err := cfgHolder.Load()
+		if err != nil {
+			global.Fatal("failed to load configuration from file: ", err.Error())
+		}
+		fmt.Printf("Starts with configuration [%d/%d]:\n%s\n", i+1, len(cloudConf.NodeConfigPaths), configuration.ToString(&cfgHolder.Configuration))
+		appConfigs = append(appConfigs, *cfgHolder.Configuration)
+	}
+
 	baseConfig := configuration.Configuration{}
 	baseConfig.Log = cloudConf.Log
-	configProvider := &server.CloudConfigurationProvider{
+	configProvider := &cloud.ConfigurationProvider{
 		CertificateFactory: mandates.NewManagerReadCertificate,
 		KeyFactory:         keystore.NewKeyStore,
 		BaseConfig:         baseConfig,
 		PulsarConfig:       cloudConf.PulsarConfiguration,
-		GetAppConfigs: func() []configuration.Configuration {
-			appConfigs := make([]configuration.Configuration, 0, len(cloudConf.NodeConfigPaths))
-			for i, conf := range cloudConf.NodeConfigPaths {
-				cfgHolder := configuration.NewHolder(conf)
-				err := cfgHolder.Load()
-				if err != nil {
-					global.Fatal("failed to load configuration from file: ", err.Error())
-				}
-				fmt.Printf("Starts with configuration [%d/%d]:\n%s\n", i+1, len(cloudConf.NodeConfigPaths), configuration.ToString(&cfgHolder.Configuration))
-				appConfigs = append(appConfigs, *cfgHolder.Configuration)
-			}
-			return appConfigs
-		},
+		FixedConfigs:       appConfigs,
 	}
 
 	s := server.NewMultiServer(configProvider)

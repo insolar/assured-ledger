@@ -22,9 +22,9 @@ func NewNode(cfg configuration.Configuration) *insapp.Server {
 	return insapp.New(cfg, appFactory)
 }
 
-func NewControlledMultiServer(controller cloud.Controller, configProvider insapp.ConfigurationProvider) *insapp.Server {
+func NewControlledMultiServer(controller *cloud.NetworkController, configProvider insapp.ConfigurationProvider) (*insapp.Server, insapp.MultiController) {
 	multiFn := func(provider insapp.ConfigurationProvider) ([]configuration.Configuration, insapp.NetworkInitFunc) {
-		conf := provider.(*CloudConfigurationProvider)
+		conf := provider.(*cloud.ConfigurationProvider)
 		return conf.GetAppConfigs(), controller.NetworkInitFunc
 	}
 
@@ -35,32 +35,26 @@ func NewControlledMultiServer(controller cloud.Controller, configProvider insapp
 	)
 }
 
-func NewMultiServer(configProvider *CloudConfigurationProvider) *insapp.Server {
+func NewMultiServer(configProvider *cloud.ConfigurationProvider) *insapp.Server {
 	controller := cloud.NewController()
-	if configProvider.GetAppConfigs == nil {
-		panic("GetAppConfigs cannot be nil")
-	}
 
 	multiFn := func(provider insapp.ConfigurationProvider) ([]configuration.Configuration, insapp.NetworkInitFunc) {
-		conf := provider.(*CloudConfigurationProvider)
+		conf := provider.(*cloud.ConfigurationProvider)
 		return conf.GetAppConfigs(), controller.NetworkInitFunc
 	}
 
-	return insapp.NewMulti(
+	srv, _ := insapp.NewMulti(
 		configProvider,
 		appFactory,
 		multiFn,
-		cloud.NewPulsarWrapper(&controller, configProvider.PulsarConfig, configProvider.KeyFactory),
+		cloud.NewPulsarWrapper(controller, configProvider.PulsarConfig, configProvider.KeyFactory),
 	)
+	return srv
 }
 
-func NewMultiServerWithConsensus(configProvider *CloudConfigurationProvider) *insapp.Server {
-	if configProvider.GetAppConfigs == nil {
-		panic("GetAppConfigs cannot be nil")
-	}
-
+func NewMultiServerWithConsensus(configProvider *cloud.ConfigurationProvider) *insapp.Server {
 	multiFn := func(provider insapp.ConfigurationProvider) ([]configuration.Configuration, insapp.NetworkInitFunc) {
-		conf := provider.(*CloudConfigurationProvider)
+		conf := provider.(*cloud.ConfigurationProvider)
 		return conf.GetAppConfigs(), nil
 	}
 
@@ -69,34 +63,15 @@ func NewMultiServerWithConsensus(configProvider *CloudConfigurationProvider) *in
 		panic(throw.W(err, "Failed to create distributor"))
 	}
 
-	return insapp.NewMulti(
+	srv, _ := insapp.NewMulti(
 		configProvider,
 		appFactory,
 		multiFn,
 		cloud.NewPulsarWrapper(pulseDistributor, configProvider.PulsarConfig, configProvider.KeyFactory),
 	)
+	return srv
 }
 
 func NewHeadlessNetworkNodeServer(cfg configuration.Configuration) *insapp.Server {
 	return insapp.New(cfg, nil, &headless.AppComponent{})
-}
-
-type CloudConfigurationProvider struct {
-	PulsarConfig       configuration.PulsarConfiguration
-	BaseConfig         configuration.Configuration
-	CertificateFactory insapp.CertManagerFactory
-	KeyFactory         insapp.KeyStoreFactory
-	GetAppConfigs      func() []configuration.Configuration
-}
-
-func (cp CloudConfigurationProvider) Config() configuration.Configuration {
-	return cp.BaseConfig
-}
-
-func (cp CloudConfigurationProvider) GetCertManagerFactory() insapp.CertManagerFactory {
-	return cp.CertificateFactory
-}
-
-func (cp CloudConfigurationProvider) GetKeyStoreFactory() insapp.KeyStoreFactory {
-	return cp.KeyFactory
 }
