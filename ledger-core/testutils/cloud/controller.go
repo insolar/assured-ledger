@@ -193,11 +193,6 @@ func (n *NetworkController) PartialDistribute(_ context.Context, packet pulsar.P
 
 	profiles := n.prepareNodeProfiles()
 
-	// sort profiles by shortID
-	sort.Slice(profiles, func(i, j int) bool {
-		return profiles[j].GetStaticNodeID() < profiles[i].GetStaticNodeID()
-	})
-
 	newBeatData := beat.Beat{
 		Data:      adapters.NewPulseData(packet),
 		StartedAt: time.Now(),
@@ -216,11 +211,6 @@ func (n *NetworkController) Distribute(_ context.Context, packet pulsar.PulsePac
 	defer n.lock.Unlock()
 
 	profiles := n.prepareNodeProfiles()
-
-	// sort profiles by shortID
-	sort.Slice(profiles, func(i, j int) bool {
-		return profiles[j].GetStaticNodeID() < profiles[i].GetStaticNodeID()
-	})
 
 	newBeatData := beat.Beat{
 		Data:      adapters.NewPulseData(packet),
