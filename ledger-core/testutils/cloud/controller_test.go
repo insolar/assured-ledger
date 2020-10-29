@@ -20,7 +20,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
-	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -32,29 +31,28 @@ import (
 func TestController_PartialDistribute(t *testing.T) {
 	instestlogger.SetTestOutput(t)
 	var (
-		numVirtual        = 10
-		numLightMaterials = 0
-		numHeavyMaterials = 0
+		numVirtual        = uint(10)
+		numLightMaterials = uint(0)
+		numHeavyMaterials = uint(0)
 	)
 
-	cloudSettings := launchnet.CloudSettings{Virtual: numVirtual, Light: numLightMaterials, Heavy: numHeavyMaterials}
-
-	appConfigs, cloudBaseConf, certFactory, keyFactory := launchnet.PrepareCloudConfiguration(cloudSettings)
-	baseConfig := configuration.Configuration{}
-	baseConfig.Log = cloudBaseConf.Log
-
-	confProvider := &server.CloudConfigurationProvider{
-		PulsarConfig:       cloudBaseConf.PulsarConfiguration,
-		BaseConfig:         baseConfig,
-		CertificateFactory: certFactory,
-		KeyFactory:         keyFactory,
-		GetAppConfigs: func() []configuration.Configuration {
-			return appConfigs
+	cloudSettings := cloud.Settings{Running: cloud.NodeConfiguration{
+		Virtual: numVirtual, LightMaterial: numLightMaterials, HeavyMaterial: numHeavyMaterials,
+	},
+		Prepared: cloud.NodeConfiguration{
+			Virtual: numVirtual, LightMaterial: numLightMaterials, HeavyMaterial: numHeavyMaterials,
 		},
-	}
+		MinRoles: cloud.NodeConfiguration{
+			Virtual: numVirtual, LightMaterial: numLightMaterials, HeavyMaterial: numHeavyMaterials,
+		},
+		MajorityRule: 10}
+
+	confProvider := cloud.NewConfigurationProvider(cloudSettings)
+
+	appConfigs := confProvider.GetAppConfigs()
 
 	controller := cloud.NewController()
-	s := server.NewControlledMultiServer(controller, confProvider)
+	s, _ := server.NewControlledMultiServer(controller, confProvider)
 	go func() {
 		s.Serve()
 	}()
@@ -63,11 +61,11 @@ func TestController_PartialDistribute(t *testing.T) {
 
 	defer s.Stop()
 
-	allNodes := make(map[reference.Global]struct{})
-	for i := 0; i < len(appConfigs); i++ {
-		cert, err := certFactory(nil, nil, appConfigs[i].CertificatePath)
-		require.NoError(t, err)
-		allNodes[cert.GetCertificate().GetNodeRef()] = struct{}{}
+	allNodesMap := confProvider.GetRunningNodesMap()
+
+	allNodes := make(map[reference.Global]struct{}, len(allNodesMap))
+	for nodeRef := range allNodesMap {
+		allNodes[nodeRef] = struct{}{}
 	}
 	pulseGenerator := testutils.NewPulseGenerator(uint16(confProvider.PulsarConfig.Pulsar.NumberDelta), nil, nil)
 
@@ -91,8 +89,8 @@ func TestController_PartialDistribute(t *testing.T) {
 		}
 	}
 
-	halfOfNodes := make(map[reference.Global]struct{})
 	numElements := len(allNodes) / 2
+	halfOfNodes := make(map[reference.Global]struct{}, numElements)
 	for ref, _ := range allNodes {
 		if numElements <= 0 {
 			break
@@ -116,9 +114,10 @@ func TestController_PartialDistribute(t *testing.T) {
 				err := json.Unmarshal(body, &response)
 				require.NoError(t, err)
 
-				cert, err := certFactory(nil, nil, conf.CertificatePath)
+				// for all nodes CertificatePath == node reference string
+				nodeRef, err := reference.GlobalFromString(conf.CertificatePath)
 				require.NoError(t, err)
-				if _, ok := halfOfNodes[cert.GetCertificate().GetNodeRef()]; ok {
+				if _, ok := halfOfNodes[nodeRef]; ok {
 					require.Equal(t, packet.PulseNumber, pulse.Number(response.Result.PulseNumber))
 				} else {
 					require.Equal(t, prevPacket.PulseNumber, pulse.Number(response.Result.PulseNumber))

@@ -32,6 +32,8 @@ func (br benchRunner) runBenchOnNetwork(b *testing.B) func(apiAddresses []string
 	return func(apiAddresses []string) int {
 		ctx := context.Background()
 
+		testutils.ResetHTTPClient()
+
 		testutils.SetAPIPortsByAddresses(apiAddresses)
 
 		numWallets := 1000
@@ -121,7 +123,7 @@ func runSetBench(wallets []string, b *testing.B, limiterFactory limiterFactory) 
 	var retCode int32
 	b.Run(name, func(b *testing.B) {
 		limiter := limiterFactory(b.N)
-		err := runBench("set", func(ctx context.Context, iterator int) error {
+		err := runBench(name, func(ctx context.Context, iterator int) error {
 			walletRef := wallets[iterator%len(wallets)]
 			addAmountURL := testutils.GetURL(testutils.WalletAddAmountPath, "", "")
 
@@ -212,6 +214,10 @@ func runBench(name string, workerFunc func(ctx context.Context, iterator int) er
 
 			if err == context.Canceled {
 				return nil
+			}
+
+			if err != nil {
+				panic(err)
 			}
 
 			return err

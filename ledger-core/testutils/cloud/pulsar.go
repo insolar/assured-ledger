@@ -30,7 +30,7 @@ type PulsarWrapper struct {
 	onePulsar sync.Once
 }
 
-func NewPulsarWrapper(distributor pulsar.PulseDistributor, cfg configuration.PulsarConfiguration, keyFactory insapp.KeyStoreFactory) *PulsarWrapper {
+func NewPulsarWrapper(distributor pulsar.PulseDistributor, cfg configuration.PulsarConfiguration, keyFactory insapp.KeyStoreFactoryFunc) *PulsarWrapper {
 	ctx := context.Background()
 
 	keyStore, err := keyFactory(cfg.KeysPath)
