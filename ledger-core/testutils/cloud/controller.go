@@ -54,7 +54,7 @@ type NetworkController struct {
 	leavers []reference.Global
 }
 
-func (n NetworkController) nodeCount() int {
+func (n *NetworkController) nodeCount() int {
 	n.lock.RLock()
 	defer n.lock.RUnlock()
 
