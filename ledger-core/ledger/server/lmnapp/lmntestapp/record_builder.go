@@ -64,11 +64,11 @@ func (v RecordBuilder) ApplySignature(req *rms.LRegisterRequest) {
 	digester := rs.NewHasher()
 	digester.DigestOf(rlv)
 	if req.OverrideRecordType != 0 {
-		rc := rms.LRegisterRequest{
-			OverrideRecordType: req.OverrideRecordType,
-			OverrideRootRef:    req.OverrideRootRef,
-			OverridePrevRef:    req.OverridePrevRef,
-			OverrideReasonRef:  req.OverrideReasonRef,
+		rc := catalog.Excerpt{
+			RecordType: req.OverrideRecordType,
+			RootRef:    req.OverrideRootRef.NormEmpty(),
+			PrevRef:    req.OverridePrevRef.NormEmpty(),
+			ReasonRef:  req.OverrideReasonRef.NormEmpty(),
 		}
 		b, err := rc.Marshal()
 		if err != nil {
@@ -158,17 +158,11 @@ func (v RecordBuilder) BuildSet(requests ...*rms.LRegisterRequest) (r inspectsvc
 	}
 
 	if r0.OverrideRecordType != 0 {
+		// TODO check if record type can be overridden
 		r.Excerpt.RecordType = r0.OverrideRecordType
-
-		if !r0.OverrideRootRef.IsEmpty() {
-			r.Excerpt.RootRef = r0.OverrideRootRef
-		}
-		if !r0.OverridePrevRef.IsEmpty() {
-			r.Excerpt.PrevRef = r0.OverrideRootRef
-		}
-		if !r0.OverrideReasonRef.IsEmpty() {
-			r.Excerpt.ReasonRef = r0.OverrideReasonRef
-		}
+		r.Excerpt.RootRef = r0.OverrideRootRef.NormEmpty()
+		r.Excerpt.PrevRef = r0.OverrideRootRef.NormEmpty()
+		r.Excerpt.ReasonRef = r0.OverrideReasonRef.NormEmpty()
 	}
 	return r
 }

@@ -16,7 +16,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-
+// PlashSharedData stores shared information about Plash
+// WARNING! This struct is accessed directly, no synchronization guarantees are provided.
 type PlashSharedData struct {
 	ready smsync.BoolConditionalLink
 
@@ -51,4 +52,8 @@ func (p *PlashSharedData) GetPulseRange() pulse.Range {
 func (p *PlashSharedData) GetDrop(ref reference.Holder) jet.DropID {
 	p.ensureAccess()
 	return p.jetAssist.CalculateJetDrop(ref)
+}
+
+func (p *PlashSharedData) onDropStop(smachine.TerminationData) {
+//	p.jetAssist.
 }

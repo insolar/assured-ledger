@@ -6,7 +6,10 @@
 package bundle
 
 import (
+	"io"
+
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
@@ -19,6 +22,8 @@ type SnapshotWriter interface {
 	// Not concurrent at SnapshotWriter, but can be called before commit of previous snapshot(s).
 	TakeSnapshot() (Snapshot, error)
 	MarkReadOnly() error
+
+	DirtyReader() DirtyReader
 }
 
 // Snapshot represents a written bundle / transaction.
@@ -55,6 +60,7 @@ type Snapshot interface {
 }
 
 type PayloadReceptacle interface {
+	io.WriterTo
 	ApplyMarshalTo(MarshalerTo) error
 	ApplyFixedReader(longbits.FixedReader) error
 }
@@ -72,11 +78,28 @@ type PayloadSection interface {
 	AllocatePayloadStorage(size int, extID ledger.ExtensionID) (PayloadReceptacle, ledger.StorageLocator, error)
 }
 
+type DirectoryEntry struct {
+	Key   reference.Global
+	Loc   ledger.StorageLocator
+	// Fil is a temporary field and it is not preserved
+	Fil   FilamentInfo
+}
+
+type FilamentInfo struct {
+	Link  ledger.Ordinal
+	JetID jet.ID
+	Flags ledger.DirectoryEntryFlags
+}
+
+func (v DirectoryEntry) IsZero() bool {
+	return v.Loc == 0
+}
+
 type DirectorySection interface {
 	// GetNextDirectoryIndex provides an index for the next to-be-added directory entry.
 	GetNextDirectoryIndex() ledger.DirectoryIndex
 	// AppendDirectoryEntry adds a new item to the directory at the given index.
-	AppendDirectoryEntry(index ledger.DirectoryIndex, key reference.Holder, loc ledger.StorageLocator) error
+	AppendDirectoryEntry(index ledger.DirectoryIndex, entry DirectoryEntry) error
 
 	// AllocateEntryStorage MUST be called as the last per record and MUST guarantee that the allocated storage is
 	// located after any other data of the same record within the same section.

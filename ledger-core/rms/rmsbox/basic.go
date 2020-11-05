@@ -16,6 +16,8 @@ type RecordVisitor interface {
 
 type PayloadHolder interface {
 	GetRecordPayloads() RecordPayloads
+
+	// SetRecordPayloads is called after unmarshalling of the record to set content of record's payloads
 	SetRecordPayloads(RecordPayloads, cryptkit.DataDigester) error
 }
 

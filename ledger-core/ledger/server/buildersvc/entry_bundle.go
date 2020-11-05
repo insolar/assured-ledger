@@ -7,12 +7,14 @@ package buildersvc
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsbox"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -20,20 +22,30 @@ import (
 var _ bundle.Writeable = &entryWriter{}
 
 type entryWriter struct {
-	entries  []draftEntry
-	prepared []preparedEntry
+	dropOrder *atomickit.Uint32
+	dropBase  ledger.Ordinal
+	jetID     jet.ExactID
+
+	entries   []draftEntry
+	prepared  []preparedEntry
 }
 
 func (p *entryWriter) PrepareWrite(snapshot bundle.Snapshot) error {
-	if len(p.entries) == 0 {
+	n := uint32(len(p.entries))
+	if n == 0 {
 		panic(throw.IllegalState())
 	}
 
-	preparedEntries := make([]preparedEntry, len(p.entries))
+	p.dropBase = ledger.Ordinal(p.dropOrder.Add(n) - n) + 1 // ordinal starts with 1
+
+	preparedEntries := make([]preparedEntry, n)
 
 	for i := range p.entries {
+		entry := &p.entries[i]
+
+		ord := p.dropBase + ledger.Ordinal(i)
 		var err error
-		preparedEntries[i], err = p.prepareRecord(snapshot, &p.entries[i])
+		preparedEntries[i], err = p.prepareRecord(snapshot, entry, ledger.NewDropOrdinal(p.jetID, ord), preparedEntries[:i])
 		if err != nil {
 			return err
 		}
@@ -41,6 +53,12 @@ func (p *entryWriter) PrepareWrite(snapshot bundle.Snapshot) error {
 	p.prepared = preparedEntries
 	p.entries = nil
 	return nil
+}
+
+func (p *entryWriter) ApplyRollback() {
+	if p.dropBase > 0 {
+		p.dropOrder.SetLesser(uint32(p.dropBase - 1))
+	}
 }
 
 func (p *entryWriter) ApplyWrite() ([]ledger.DirectoryIndex, error) {
@@ -71,7 +89,9 @@ func (p *entryWriter) ApplyWrite() ([]ledger.DirectoryIndex, error) {
 	return indices, nil
 }
 
-func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry) (preparedEntry, error) {
+func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry, dropOrdinal ledger.DropOrdinal,
+	prepBundle []preparedEntry,
+) (preparedEntry, error) {
 	ds, err := snapshot.GetDirectorySection(entry.directory)
 	if err != nil {
 		return preparedEntry{}, err
@@ -112,21 +132,38 @@ func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry)
 		}
 	}
 
-	entryPayload := &entry.draft
-	prepareCatalogEntry(entryPayload, entryIndex, payloadLoc, entry.payloads)
+	catalogEntry := &entry.draft
+	prepareCatalogEntry(catalogEntry, dropOrdinal, payloadLoc, entry.payloads, preparedPayloads[:nPayloads])
 
-	entrySize := entryPayload.ProtoSize()
+	entrySize := catalogEntry.ProtoSize()
 	receptacle, entryLoc, err := ds.AllocateEntryStorage(entrySize)
 	if err != nil {
 		return preparedEntry{}, err
 	}
 
-	if err := ds.AppendDirectoryEntry(entryIndex, entry.entryKey, entryLoc); err != nil {
+	filHead := entry.filHead
+	if entry.filHeadHere {
+		if filHead, err = p.remapLocalFilamentHead(filHead, prepBundle, entryIndex); err != nil {
+			return preparedEntry{}, err
+		}
+	}
+
+	if err := ds.AppendDirectoryEntry(entryIndex,
+		bundle.DirectoryEntry{
+			Key: reference.Copy(entry.entryKey),
+			Loc: entryLoc,
+			Fil: bundle.FilamentInfo{
+				Link:  filHead,
+				Flags: entry.filFlags,
+				JetID: p.jetID.ID(),
+			},
+		},
+	); err != nil {
 		return preparedEntry{}, err
 	}
 
 	preparedPayloads[nPayloads] = preparedPayload{
-		payload: entryPayload,
+		payload: catalogEntry,
 		target:  receptacle,
 		loc:     entryLoc,
 		size:    uint32(entrySize),
@@ -137,6 +174,30 @@ func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry)
 		entryKey:   entry.entryKey,
 		payloads:   preparedPayloads,
 	}, nil
+}
+
+func (p *entryWriter) remapLocalFilamentHead(filHead ledger.Ordinal,
+	prepBundle []preparedEntry, selfIndex ledger.DirectoryIndex,
+) (ledger.Ordinal, error) {
+
+	// ordinal is local to this bundle
+	if filHead == 0 {
+		return 0, throw.E("invalid filament root")
+	}
+	filHead--
+	switch {
+	case int(filHead) > len(prepBundle):
+		return 0, throw.E("relative filament root is out of bound")
+	case int(filHead) == len(prepBundle):
+		return selfIndex.Ordinal(), nil
+	}
+
+	headIdx := prepBundle[filHead].entryIndex
+	if headIdx.SectionID() != selfIndex.SectionID() {
+		return 0, throw.E("different section for filament root")
+	}
+
+	return headIdx.Ordinal(), nil
 }
 
 type preparedEntry struct {
@@ -153,10 +214,13 @@ type preparedPayload struct {
 }
 
 type draftEntry struct {
+	draft     catalog.Entry
 	entryKey  reference.Holder
 	payloads  []sectionPayload
 	directory ledger.SectionID
-	draft     catalog.Entry
+	filHead   ledger.Ordinal
+	filFlags  ledger.DirectoryEntryFlags
+	filHeadHere bool
 }
 
 type sectionPayload struct {
@@ -167,26 +231,34 @@ type sectionPayload struct {
 
 func draftCatalogEntry(rec lineage.Record) catalog.Entry {
 	return catalog.Entry{
-		RecordType:         rec.Excerpt.RecordType,
-		RecordBodyHash:     rec.Excerpt.RecordBodyHash,
-		PrevRef:			rec.Excerpt.PrevRef,
-		RootRef:			rec.Excerpt.RootRef,
-		ReasonRef:			rec.Excerpt.ReasonRef,
-		RedirectRef:		rec.Excerpt.RedirectRef,
-		RejoinRef:			rec.Excerpt.RejoinRef,
-		RecapRef: 			rms.NewReference(rec.RecapRef),
+		EntryData: rms.CatalogEntryData{
+			RecordType:     rec.Excerpt.RecordType,
+			BodyDigest:     rmsbox.NewRaw(rec.RegistrarSignature.GetDigest()).AsBinary(),
+			PayloadDigests: rec.Excerpt.PayloadDigests,
+			PrevRef:        rec.Excerpt.PrevRef,
+			RootRef:        rec.Excerpt.RootRef,
+			ReasonRef:      rec.Excerpt.ReasonRef,
+			RedirectRef:    rec.Excerpt.RedirectRef,
+			RejoinRef:      rec.Excerpt.RejoinRef,
 
-		ProducerSignature:  rec.ProducerSignature,
-		ProducedBy:         rms.NewReference(rec.ProducedBy),
+			RecordRef:      rms.NewReference(rec.RecRef),
 
-		RegistrarSignature: rmsbox.NewRaw(rec.RegistrarSignature.GetSignature()).AsBinary(),
-		RegisteredBy:       rms.NewReference(rec.RegisteredBy),
-	}
+			ProducerSignature: rec.ProducerSignature,
+			ProducedBy:        rms.NewReference(rec.ProducedBy),
+
+			RegistrarSignature: rmsbox.NewRaw(rec.RegistrarSignature.GetSignature()).AsBinary(),
+			RegisteredBy:       rms.NewReference(rec.RegisteredBy),
+
+			RecapRef:       rms.NewReference(rec.RecapRef),
+		}}
 }
 
-func prepareCatalogEntry(entry *catalog.Entry, idx ledger.DirectoryIndex, loc []ledger.StorageLocator, payloads []sectionPayload) {
+func prepareCatalogEntry(entry *catalog.Entry, dropOrdinal ledger.DropOrdinal, loc []ledger.StorageLocator,
+	payloads []sectionPayload, preparedPayloads []preparedPayload,
+) {
 	entry.BodyLoc = loc[0]
-	entry.Ordinal =	idx.Ordinal()
+	entry.DropOrdinal =	dropOrdinal
+	entry.SetBodyAndPayloadSizes(int(preparedPayloads[0].size), 0)
 
 	n := len(loc)
 	if n == 1 {
@@ -194,6 +266,8 @@ func prepareCatalogEntry(entry *catalog.Entry, idx ledger.DirectoryIndex, loc []
 	}
 
 	entry.PayloadLoc = loc[1]
+	entry.SetPayloadSize(int(preparedPayloads[1].size))
+
 	if n == 2 {
 		return
 	}
@@ -203,6 +277,7 @@ func prepareCatalogEntry(entry *catalog.Entry, idx ledger.DirectoryIndex, loc []
 		entry.ExtensionLoc.Ext[i - 2] = rms.ExtLocator{
 			ExtensionID: payloads[i].extension,
 			PayloadLoc:  loc[i],
+			PayloadSize: preparedPayloads[i].size,
 		}
 	}
 }

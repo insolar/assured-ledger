@@ -13,7 +13,7 @@ T00_S007 : PulseSlotMachine
 T00_S007 --> T00_S008 : Migrate: p.migratePast
 state "migratePast" as T00_S009
 T00_S009 : PulseSlotMachine
-T00_S009 --> [*] : [p.innerMachine.IsEmpty()]
+T00_S009 --> [*] : [p.innerMachine.StopIfEmpty()]
 state "stepFutureLoop" as T00_S003
 T00_S003 : PulseSlotMachine
 T00_S003 --[dotted]> T00_S004

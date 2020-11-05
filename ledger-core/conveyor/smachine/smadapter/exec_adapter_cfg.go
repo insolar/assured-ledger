@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type Config struct {
@@ -67,10 +68,36 @@ func StartExecutorFor(ctx context.Context, cfg Config, runArg interface{}) smach
 }
 
 func NewComponent(ctx context.Context, cfg Config, runArg interface{}, initFn func(managed.Holder)) (smachine.AdapterExecutor, managed.Component) {
-	ctx, stopFn := context.WithCancel(ctx)
-	exec, startFn := NewExecutor(ctx, cfg, runArg)
+	exec, ac := NewComponentExt(ctx, runArg, initFn, cfg)
+	return exec[0], ac
+}
 
-	ac := adapterComponent{initFn, startFn, stopFn, nil }
+func NewComponentExt(ctx context.Context, runArg interface{}, initFn func(managed.Holder), cfg ...Config) ([]smachine.AdapterExecutor, managed.Component) {
+	if len(cfg) == 0 {
+		panic(throw.IllegalValue())
+	}
+
+	ctx, stopFn := context.WithCancel(ctx)
+
+	exec := make([]smachine.AdapterExecutor, len(cfg))
+	startFn := make([]func(), len(cfg))
+
+	for i := range cfg {
+		exec[i], startFn[i] = NewExecutor(ctx, cfg[i], runArg)
+	}
+
+	ac := adapterComponent{initFn, nil, stopFn, nil }
+
+	if len(startFn) == 1 {
+		ac.startFn = startFn[0]
+	} else {
+		ac.startFn = func() {
+			for _, fn := range startFn {
+				fn()
+			}
+		}
+	}
+
 	switch c := runArg.(type) {
 	case managed.ComponentWithPulse:
 		ac.c = c

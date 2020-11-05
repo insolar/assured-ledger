@@ -161,7 +161,7 @@ func (p *PulseDataManager) awaitPreparingPulse() {
 	p.preparingPulseFlag.Store(1)
 }
 
-func (p *PulseDataManager) setPreparingPulse(_ PreparePulseChangeFunc) {
+func (p *PulseDataManager) setPreparingPulse(_ PreparePulseCallbackFunc) {
 	p.preparingPulseFlag.Store(1)
 }
 

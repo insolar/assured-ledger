@@ -24,6 +24,12 @@ type Service interface {
 	// IsGenesisFinished returns true after FinishGenesis is called even without a pulse change.
 	IsGenesisFinished() bool
 
+	// TryLockGenesis marks genesis as started. This prevents multiple genesis initializations in different pulses.
+	TryLockGenesis(pulse.Number) bool
+
+	// GenesisPulse returns pulse set by either TryLockGenesis or by FinishGenesis
+	GenesisPulse() pulse.Number
+
 	// SplitNext registers a split operation to be applied at next pulse.
 	// Only one split or merge operation can be applied to a jet per pulse.
 	SplitNext(jet.DropID)
@@ -31,4 +37,5 @@ type Service interface {
 	// MergeNext registers a merge operation to be applied at next pulse.
 	// Only one split or merge operation can be applied to a jet per pulse.
 	// MergeNext(jet.DropID)
+
 }

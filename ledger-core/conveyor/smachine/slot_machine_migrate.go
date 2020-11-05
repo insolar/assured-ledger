@@ -37,7 +37,7 @@ func (m *SlotMachine) migrateWithBefore(worker FixedSlotWorker, beforeFn func())
 	}
 
 	m.slotPool.ScanAndCleanup(m.config.CleanupWeakOnMigrate, func(slot *Slot) {
-		m.recycleSlot(slot, worker)
+		m._cleanupSlot(slot, worker, nil)
 	}, func(slotPage []Slot) (isPageEmptyOrWeak, hasWeakSlots bool) {
 		return m.migratePage(migrateCount, slotPage, worker)
 	})

@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func NewInfiniteLock(name string) smachine.SyncLink {
@@ -17,7 +18,7 @@ func NewInfiniteLock(name string) smachine.SyncLink {
 
 type infiniteLock struct {
 	name  string
-	count int32 //atomic
+	count int32 // atomic
 }
 
 func (p *infiniteLock) CheckState() smachine.BoolDecision {
@@ -51,7 +52,7 @@ func (p *infiniteLock) GetLimit() (limit int, isAdjustable bool) {
 }
 
 func (p *infiniteLock) AdjustLimit(int, bool) ([]smachine.StepLink, bool) {
-	panic("illegal state")
+	panic(throw.IllegalState())
 }
 
 func (p *infiniteLock) GetCounts() (active, inactive int) {

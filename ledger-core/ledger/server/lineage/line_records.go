@@ -25,6 +25,7 @@ type updateStage struct {
 	tracker StageTracker
 	firstRec  recordNo
 
+	// TODO full copy will be inefficient with multiple open filaments
 	filaments     []filament
 }
 
@@ -44,12 +45,54 @@ const (
 )
 
 type filament struct {
-	earliest, latest recordNo
+	root, earliest, latest recordNo
 	recap recordNo
 	resolvedHead ResolvedDependency
 	state filamentState
 }
 
+func (p *filament) setRoot(rn recordNo) {
+	switch {
+	case rn == 0:
+		panic(throw.IllegalValue())
+	case p.root != 0:
+		panic(throw.IllegalState())
+	}
+	p.root = rn
+}
+
+func (p *filament) setLatest(rn recordNo) {
+	switch {
+	case rn == 0:
+		panic(throw.IllegalValue())
+	case rn == deadFilament:
+		p.state |= ended
+	case p.earliest == 0:
+		switch {
+		case p.root == 0:
+			p.root = rn
+		case p.root > rn:
+			panic(throw.IllegalValue())
+		}
+		p.earliest = rn
+		p.latest = rn
+	case p.latest >= rn:
+		panic(throw.IllegalValue())
+	case p.state & ended != 0:
+		p.state &^= ended
+		p.latest = rn
+	default:
+		p.latest = rn
+	}
+}
+
+//nolint //TODO revisit
+func (p *filament) getLatest() recordNo {
+	if p.state & ended != 0 {
+		return deadFilament
+	}
+	return p.latest
+}
 
 type lineRecords struct {
 	records [][]updateRecord

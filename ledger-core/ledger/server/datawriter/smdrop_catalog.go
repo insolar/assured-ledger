@@ -6,10 +6,7 @@
 package datawriter
 
 import (
-	"fmt"
-
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -17,36 +14,30 @@ import (
 type JetDropKey jet.DropID
 
 type DropCataloger interface {
-	Create(ctx smachine.ExecutionContext, dropCfg DropConfig) DropDataLink
+	Create(ctx smachine.ExecutionContext, dropCfg DropInfo, terminateFn smachine.TerminationHandlerFunc) DropDataLink
 	Get(ctx smachine.SharedStateContext, dropID jet.DropID) DropDataLink
 }
 
 type JetTreeOp uint8
 
 const (
-	JetStraight JetTreeOp = iota
+	JetGenesis JetTreeOp = iota
+	JetStraight
 	JetGenesisSplit
 	JetSplit
 	JetMerge
 )
 
-type DropConfig struct {
-	ID jet.DropID
-	PrevID jet.DropID
-	LastOp JetTreeOp
-	// LegID jet.LegID // TODO LegID
-}
-
 var _ DropCataloger = DropCatalog{}
 type DropCatalog struct {}
 
-func (DropCatalog) Create(ctx smachine.ExecutionContext, dropCfg DropConfig) DropDataLink {
+func (DropCatalog) Create(ctx smachine.ExecutionContext, dropCfg DropInfo, terminateFn smachine.TerminationHandlerFunc) DropDataLink {
 
 	if ctx.GetPublished(JetDropKey(dropCfg.ID)) != nil {
 		panic(throw.IllegalState())
 	}
 
-	ctx.InitChild(JetDropCreate(dropCfg))
+	ctx.InitChildExt(JetDropCreate(dropCfg), smachine.CreateDefaultValues{ TerminationHandler: terminateFn }, nil)
 
 	switch sdl := ctx.GetPublishedLink(JetDropKey(dropCfg.ID)); {
 	case sdl.IsZero():
@@ -67,26 +58,26 @@ func (DropCatalog) Get(ctx smachine.SharedStateContext, dropID jet.DropID) DropD
 	return DropDataLink{}
 }
 
-func JetDropCreate(dropCfg DropConfig) smachine.CreateFunc {
+func JetDropCreate(dropCfg DropInfo) smachine.CreateFunc {
 	return func(smachine.ConstructionContext) smachine.StateMachine {
 		sm := &SMDropBuilder{}
-		sm.sd.id = dropCfg.ID
+		sm.sd.info = dropCfg
 		return sm
 	}
 }
 
 func RegisterJetDrop(ctx smachine.SharedStateContext, sd *DropSharedData) bool {
 	switch {
-	case !sd.id.IsValid():
+	case !sd.info.ID.IsValid():
 		panic(throw.IllegalState())
-	case !sd.ready.IsZero():
+	case sd.ready.IsZero():
+		panic(throw.IllegalState())
+	case sd.finalize.IsZero():
 		panic(throw.IllegalState())
 	}
 
-	sd.ready = smsync.NewConditionalBool(false, fmt.Sprintf("StreamDrop{%d}.ready", ctx.SlotLink().SlotID()))
-
 	sdl := ctx.Share(sd, smachine.ShareDataDirect)
-	if !ctx.Publish(JetDropKey(sd.id), sdl) {
+	if !ctx.Publish(JetDropKey(sd.info.ID), sdl) {
 		ctx.Unshare(sdl)
 		return false
 	}

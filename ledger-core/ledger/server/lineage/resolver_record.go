@@ -18,7 +18,8 @@ type resolvedRecord struct {
 	filNo    filamentNo
 	recapNo  recordNo
 
-	storageIndex ledger.DirectoryIndex
+	storageIndex       ledger.DirectoryIndex
+	filamentStartIndex ledger.DirectoryIndexAndFlags
 
 	redirectToType RecordType
 	Record

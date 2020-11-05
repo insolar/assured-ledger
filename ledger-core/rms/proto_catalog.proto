@@ -14,9 +14,9 @@ message RecordExcerptForCatalogEntry {
     reserved 1 to 15, 17 to 18, 40 to max;
 
     uint32 RecordType = 16;
-    Binary RecordBodyHash = 19;
+    RecordBodyDigests PayloadDigests = 19;
 
-    // MUST match with Excerpt portion of CatalogEntry
+    // MUST match with Excerpt portion of CatalogEntryData
     Reference PrevRef = 24;
     Reference RootRef = 25;
     Reference ReasonRef = 26;
@@ -31,19 +31,26 @@ message RecordBodyForLazy {
 
 message CatalogEntry {
     reserved 1 to 15, 29 to 38;
-    // Start of fixed-size portion.
-    // Use of fixed-size fields allows direct memory mapping for fast access to a few critical fields
-    fixed32 RecordType = 16;
+
+    fixed64 DropOrdinal = 16 [(gogoproto.casttype)="DropOrdinal"];
     fixed64 BodyLoc = 17 [(gogoproto.casttype)="StorageLocator"];
     fixed64 PayloadLoc = 18 [(gogoproto.casttype)="StorageLocator"];
-    fixed32 Ordinal = 19 [(gogoproto.casttype)="CatalogOrdinal"];
-    // End of fixed-size portion.
+    fixed64 BodyPayloadSizes = 19; // low32 - bodySize, high32 - payloadSize
 
     ExtLocators ExtensionLoc = 20;
-    Binary RecordBodyHash = 21;
+    CatalogEntryData EntryData = 21;
+}
+
+message CatalogEntryData {
+    reserved 1 to 15, 17, 20 to 23, 1800 to max;
+
+    uint32 RecordType = 16;
+
+    Binary BodyDigest = 18;
+    RecordBodyDigests PayloadDigests = 19;
 
     // Start of Excerpt portion
-    // MUST match with RecordExcerpt
+    // Fields below MUST be identical with RecordExcerptForCatalogEntry
     Reference PrevRef = 24;
     Reference RootRef = 25;
     Reference ReasonRef = 26;
@@ -51,14 +58,15 @@ message CatalogEntry {
     Reference RejoinRef = 28;
     // End of Excerpt field portion
 
-    Binary ProducerSignature = 39;
-    Reference RecapRef = 40;
-
+    Reference RecordRef = 40;
+    Binary ProducerSignature = 41;
     Reference ProducedBy = 42;
     // Token ProducerToken = 43;
     Binary RegistrarSignature = 44;
     Reference RegisteredBy = 45;
     // Token RegistrarToken = 46;
+
+    Reference RecapRef = 50;
 }
 
 message ExtLocators {
@@ -69,6 +77,8 @@ message ExtLocators {
 
 message ExtLocator {
     option (insproto.id) = 0;
-    fixed32 ExtensionID = 17 [(gogoproto.casttype)="ExtensionID"];
-    fixed64 PayloadLoc = 18  [(gogoproto.casttype)="StorageLocator"];
+    option (insproto.notation) = false; // this type actually satisfies the notation, but check of proto-gen-ins is too restrictive
+    uint32 ExtensionID = 17 [(gogoproto.casttype)="ExtensionID"];
+    fixed64 PayloadLoc = 18 [(gogoproto.casttype)="StorageLocator"];
+    uint32 PayloadSize = 20;
 }
