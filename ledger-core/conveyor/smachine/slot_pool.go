@@ -34,6 +34,7 @@ type SlotPool struct {
 	emptyPages  []slotPage
 	slotPgPos   uint16
 	deallocate  bool
+	blockAlloc  bool
 }
 
 func (p *SlotPool) initSlotPool() {
@@ -47,6 +48,10 @@ func (p *SlotPool) Count() int {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
+	return p.count()
+}
+
+func (p *SlotPool) count() int {
 	n := len(p.slotPages)
 	if n == 0 {
 		return 0
@@ -69,6 +74,22 @@ func (p *SlotPool) IsEmpty() bool {
 	return p.Count() == 0
 }
 
+func (p *SlotPool) BlockIfEmpty(stopFn func() bool) bool {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	
+	switch {
+	case p.blockAlloc:
+		return false
+	case p.count() != 0:
+		return false
+	case stopFn != nil && !stopFn():
+		return false
+	}
+	p.blockAlloc = true
+	return true
+}
+
 // AllocateSlot creates or reuses a slot. The returned slot is marked BUSY and is at step 0.
 // Work of AllocateSlot is not blocked during ScanAndCleanup
 func (p *SlotPool) AllocateSlot(m *SlotMachine, id SlotID) (slot *Slot) {
@@ -76,12 +97,14 @@ func (p *SlotPool) AllocateSlot(m *SlotMachine, id SlotID) (slot *Slot) {
 	defer p.mutex.Unlock()
 
 	switch {
+	case p.blockAlloc:
+		return nil
 	case !p.unusedSlots.IsEmpty():
 		slot = p.unusedSlots.First()
 		slot.removeFromQueue()
 		m.ensureLocal(slot)
 	case p.slotPages == nil:
-		panic("illegal state")
+		panic(throw.IllegalState())
 	default:
 		lenSlots := len(p.slotPages[0])
 		if int(p.slotPgPos) == lenSlots {

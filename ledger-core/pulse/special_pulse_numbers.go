@@ -54,7 +54,7 @@ const (
 	// Identity of an endpoint
 	// Indicates when the endpoint is free-to-call, can be served by any node, or needs a special handling.
 	EndpointAddress
-	// FreeEndpointAddress ??
+	// TollFreeEndpointAddress ??
 
 	// Identity of data relevant to pulse, e.g. network state hash, network population, jet tree etc
 	DataOfPulse

@@ -3,10 +3,11 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package dropstorage
+package memstor
 
 import (
 	"testing"
+	"unsafe"
 
 	"github.com/stretchr/testify/require"
 
@@ -17,7 +18,7 @@ import (
 )
 
 func TestMemorySnapshot(t *testing.T) {
-	ms := NewMemoryStorageWriter(ledger.DefaultDustSection, directoryEntrySize*16)
+	ms := NewMemoryStorageWriter(0, ledger.DefaultDustSection, directoryEntrySize*16)
 	s, _ := ms.TakeSnapshot()
 
 	es, err := s.GetDirectorySection(ledger.DefaultEntrySection)
@@ -36,16 +37,16 @@ func TestMemorySnapshot(t *testing.T) {
 	require.Equal(t, nextIdx, es.GetNextDirectoryIndex())
 
 	require.Panics(t, func() {
-		_ = es.AppendDirectoryEntry(0, gen.UniqueGlobalRef(), loc)
+		_ = es.AppendDirectoryEntry(0, bundle.DirectoryEntry{ Key: gen.UniqueGlobalRef(), Loc: loc})
 	})
 
-	err = es.AppendDirectoryEntry(nextIdx, gen.UniqueGlobalRef(), loc)
+	err = es.AppendDirectoryEntry(nextIdx, bundle.DirectoryEntry{Key: gen.UniqueGlobalRef(), Loc: loc})
 	require.NoError(t, err)
 
 	r0 := r.(byteReceptacle)
 	r, loc, err = es.AllocateEntryStorage(16)
 	require.NoError(t, err)
-	require.Equal(t, ledger.NewLocator(ledger.DefaultEntrySection, 1, 10), loc)
+	require.Equal(t, ledger.NewLocator(ledger.DefaultEntrySection, 1, 11), loc)
 	require.NotNil(t, r)
 
 	err = r.ApplyFixedReader(longbits.WrapStr("0123456789"))
@@ -55,11 +56,12 @@ func TestMemorySnapshot(t *testing.T) {
 
 	_ = append(r0, "overflow"...) // check that an allocated slice is protected from overflow
 
-	require.Equal(t, "01234567890123456789ABCDEF", string(ms.sections[ledger.DefaultEntrySection].chapters[0]))
+	// Directory entry is appended with varint size prefix
+	require.Equal(t, "\x0a0123456789\x100123456789ABCDEF", string(ms.sections[ledger.DefaultEntrySection].chapters[0]))
 }
 
 func TestMemorySnapshotDirectoryPaging(t *testing.T) {
-	ms := NewMemoryStorageWriter(ledger.DefaultDustSection, directoryEntrySize*16)
+	ms := NewMemoryStorageWriter(0, ledger.DefaultDustSection, directoryEntrySize*16)
 	s, _ := ms.TakeSnapshot()
 	es, err := s.GetDirectorySection(ledger.DefaultEntrySection)
 	require.NoError(t, err)
@@ -72,7 +74,7 @@ func TestMemorySnapshotDirectoryPaging(t *testing.T) {
 		require.Equal(t, ledger.NewDirectoryIndex(ledger.DefaultEntrySection, j), nextIdx)
 		require.Equal(t, nextIdx, es.GetNextDirectoryIndex())
 
-		err = es.AppendDirectoryEntry(nextIdx, gen.UniqueGlobalRef(), loc)
+		err = es.AppendDirectoryEntry(nextIdx, bundle.DirectoryEntry{Key: gen.UniqueGlobalRef(), Loc: loc})
 		require.NoError(t, err)
 		j++
 		require.Equal(t, ledger.NewDirectoryIndex(ledger.DefaultEntrySection, j), es.GetNextDirectoryIndex())
@@ -92,7 +94,7 @@ func TestMemorySnapshotDirectoryPaging(t *testing.T) {
 	require.NoError(t, err)
 
 	nextIdx := es.GetNextDirectoryIndex()
-	err = es.AppendDirectoryEntry(nextIdx, gen.UniqueGlobalRef(), loc)
+	err = es.AppendDirectoryEntry(nextIdx, bundle.DirectoryEntry{Key: gen.UniqueGlobalRef(), Loc: loc})
 	require.NoError(t, err)
 
 	sm = s.(*memorySnapshot)
@@ -104,14 +106,14 @@ func TestMemorySnapshotDirectoryPaging(t *testing.T) {
 
 	require.Equal(t, ledger.NewDirectoryIndex(ledger.DefaultEntrySection, j + 1), es.GetNextDirectoryIndex())
 
-	s.Rollback(false)
+	require.NoError(t, s.Rollback(false))
 
 	require.Equal(t, ledger.NewDirectoryIndex(ledger.DefaultEntrySection, j), es.GetNextDirectoryIndex())
 }
 
 func TestMemorySnapshotPayloadPaging(t *testing.T) {
-	pageSize := directoryEntrySize*16
-	ms := NewMemoryStorageWriter(ledger.DefaultDustSection, pageSize)
+	pageSize := directoryEntrySize *16
+	ms := NewMemoryStorageWriter(0, ledger.DefaultDustSection, pageSize)
 	s, _ := ms.TakeSnapshot()
 	es, err := s.GetPayloadSection(ledger.DefaultEntrySection)
 	require.NoError(t, err)
@@ -171,7 +173,7 @@ func TestMemorySnapshotPayloadPaging(t *testing.T) {
 	require.Equal(t, ledger.ChapterID(2), ess.chapter)
 	require.Equal(t, uint32(allocSize), ess.lastOfs)
 
-	s.Rollback(false)
+	require.NoError(t, s.Rollback(false))
 
 	chapters = ms.sections[ledger.DefaultEntrySection].chapters
 	require.Equal(t, 2, len(chapters))
@@ -183,6 +185,8 @@ type benchBundle struct {
 	data  []byte
 	recep bundle.PayloadReceptacle
 }
+
+func (p *benchBundle) ApplyRollback() {}
 
 func (p *benchBundle) PrepareWrite(snapshot bundle.Snapshot) error {
 	ps, err := snapshot.GetPayloadSection(ledger.DefaultEntrySection)
@@ -198,7 +202,7 @@ func (p *benchBundle) ApplyWrite() ([]ledger.DirectoryIndex, error) {
 }
 
 func BenchmarkMemoryStorageWrite(b *testing.B) {
-	ms := NewMemoryStorageWriter(ledger.DefaultEntrySection, 1<<16)
+	ms := NewMemoryStorageWriter(0, ledger.DefaultEntrySection, 1<<16)
 	mw := bundle.NewWriter(ms)
 	src := make([]byte, 1<<12)
 	b.SetBytes(int64(len(src)))
@@ -219,7 +223,7 @@ func BenchmarkMemoryStorageWrite(b *testing.B) {
 }
 
 func BenchmarkMemoryStorageParallelWrite(b *testing.B) {
-	ms := NewMemoryStorageWriter(ledger.DefaultEntrySection, 1<<16)
+	ms := NewMemoryStorageWriter(0, ledger.DefaultEntrySection, 1<<16)
 	mw := bundle.NewWriter(ms)
 	src := make([]byte, 1<<12)
 	b.SetBytes(int64(len(src)))
@@ -240,4 +244,8 @@ func BenchmarkMemoryStorageParallelWrite(b *testing.B) {
 			<- ch
 		}
 	})
+}
+
+func TestDirectoryEntrySize(t *testing.T) {
+	require.EqualValues(t, directoryEntrySize, unsafe.Sizeof(bundle.DirectoryEntry{}))
 }

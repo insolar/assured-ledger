@@ -22,7 +22,9 @@ type Writer interface {
 
 	// WaitWriteBundles will wait for all bundles invoked before WaitWriteBundles to be completed.
 	// Arg (synckit.SignalChannel) can be used to interrupt waiting.
-	WaitWriteBundles(synckit.SignalChannel, func(bool)) bool
+	WaitWriteBundles(cancel synckit.SignalChannel, fn func(cancelled bool)) bool
+
+	WaitWriteBundlesAsync(cancel synckit.SignalChannel, fn func(cancelled bool))
 
 	// MarkReadOnly applies read only status to the underlying storage. It may affect bundles being written.
 	MarkReadOnly() error
@@ -31,6 +33,7 @@ type Writer interface {
 type Writeable interface {
 	PrepareWrite(Snapshot) error
 	ApplyWrite() ([]ledger.DirectoryIndex, error)
+	ApplyRollback()
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle.Writeable -s _mock.go -g

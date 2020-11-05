@@ -47,6 +47,10 @@ func (p *AppCompartmentSetup) AddComponent(c managed.Component) {
 	p.Components = append(p.Components, c)
 }
 
+func (p *AppCompartmentSetup) Injector() injector.DependencyInjector {
+	return injector.NewDependencyInjector(struct {}{}, p.Dependencies, nil)
+}
+
 // ConfigReviserFunc enables AppCompartmentSetup to be revised before creation of an app compartment.
 type ConfigReviserFunc = func(context.Context, injector.DependencyInjector, AppCompartmentSetup) AppCompartmentSetup
 

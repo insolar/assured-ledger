@@ -49,7 +49,9 @@ func (v Adapter) PrepareInspectRecordSet(ctx smachine.ExecutionContext, set Regi
 	return v.adapter.PrepareAsync(ctx, func(context.Context, interface{}) smachine.AsyncResultFunc {
 		rs, err := v.service.InspectRecordSet(set)
 		if callbackFn == nil {
-			panic(err)
+			if err != nil {
+				panic(err)
+			}
 		}
 		return func(ctx smachine.AsyncResultContext) {
 			callbackFn(ctx, rs, err)

@@ -137,7 +137,7 @@ func (m *SlotMachine) queueAsyncResultCallback(callerLink StepLink, flags AsyncC
 			wakeup = flags&WakeUpOnCancel != 0
 
 		default:
-			rc := asyncResultContext{s: slot}
+			rc := asyncResultContext{s: slot, w: worker}
 			wakeupResult := rc.executeResult(resultFn)
 			wakeup = wakeupResult || flags&WakeUpOnResult != 0
 		}

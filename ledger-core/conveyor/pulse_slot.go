@@ -49,6 +49,7 @@ func NewPastPulseSlot(pulseManager *PulseDataManager, pr pulse.Range) PulseSlot 
 type PulseSlot struct {
 	pulseManager *PulseDataManager
 	pulseData    pulseDataHolder
+	pulseChanger PulseChanger
 }
 
 func (p *PulseSlot) State() PulseSlotState {
@@ -197,4 +198,49 @@ func (p *PulseSlot) postMigrate(prevState PulseSlotState, holder smachine.SlotMa
 	if fn := p.pulseManager.pulseMigrateFn; fn != nil {
 		fn(prevState, p, holder)
 	}
+}
+
+func (p *PulseSlot) prepareMigrate(outFn PreparePulseCallbackFunc) {
+	if p.pulseChanger == nil {
+		p.pulseChanger = stubChanger
+	}
+
+	if outFn != nil {
+		p.pulseChanger.PreparePulseChange(outFn)
+	}
+}
+
+func (p *PulseSlot) cancelMigrate() {
+	// cancel can only be called after prepareMigrate
+	p.pulseChanger.CancelPulseChange()
+}
+
+func (p *PulseSlot) commitMigrate() {
+	if p.pulseChanger == nil {
+		// it is possible for commit to be called without prepare
+		p.pulseChanger = stubChanger
+	}
+	p.pulseChanger.CommitPulseChange()
+}
+
+func (p *PulseSlot) SetPulseChanger(changer PulseChanger) bool {
+	switch {
+	case changer == nil:
+		panic(throw.IllegalValue())
+	case p.pulseChanger != nil:
+		return false
+	}
+	p.pulseChanger = changer
+	return true
+}
+
+func (p *PulseSlot) PulseRelativeDeadline(portion float64) time.Time {
+	startedAt := p.pulseData.PulseStartedAt()
+	if portion <= 0 {
+		return startedAt
+	}
+
+	delta := time.Duration(p.pulseData.PulseData().NextPulseDelta) * time.Second
+	relative := portion * float64(delta)
+	return startedAt.Add(time.Duration(relative))
 }

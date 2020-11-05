@@ -30,22 +30,39 @@ type bundleWriter struct {
 	lastReady synckit.SignalChannel
 }
 
-func (p *bundleWriter) WaitWriteBundles(done synckit.SignalChannel, fn func(bool)) bool {
+func (p *bundleWriter) WaitWriteBundlesAsync(cancel synckit.SignalChannel, fn func(cancelled bool)) {
+	if fn == nil {
+		panic(throw.IllegalValue())
+	}
+
+	p.mutex.Lock()
+	prev, next := p._prepareWait(true)
+	p.mutex.Unlock()
+
+	go waitWriteBundles(cancel, fn, prev, next)
+}
+
+func (p *bundleWriter) WaitWriteBundles(cancel synckit.SignalChannel, fn func(cancelled bool)) bool {
 	p.mutex.Lock()
 	prev, next := p._prepareWait(fn != nil)
 	p.mutex.Unlock()
 
 	if next == nil {
 		// there is nothing to wait: (1) no writers (2) all done (3) already rolled back
-		// and there is no fn to call
+		// and there is no fn call
+
 		return true
 	}
 
+	return waitWriteBundles(cancel, fn, prev, next)
+}
+
+func waitWriteBundles(cancel synckit.SignalChannel, fn func(cancelled bool), prev synckit.SignalChannel, next synckit.ClosableSignalChannel) bool {
 	ok := false
 	if prev != nil {
 		select {
 		case _, ok = <- prev:
-		case <- done:
+		case <- cancel:
 			// make sure that commit/rollback status will be propagated properly
 			go propagateReady(prev, next)
 			if fn != nil {
@@ -105,7 +122,10 @@ func (p *bundleWriter) _prepareWait(alwaysSetNext bool) (prev synckit.SignalChan
 }
 
 func (p *bundleWriter) WriteBundle(bundle Writeable, completedFn ResultFunc) (errResult error) {
-	if completedFn == nil {
+	switch {
+	case completedFn == nil:
+		panic(throw.IllegalValue())
+	case bundle == nil:
 		panic(throw.IllegalValue())
 	}
 
@@ -124,6 +144,7 @@ func (p *bundleWriter) WriteBundle(bundle Writeable, completedFn ResultFunc) (er
 		if err := snapshot.Rollback(false); err != nil {
 			errResult = throw.WithDetails(err, errResult)
 		}
+		bundle.ApplyRollback()
 	}()
 
 	if err = bundle.PrepareWrite(snapshot); err != nil {
@@ -197,13 +218,18 @@ func (p *bundleWriter) applyBundleSafely(snapshot Snapshot, bundle Writeable,
 		defer func() {
 			_ = recover() // we can't allow panic here
 		}()
+
+		defer func() {
+			if err != nil {
+				completedFn(nil, err)
+			}
+		}()
+
 		if err2 := snapshot.Rollback(chained); err2 != nil {
 			err = throw.WithDetails(err2, err)
 		}
-		if err != nil {
-			// NB! error report may be missed if rollback panics
-			completedFn(nil, err)
-		}
+
+		bundle.ApplyRollback()
 	}()
 
 	err = func() (err error) {

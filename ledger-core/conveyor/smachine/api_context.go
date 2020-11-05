@@ -413,6 +413,7 @@ type ConditionalBuilder interface {
 
 type AsyncResultContext interface {
 	BasicContext
+	minimalSynchronizationContext
 
 	// Returns a slot logger for this context. It is only valid while this context is valid.
 	Log() Logger
@@ -491,6 +492,9 @@ var _ LimitedExecutionContext = ExecutionContext(nil) // MUST be assignable
 type LimitedExecutionContext interface {
 	SharedStateContext
 	minimalSynchronizationContext
+
+	// Log returns a slot logger for this context. It is only valid while this context is valid.
+	Log() Logger
 
 	// NewChild - See ExecutionContext.NewChild
 	NewChild(CreateFunc) SlotLink

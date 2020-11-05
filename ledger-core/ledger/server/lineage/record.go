@@ -6,6 +6,7 @@
 package lineage
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
@@ -40,7 +41,7 @@ func NewRecapRecord(excerpt catalog.Excerpt, recRef reference.Holder, recap *rms
 }
 
 type Record struct {
-	Excerpt            catalog.Excerpt
+	Excerpt            catalog.Excerpt // TODO these fields can be removed on cleanup as well
 	RecRef             reference.Holder
 	RecapRef           reference.Holder
 	ProducedBy         reference.Holder
@@ -87,3 +88,20 @@ func (v Record) asBasicRecord() rms.BasicRecord {
 		panic(throw.IllegalState())
 	}
 }
+
+/***********************************/
+
+type RecordExtension struct {
+	Body     rms.BasicRecord
+	FilHead  ledger.DirectoryIndex
+	Flags    ledger.DirectoryEntryFlags
+	Dust     DustMode
+}
+
+
+/***********************************/
+type ReadRecord struct {
+	Record
+	StorageIndex ledger.DirectoryIndex
+}
+

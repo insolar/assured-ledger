@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/requests"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -28,8 +29,20 @@ func (p *EventFactory) InputEvent(_ context.Context, event conveyor.InputEvent, 
 	switch ev := event.(type) {
 	case inspectsvc.RegisterRequestSet:
 		return conveyor.InputSetup{
-			CreateFn: func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			CreateFn: func(smachine.ConstructionContext) smachine.StateMachine {
 				return requests.NewSMRegisterRecordSet(ev)
+			},
+		}, nil
+	case inspectsvc.VerifyRequestSet:
+		return conveyor.InputSetup{
+			CreateFn: func(smachine.ConstructionContext) smachine.StateMachine {
+				return requests.NewSMVerifyRecordSet(inspectsvc.RegisterRequestSet(ev))
+			},
+		}, nil
+	case *rms.LReadRequest:
+		return conveyor.InputSetup{
+			CreateFn: func(smachine.ConstructionContext) smachine.StateMachine {
+				return requests.NewSMRead(ev)
 			},
 		}, nil
 	default:

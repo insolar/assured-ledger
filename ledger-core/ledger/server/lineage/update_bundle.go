@@ -6,7 +6,7 @@
 package lineage
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -18,7 +18,10 @@ func NewUpdateBundleForTestOnly(records []Record) UpdateBundle {
 
 	for i := range records {
 		rb.records[i].Record = records[i]
+		rb.records[i].filamentStartIndex = ledger.NewDirectoryIndex(0, 1).WithFlags(0)
 	}
+
+	rb.records[0].filamentStartIndex = ledger.NewDirectoryIndex(0, 1).WithFlags(ledger.FilamentLocalStart)
 
 	return rb
 }
@@ -39,9 +42,14 @@ func (v UpdateBundle) Count() int {
 	return len(v.records)
 }
 
-func (v UpdateBundle) Enum(fn func (Record, rms.BasicRecord, DustMode) bool) bool {
+func (v UpdateBundle) Enum(fn func (Record, RecordExtension) bool) bool {
 	for _, r := range v.records {
-		if fn(r.Record, r.asBasicRecord(), 0) {
+		if fn(r.Record, RecordExtension{
+			Body:    r.asBasicRecord(),
+			FilHead: r.filamentStartIndex.DirectoryIndex(),
+			Flags:   r.filamentStartIndex.Flags(),
+			// Dust:    0,
+		}) {
 			return true
 		}
 	}

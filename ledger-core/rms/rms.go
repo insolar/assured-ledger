@@ -12,6 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -37,6 +38,7 @@ type ShortNodeID = node.ShortNodeID
 type StorageLocator = ledger.StorageLocator
 type ExtensionID = ledger.ExtensionID
 type CatalogOrdinal = ledger.Ordinal
+type DropOrdinal = ledger.DropOrdinal
 
 type RecordVisitor = rmsbox.RecordVisitor
 type BasicRecord = rmsbox.BasicRecord
@@ -45,6 +47,11 @@ type BasicMessage = rmsbox.BasicMessage
 type Reference = rmsbox.Reference
 
 type RecordBody = rmsbox.RecordBody
+type RecordBodyDigests = rmsbox.RecordBodyDigests
+
+type JetID = jet.ID
+type JetDropID = jet.DropID
+type JetLegID = jet.LegID
 
 func RegisterRecordType(id uint64, special string, t BasicRecord) {
 	rmsreg.GetRegistry().PutSpecial(id, special, reflect.TypeOf(t))

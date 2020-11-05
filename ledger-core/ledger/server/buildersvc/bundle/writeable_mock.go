@@ -15,6 +15,12 @@ import (
 type WriteableMock struct {
 	t minimock.Tester
 
+	funcApplyRollback          func()
+	inspectFuncApplyRollback   func()
+	afterApplyRollbackCounter  uint64
+	beforeApplyRollbackCounter uint64
+	ApplyRollbackMock          mWriteableMockApplyRollback
+
 	funcApplyWrite          func() (da1 []ledger.DirectoryIndex, err error)
 	inspectFuncApplyWrite   func()
 	afterApplyWriteCounter  uint64
@@ -35,12 +41,149 @@ func NewWriteableMock(t minimock.Tester) *WriteableMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.ApplyRollbackMock = mWriteableMockApplyRollback{mock: m}
+
 	m.ApplyWriteMock = mWriteableMockApplyWrite{mock: m}
 
 	m.PrepareWriteMock = mWriteableMockPrepareWrite{mock: m}
 	m.PrepareWriteMock.callArgs = []*WriteableMockPrepareWriteParams{}
 
 	return m
+}
+
+type mWriteableMockApplyRollback struct {
+	mock               *WriteableMock
+	defaultExpectation *WriteableMockApplyRollbackExpectation
+	expectations       []*WriteableMockApplyRollbackExpectation
+}
+
+// WriteableMockApplyRollbackExpectation specifies expectation struct of the Writeable.ApplyRollback
+type WriteableMockApplyRollbackExpectation struct {
+	mock *WriteableMock
+
+	Counter uint64
+}
+
+// Expect sets up expected params for Writeable.ApplyRollback
+func (mmApplyRollback *mWriteableMockApplyRollback) Expect() *mWriteableMockApplyRollback {
+	if mmApplyRollback.mock.funcApplyRollback != nil {
+		mmApplyRollback.mock.t.Fatalf("WriteableMock.ApplyRollback mock is already set by Set")
+	}
+
+	if mmApplyRollback.defaultExpectation == nil {
+		mmApplyRollback.defaultExpectation = &WriteableMockApplyRollbackExpectation{}
+	}
+
+	return mmApplyRollback
+}
+
+// Inspect accepts an inspector function that has same arguments as the Writeable.ApplyRollback
+func (mmApplyRollback *mWriteableMockApplyRollback) Inspect(f func()) *mWriteableMockApplyRollback {
+	if mmApplyRollback.mock.inspectFuncApplyRollback != nil {
+		mmApplyRollback.mock.t.Fatalf("Inspect function is already set for WriteableMock.ApplyRollback")
+	}
+
+	mmApplyRollback.mock.inspectFuncApplyRollback = f
+
+	return mmApplyRollback
+}
+
+// Return sets up results that will be returned by Writeable.ApplyRollback
+func (mmApplyRollback *mWriteableMockApplyRollback) Return() *WriteableMock {
+	if mmApplyRollback.mock.funcApplyRollback != nil {
+		mmApplyRollback.mock.t.Fatalf("WriteableMock.ApplyRollback mock is already set by Set")
+	}
+
+	if mmApplyRollback.defaultExpectation == nil {
+		mmApplyRollback.defaultExpectation = &WriteableMockApplyRollbackExpectation{mock: mmApplyRollback.mock}
+	}
+
+	return mmApplyRollback.mock
+}
+
+//Set uses given function f to mock the Writeable.ApplyRollback method
+func (mmApplyRollback *mWriteableMockApplyRollback) Set(f func()) *WriteableMock {
+	if mmApplyRollback.defaultExpectation != nil {
+		mmApplyRollback.mock.t.Fatalf("Default expectation is already set for the Writeable.ApplyRollback method")
+	}
+
+	if len(mmApplyRollback.expectations) > 0 {
+		mmApplyRollback.mock.t.Fatalf("Some expectations are already set for the Writeable.ApplyRollback method")
+	}
+
+	mmApplyRollback.mock.funcApplyRollback = f
+	return mmApplyRollback.mock
+}
+
+// ApplyRollback implements Writeable
+func (mmApplyRollback *WriteableMock) ApplyRollback() {
+	mm_atomic.AddUint64(&mmApplyRollback.beforeApplyRollbackCounter, 1)
+	defer mm_atomic.AddUint64(&mmApplyRollback.afterApplyRollbackCounter, 1)
+
+	if mmApplyRollback.inspectFuncApplyRollback != nil {
+		mmApplyRollback.inspectFuncApplyRollback()
+	}
+
+	if mmApplyRollback.ApplyRollbackMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmApplyRollback.ApplyRollbackMock.defaultExpectation.Counter, 1)
+
+		return
+
+	}
+	if mmApplyRollback.funcApplyRollback != nil {
+		mmApplyRollback.funcApplyRollback()
+		return
+	}
+	mmApplyRollback.t.Fatalf("Unexpected call to WriteableMock.ApplyRollback.")
+
+}
+
+// ApplyRollbackAfterCounter returns a count of finished WriteableMock.ApplyRollback invocations
+func (mmApplyRollback *WriteableMock) ApplyRollbackAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmApplyRollback.afterApplyRollbackCounter)
+}
+
+// ApplyRollbackBeforeCounter returns a count of WriteableMock.ApplyRollback invocations
+func (mmApplyRollback *WriteableMock) ApplyRollbackBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmApplyRollback.beforeApplyRollbackCounter)
+}
+
+// MinimockApplyRollbackDone returns true if the count of the ApplyRollback invocations corresponds
+// the number of defined expectations
+func (m *WriteableMock) MinimockApplyRollbackDone() bool {
+	for _, e := range m.ApplyRollbackMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ApplyRollbackMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterApplyRollbackCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcApplyRollback != nil && mm_atomic.LoadUint64(&m.afterApplyRollbackCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockApplyRollbackInspect logs each unmet expectation
+func (m *WriteableMock) MinimockApplyRollbackInspect() {
+	for _, e := range m.ApplyRollbackMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to WriteableMock.ApplyRollback")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ApplyRollbackMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterApplyRollbackCounter) < 1 {
+		m.t.Error("Expected call to WriteableMock.ApplyRollback")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcApplyRollback != nil && mm_atomic.LoadUint64(&m.afterApplyRollbackCounter) < 1 {
+		m.t.Error("Expected call to WriteableMock.ApplyRollback")
+	}
 }
 
 type mWriteableMockApplyWrite struct {
@@ -405,6 +548,8 @@ func (m *WriteableMock) MinimockPrepareWriteInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *WriteableMock) MinimockFinish() {
 	if !m.minimockDone() {
+		m.MinimockApplyRollbackInspect()
+
 		m.MinimockApplyWriteInspect()
 
 		m.MinimockPrepareWriteInspect()
@@ -431,6 +576,7 @@ func (m *WriteableMock) MinimockWait(timeout mm_time.Duration) {
 func (m *WriteableMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockApplyRollbackDone() &&
 		m.MinimockApplyWriteDone() &&
 		m.MinimockPrepareWriteDone()
 }

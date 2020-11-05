@@ -13,6 +13,12 @@ import (
 type SnapshotWriterMock struct {
 	t minimock.Tester
 
+	funcDirtyReader          func() (d1 DirtyReader)
+	inspectFuncDirtyReader   func()
+	afterDirtyReaderCounter  uint64
+	beforeDirtyReaderCounter uint64
+	DirtyReaderMock          mSnapshotWriterMockDirtyReader
+
 	funcMarkReadOnly          func() (err error)
 	inspectFuncMarkReadOnly   func()
 	afterMarkReadOnlyCounter  uint64
@@ -33,11 +39,156 @@ func NewSnapshotWriterMock(t minimock.Tester) *SnapshotWriterMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.DirtyReaderMock = mSnapshotWriterMockDirtyReader{mock: m}
+
 	m.MarkReadOnlyMock = mSnapshotWriterMockMarkReadOnly{mock: m}
 
 	m.TakeSnapshotMock = mSnapshotWriterMockTakeSnapshot{mock: m}
 
 	return m
+}
+
+type mSnapshotWriterMockDirtyReader struct {
+	mock               *SnapshotWriterMock
+	defaultExpectation *SnapshotWriterMockDirtyReaderExpectation
+	expectations       []*SnapshotWriterMockDirtyReaderExpectation
+}
+
+// SnapshotWriterMockDirtyReaderExpectation specifies expectation struct of the SnapshotWriter.DirtyReader
+type SnapshotWriterMockDirtyReaderExpectation struct {
+	mock *SnapshotWriterMock
+
+	results *SnapshotWriterMockDirtyReaderResults
+	Counter uint64
+}
+
+// SnapshotWriterMockDirtyReaderResults contains results of the SnapshotWriter.DirtyReader
+type SnapshotWriterMockDirtyReaderResults struct {
+	d1 DirtyReader
+}
+
+// Expect sets up expected params for SnapshotWriter.DirtyReader
+func (mmDirtyReader *mSnapshotWriterMockDirtyReader) Expect() *mSnapshotWriterMockDirtyReader {
+	if mmDirtyReader.mock.funcDirtyReader != nil {
+		mmDirtyReader.mock.t.Fatalf("SnapshotWriterMock.DirtyReader mock is already set by Set")
+	}
+
+	if mmDirtyReader.defaultExpectation == nil {
+		mmDirtyReader.defaultExpectation = &SnapshotWriterMockDirtyReaderExpectation{}
+	}
+
+	return mmDirtyReader
+}
+
+// Inspect accepts an inspector function that has same arguments as the SnapshotWriter.DirtyReader
+func (mmDirtyReader *mSnapshotWriterMockDirtyReader) Inspect(f func()) *mSnapshotWriterMockDirtyReader {
+	if mmDirtyReader.mock.inspectFuncDirtyReader != nil {
+		mmDirtyReader.mock.t.Fatalf("Inspect function is already set for SnapshotWriterMock.DirtyReader")
+	}
+
+	mmDirtyReader.mock.inspectFuncDirtyReader = f
+
+	return mmDirtyReader
+}
+
+// Return sets up results that will be returned by SnapshotWriter.DirtyReader
+func (mmDirtyReader *mSnapshotWriterMockDirtyReader) Return(d1 DirtyReader) *SnapshotWriterMock {
+	if mmDirtyReader.mock.funcDirtyReader != nil {
+		mmDirtyReader.mock.t.Fatalf("SnapshotWriterMock.DirtyReader mock is already set by Set")
+	}
+
+	if mmDirtyReader.defaultExpectation == nil {
+		mmDirtyReader.defaultExpectation = &SnapshotWriterMockDirtyReaderExpectation{mock: mmDirtyReader.mock}
+	}
+	mmDirtyReader.defaultExpectation.results = &SnapshotWriterMockDirtyReaderResults{d1}
+	return mmDirtyReader.mock
+}
+
+//Set uses given function f to mock the SnapshotWriter.DirtyReader method
+func (mmDirtyReader *mSnapshotWriterMockDirtyReader) Set(f func() (d1 DirtyReader)) *SnapshotWriterMock {
+	if mmDirtyReader.defaultExpectation != nil {
+		mmDirtyReader.mock.t.Fatalf("Default expectation is already set for the SnapshotWriter.DirtyReader method")
+	}
+
+	if len(mmDirtyReader.expectations) > 0 {
+		mmDirtyReader.mock.t.Fatalf("Some expectations are already set for the SnapshotWriter.DirtyReader method")
+	}
+
+	mmDirtyReader.mock.funcDirtyReader = f
+	return mmDirtyReader.mock
+}
+
+// DirtyReader implements SnapshotWriter
+func (mmDirtyReader *SnapshotWriterMock) DirtyReader() (d1 DirtyReader) {
+	mm_atomic.AddUint64(&mmDirtyReader.beforeDirtyReaderCounter, 1)
+	defer mm_atomic.AddUint64(&mmDirtyReader.afterDirtyReaderCounter, 1)
+
+	if mmDirtyReader.inspectFuncDirtyReader != nil {
+		mmDirtyReader.inspectFuncDirtyReader()
+	}
+
+	if mmDirtyReader.DirtyReaderMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmDirtyReader.DirtyReaderMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmDirtyReader.DirtyReaderMock.defaultExpectation.results
+		if mm_results == nil {
+			mmDirtyReader.t.Fatal("No results are set for the SnapshotWriterMock.DirtyReader")
+		}
+		return (*mm_results).d1
+	}
+	if mmDirtyReader.funcDirtyReader != nil {
+		return mmDirtyReader.funcDirtyReader()
+	}
+	mmDirtyReader.t.Fatalf("Unexpected call to SnapshotWriterMock.DirtyReader.")
+	return
+}
+
+// DirtyReaderAfterCounter returns a count of finished SnapshotWriterMock.DirtyReader invocations
+func (mmDirtyReader *SnapshotWriterMock) DirtyReaderAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDirtyReader.afterDirtyReaderCounter)
+}
+
+// DirtyReaderBeforeCounter returns a count of SnapshotWriterMock.DirtyReader invocations
+func (mmDirtyReader *SnapshotWriterMock) DirtyReaderBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDirtyReader.beforeDirtyReaderCounter)
+}
+
+// MinimockDirtyReaderDone returns true if the count of the DirtyReader invocations corresponds
+// the number of defined expectations
+func (m *SnapshotWriterMock) MinimockDirtyReaderDone() bool {
+	for _, e := range m.DirtyReaderMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.DirtyReaderMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterDirtyReaderCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcDirtyReader != nil && mm_atomic.LoadUint64(&m.afterDirtyReaderCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockDirtyReaderInspect logs each unmet expectation
+func (m *SnapshotWriterMock) MinimockDirtyReaderInspect() {
+	for _, e := range m.DirtyReaderMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to SnapshotWriterMock.DirtyReader")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.DirtyReaderMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterDirtyReaderCounter) < 1 {
+		m.t.Error("Expected call to SnapshotWriterMock.DirtyReader")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcDirtyReader != nil && mm_atomic.LoadUint64(&m.afterDirtyReaderCounter) < 1 {
+		m.t.Error("Expected call to SnapshotWriterMock.DirtyReader")
+	}
 }
 
 type mSnapshotWriterMockMarkReadOnly struct {
@@ -330,6 +481,8 @@ func (m *SnapshotWriterMock) MinimockTakeSnapshotInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *SnapshotWriterMock) MinimockFinish() {
 	if !m.minimockDone() {
+		m.MinimockDirtyReaderInspect()
+
 		m.MinimockMarkReadOnlyInspect()
 
 		m.MinimockTakeSnapshotInspect()
@@ -356,6 +509,7 @@ func (m *SnapshotWriterMock) MinimockWait(timeout mm_time.Duration) {
 func (m *SnapshotWriterMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockDirtyReaderDone() &&
 		m.MinimockMarkReadOnlyDone() &&
 		m.MinimockTakeSnapshotDone()
 }

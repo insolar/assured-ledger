@@ -5,7 +5,7 @@ package rms;
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "github.com/insolar/assured-ledger/ledger-core/insproto/ins.proto";
 import "rms.proto";
-// import "proto_records.proto";
+import "proto_catalog.proto";
 
 option (insproto.notation_all) = true;
 option (insproto.context_all) = "MessageVisitor";
@@ -29,16 +29,18 @@ enum RegistrationFlags {
 
 message LRegisterRequest {
     option (insproto.id) = 1200;
-    // = 1201 LRegisterLifelineRequest
-    // = 1202 LRegisterSidelineRequest
+    // = 1201 LVerifyRequest
 
     //*** Start of predefined section ***//
-    reserved 1 to 18, 20 to 1799;
+    reserved 1 to 15, 17, 20 to 1799;
+    uint32 Polymorph = 16; // an explicit field is required to be able to alter record type
     AnyRecordLazy Record = 19 [(gogoproto.embed) = true, (insproto.ctx_apply)="MsgRecord"]; // put proper Record type here
     //*** End of predefined section ***//
 
-    // Add here custom fields
+    // Add custom fields below
 
+    // RegistrationFlags must be zero for LVerifyRequest
+    // RegistrationFlags is ignored for a non-first entry of a registration set
     RegistrationFlags Flags = 1800;
     Reference AnticipatedRef = 1801;
 
@@ -48,19 +50,20 @@ message LRegisterRequest {
     Reference OverrideReasonRef = 1826;
 
     Binary    ProducerSignature = 1839;
+    // ProducedBy can be omitted for a non-first entry of a registration set
     Reference ProducedBy = 1840;
 
     // Token  ProducerToken = 1841;
 }
 
 message LRegisterResponse {
-    option (insproto.id) = 1203;
+    option (insproto.id) = 1202;
 
     //*** Start of predefined section ***//
     reserved 1 to 1799;
     //*** End of predefined section ***//
 
-    // Add here custom fields
+    // Add custom fields below
 
     RegistrationFlags Flags = 1800;
     Reference AnticipatedRef = 1801;
@@ -68,4 +71,75 @@ message LRegisterResponse {
     Binary    RegistrarSignature = 1805;
     // Reference RegisteredBy = 1806;
     // Token  RegistrarToken = 1807;
+}
+
+enum ReadFlags {
+//    option allow_alias = true;
+
+    PastToPresent = 0;
+    PresentToPast = 1;
+
+    ExcludeStart = 2;
+    ExcludeStop  = 4;
+
+    IgnoreBranch = 8;
+    FollowBranch = 16;
+    IncludeBranch = 24; // 8 + 16
+
+    IncludePrevReport = 32;
+    IncludeNextReport = 64;
+
+//    TransparentRedirection = 0;
+//    ExplicitRedirection = 8;
+//    IgnoreRedirection = 16; // Supersedes ExplicitRedirection
+}
+
+message LReadRequest {
+    option (insproto.id) = 1204;
+
+    //*** Start of predefined section ***//
+    reserved 1 to 1799;
+    //*** End of predefined section ***//
+
+    // Add custom fields below
+
+    ReadFlags Flags = 1800;
+    uint32    TargetPulse = 1801 [(gogoproto.casttype) = "PulseNumber"];
+    Reference TargetRootRef = 1802;
+    Reference TargetStartRef = 1803;
+    Reference TargetStopRef = 1804;
+    Reference TargetReasonRef = 1805;
+
+    uint64 LimitSize = 1810;
+    uint32 LimitCount = 1811;
+    uint32 LimitRecordWithExcerptCount = 1812;
+    uint32 LimitRecordWithBodyCount = 1813;
+    uint32 LimitRecordWithPayloadCount = 1814;
+    uint32 LimitRecordWithExtensionsCount = 1815;
+}
+
+message LReadResponse {
+    option (insproto.id) = 1205;
+
+    //*** Start of predefined section ***//
+    reserved 1 to 1799;
+    //*** End of predefined section ***//
+
+    // Add custom fields below
+
+
+    repeated Entry Entries = 1800;
+
+    message Entry {
+        CatalogEntryData EntryData = 17;
+
+        repeated bytes Payloads = 18;
+        Binary RecordBinary = 19;
+
+//        uint32   RecordSize = 1801;
+//        uint32   RecordPayloadsSize = 1802;
+    }
+
+//    uint32   NextRecordSize = 1801;
+//    uint32   NextRecordPayloadsSize = 1802;
 }

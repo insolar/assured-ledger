@@ -18,6 +18,7 @@ func (m *SlotMachine) RunToStop(worker AttachableSlotWorker, signal *synckit.Sig
 	m.Stop()
 	worker.AttachTo(m, signal, uint32(m.config.ScanCountLimit), func(worker AttachedSlotWorker) {
 		for !m.syncQueue.IsInactive() && !worker.HasSignal() {
+			// TODO this causes busy-wait when slots are busy/locked
 			m.ScanOnce(ScanDefault, worker)
 		}
 	})
@@ -137,7 +138,7 @@ func (m *SlotMachine) beforeScan(scanTime time.Time) {
 func (m *SlotMachine) stopAll(worker AttachedSlotWorker) (repeatNow bool) {
 	fw := worker.AsFixedSlotWorker()
 	clean := m.slotPool.ScanAndCleanup(true, func(slot *Slot) {
-		m.recycleSlot(slot, fw)
+		m._cleanupSlot(slot, fw, nil)
 	}, func(slots []Slot) (isPageEmptyOrWeak, hasWeakSlots bool) {
 		return m.stopPage(slots, fw)
 	})

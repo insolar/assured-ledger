@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
@@ -31,7 +32,7 @@ func TestDropAssistAppend(t *testing.T) {
 	completed := sync.WaitGroup{}
 	hashed := sync.WaitGroup{}
 
-	da := prepareDropAssistFoAppend(t, local, &started, &completed, &hashed)
+	da := prepareDropAssistForAppend(t, local, &started, &completed, &hashed)
 
 	const bundleCount = 3
 	started.Add(bundleCount)
@@ -93,7 +94,7 @@ func TestDropAssistAppendWithPulseChange(t *testing.T) {
 	started := sync.WaitGroup{}
 	completed := sync.WaitGroup{}
 	hashed := sync.WaitGroup{}
-	da := prepareDropAssistFoAppend(t, local, &started, &completed, &hashed)
+	da := prepareDropAssistForAppend(t, local, &started, &completed, &hashed)
 
 	const bundleCount = 3
 	started.Add(bundleCount)
@@ -109,6 +110,7 @@ func TestDropAssistAppendWithPulseChange(t *testing.T) {
 		// use of stub enables merkle tree to be empty
 		// as we will rollback all operations
 		merkle: merkler.NewForkingCalculator(pair, cryptkit.NewDigest(longbits.WrapStr("stub"), "testMerkle")),
+		writer: da.writer,
 	}
 	pa.status.Store(plashStarted)
 
@@ -132,8 +134,10 @@ func TestDropAssistAppendWithPulseChange(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	stateHash := make(chan cryptkit.Digest, 1)
-	pa.PreparePulseChange(stateHash)
+	stateHash := make(chan struct{})
+	pa.PreparePulseChange(func(conveyor.PreparedState) {
+		close(stateHash)
+	})
 	// we don't wait for pending bundles, as state hash is calculated before all pending bundles are released
 	<- stateHash
 	// nothing was added
@@ -150,7 +154,8 @@ func TestDropAssistAppendWithPulseChange(t *testing.T) {
 	}
 
 	// this preserves merkle tree by forcing rollback for all pending bundles
-	pa.CommitPulseChange()
+	// internal method is applied here to avoid summarization
+	pa.commitPulseChange()
 
 	// all futures are set to an error
 	for i := range fts {
@@ -174,7 +179,7 @@ func TestDropAssistAppendWithPulseCancel(t *testing.T) {
 	started := sync.WaitGroup{}
 	completed := sync.WaitGroup{}
 	hashed := sync.WaitGroup{}
-	da := prepareDropAssistFoAppend(t, local, &started, &completed, &hashed)
+	da := prepareDropAssistForAppend(t, local, &started, &completed, &hashed)
 
 	const bundleCount = 3
 	started.Add(bundleCount)
@@ -212,8 +217,10 @@ func TestDropAssistAppendWithPulseCancel(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	stateHash := make(chan cryptkit.Digest, 1)
-	pa.PreparePulseChange(stateHash)
+	stateHash := make(chan struct{})
+	pa.PreparePulseChange(func(conveyor.PreparedState) {
+		close(stateHash)
+	})
 	// we don't wait for pending bundles, as state hash is calculated before all pending bundles are released
 	<- stateHash
 	// nothing was added
@@ -250,7 +257,7 @@ func TestDropAssistAppendWithPulseCancel(t *testing.T) {
 	}
 }
 
-func prepareDropAssistFoAppend(t *testing.T, local reference.Local, started, completed, hashed *sync.WaitGroup) *dropAssistant {
+func prepareDropAssistForAppend(t *testing.T, local reference.Local, started, completed, hashed *sync.WaitGroup) *dropAssistant {
 	rcp := bundle.NewPayloadReceptacleMock(t)
 	rcp.ApplyMarshalToMock.Return(nil)
 
@@ -261,9 +268,14 @@ func prepareDropAssistFoAppend(t *testing.T, local reference.Local, started, com
 	ds := bundle.NewDirectorySectionMock(t)
 	dirIndex := ledger.NewDirectoryIndex(ledger.DefaultEntrySection, 1)
 	ds.GetNextDirectoryIndexMock.Return(dirIndex)
-	entryLock := ledger.NewLocator(ledger.DefaultEntrySection, 2, 0)
-	ds.AllocateEntryStorageMock.Return(rcp, entryLock, nil)
-	ds.AppendDirectoryEntryMock.Expect(dirIndex, reference.NewSelf(local), entryLock).Return(nil)
+	entryLoc := ledger.NewLocator(ledger.DefaultEntrySection, 2, 0)
+	ds.AllocateEntryStorageMock.Return(rcp, entryLoc, nil)
+	ds.AppendDirectoryEntryMock.Set(func(index ledger.DirectoryIndex, entry bundle.DirectoryEntry) (err error) {
+		require.Equal(t, dirIndex, index)
+		require.Equal(t, reference.NewSelf(local), entry.Key)
+		require.EqualValues(t, 1, entry.Fil.Link)
+		return nil
+	})
 
 	snap := bundle.NewSnapshotMock(t)
 	snap.GetDirectorySectionMock.Return(ds, nil)
@@ -290,7 +302,7 @@ func prepareDropAssistFoAppend(t *testing.T, local reference.Local, started, com
 	})
 
 	return &dropAssistant{
-		nodeID: 1,
+		exactID: jet.ID(0).AsExact(1),
 		dropID: jet.ID(0).AsDrop(local.GetPulseNumber()),
 		writer: bundle.NewWriter(sw),
 		merkle: merkle,

@@ -12,50 +12,58 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/crypto"
-	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/dropstorage"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func NewAdapterExt(adapterID smachine.AdapterID, executor smachine.AdapterExecutor, service Service) Adapter {
+func NewWriteAdapter(adapterID smachine.AdapterID, executor smachine.AdapterExecutor, service Service) WriteAdapter {
 	if service == nil {
 		panic(throw.IllegalValue())
 	}
 
-	return Adapter{
+	return WriteAdapter{
 		adapter: smachine.NewExecutionAdapter(adapterID, executor),
 		service: service,
 	}
 }
 
-func NewAdapterComponent(cfg smadapter.Config, ps crypto.PlatformScheme) managed.Component {
+func NewReadAdapter(adapterID smachine.AdapterID, executor smachine.AdapterExecutor, service ReadService) ReadAdapter {
+	if service == nil {
+		panic(throw.IllegalValue())
+	}
 
-	svc := NewService(
+	return ReadAdapter{
+		adapter: smachine.NewExecutionAdapter(adapterID, executor),
+		service: service,
+	}
+}
+
+func NewAdapterComponent(cfg smadapter.Config, ps crypto.PlatformScheme, storageFactory StorageFactory, plashLimit int) managed.Component {
+	svc := newService(
 		jetalloc.NewMaterialAllocationStrategy(false),
 		ps.ConsensusScheme().NewMerkleDigester(),
-
-		func(pulse.Number) bundle.SnapshotWriter {
-			return dropstorage.NewMemoryStorageWriter(ledger.DefaultDustSection, 1<<17)
-		},
+		storageFactory,
+		plashLimit,
 	)
 
-	var adapter Adapter
-	executor, component := smadapter.NewComponent(context.Background(), cfg, svc, func(holder managed.Holder) {
-		holder.AddDependency(adapter)
-	})
-	adapter = NewAdapterExt("DropBuilder", executor, svc)
+	var writeAdapter WriteAdapter
+	var readAdapter ReadAdapter
+
+	executors, component := smadapter.NewComponentExt(context.Background(), svc, func(holder managed.Holder) {
+		holder.AddDependency(writeAdapter)
+		holder.AddDependency(readAdapter)
+	}, cfg, cfg)
+	writeAdapter = NewWriteAdapter("DropBuilder", executors[0], svc)
+	readAdapter = NewReadAdapter("DropDirtyReader", executors[1], svc)
 	return component
 }
 
-type Adapter struct {
+type WriteAdapter struct {
 	adapter smachine.ExecutionAdapter
 	service Service
 }
 
-func (v Adapter) PrepareAsync(ctx smachine.ExecutionContext, callFn func(Service) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
+func (v WriteAdapter) PrepareAsync(ctx smachine.ExecutionContext, callFn func(Service) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
 	if callFn == nil {
 		panic(throw.IllegalValue())
 	}
@@ -65,7 +73,7 @@ func (v Adapter) PrepareAsync(ctx smachine.ExecutionContext, callFn func(Service
 	})
 }
 
-func (v Adapter) PrepareNotify(ctx smachine.ExecutionContext, callFn func(Service)) smachine.NotifyRequester {
+func (v WriteAdapter) PrepareNotify(ctx smachine.ExecutionContext, callFn func(Service)) smachine.NotifyRequester {
 	if callFn == nil {
 		panic(throw.IllegalValue())
 	}
@@ -75,12 +83,39 @@ func (v Adapter) PrepareNotify(ctx smachine.ExecutionContext, callFn func(Servic
 	})
 }
 
-func (v Adapter) SendNotify(ctx smachine.LimitedExecutionContext, callFn func(Service)) {
+func (v WriteAdapter) SendNotify(ctx smachine.LimitedExecutionContext, callFn func(Service)) {
 	if callFn == nil {
 		panic(throw.IllegalValue())
 	}
 
 	v.adapter.SendNotify(ctx, func(context.Context, interface{}) {
+		callFn(v.service)
+	})
+}
+
+/****************************/
+
+type ReadAdapter struct {
+	adapter smachine.ExecutionAdapter
+	service ReadService
+}
+
+func (v ReadAdapter) PrepareAsync(ctx smachine.ExecutionContext, callFn func(ReadService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
+	if callFn == nil {
+		panic(throw.IllegalValue())
+	}
+
+	return v.adapter.PrepareAsync(ctx, func(context.Context, interface{}) smachine.AsyncResultFunc {
+		return callFn(v.service)
+	})
+}
+
+func (v ReadAdapter) PrepareNotify(ctx smachine.ExecutionContext, callFn func(ReadService)) smachine.NotifyRequester {
+	if callFn == nil {
+		panic(throw.IllegalValue())
+	}
+
+	return v.adapter.PrepareNotify(ctx, func(context.Context, interface{}) {
 		callFn(v.service)
 	})
 }

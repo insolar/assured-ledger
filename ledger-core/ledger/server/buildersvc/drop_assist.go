@@ -8,21 +8,22 @@ package buildersvc
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type dropAssistant struct {
 	// set at construction
-	nodeID node.ShortNodeID
 	dropID jet.DropID
+	exactID jet.ExactID
 	writer bundle.Writer
+
+	dropEntryCounter atomickit.Uint32
 
 	mutex   sync.Mutex // LOCK: Is used under plashAssistant.commit lock
 	merkle  cryptkit.ForkingDigester
@@ -32,23 +33,45 @@ func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineag
 	entries := make([]draftEntry, 0, b.Count())
 	digests := make([]cryptkit.Digest, 0, b.Count())
 
-	b.Enum(func(record lineage.Record, br rms.BasicRecord, dust lineage.DustMode) bool {
-		recPayloads := br.GetRecordPayloads()
+	b.Enum(func(record lineage.Record, recExt lineage.RecordExtension) bool {
+		recPayloads := recExt.Body.GetRecordPayloads()
 		payloadCount := recPayloads.Count()
 
 		bundleEntry := draftEntry{
-			directory: ledger.DefaultEntrySection, // todo depends on record policy
+			directory: ledger.DefaultEntrySection, // TODO depends on record policy
 			entryKey:  record.GetRecordRef(),
 			payloads:  make([]sectionPayload, 1+payloadCount),
 			draft:     draftCatalogEntry(record),
 		}
 
-		if dust == lineage.DustRecord {
+		switch {
+		case recExt.Dust == lineage.DustRecord:
 			bundleEntry.directory = ledger.DefaultDustSection
+			// dust record can't be considered as connected for cross-drop operations etc
+			// bundleEntry.filHead = 0
+		case recExt.FilHead.SectionID() == ledger.RelativeEntry:
+			// ordinal points to an entry of this bundle
+			switch relOrd := recExt.FilHead.Ordinal(); {
+			case relOrd == 0:
+				fallthrough
+			case int(relOrd - 1) > len(entries):
+				err = throw.E("invalid relative index")
+				return true // stop now
+			default:
+				bundleEntry.filHeadHere = true
+				bundleEntry.filHead = recExt.FilHead.Ordinal()
+				bundleEntry.filFlags = recExt.Flags
+			}
+		case recExt.FilHead.SectionID() != bundleEntry.directory:
+			err = throw.E("mismatched filament section")
+			return true // stop now
+		default:
+			bundleEntry.filHead = recExt.FilHead.Ordinal()
+			bundleEntry.filFlags = recExt.Flags
 		}
 
 		bundleEntry.payloads[0].section = bundleEntry.directory
-		if mt, ok := br.(bundle.MarshalerTo); ok {
+		if mt, ok := recExt.Body.(bundle.MarshalerTo); ok {
 			bundleEntry.payloads[0].payload = mt
 		} else {
 			err = throw.E("incompatible record")
@@ -56,7 +79,7 @@ func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineag
 		}
 
 		if payloadCount > 0 {
-			if dust >= lineage.DustPayload {
+			if recExt.Dust >= lineage.DustPayload {
 				bundleEntry.payloads[1].section = ledger.DefaultDustSection
 			} else {
 				bundleEntry.payloads[1].section = ledger.DefaultDataSection
@@ -83,7 +106,11 @@ func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineag
 		return
 	}
 
-	writeBundle := &entryWriter{entries: entries}
+	writeBundle := &entryWriter{
+		dropOrder: &p.dropEntryCounter,
+		jetID: p.exactID,
+		entries: entries,
+	}
 
 	return p.writer.WriteBundle(writeBundle, func(indices []ledger.DirectoryIndex, err error) bool {
 		// this closure is called later, after the bundle is completely written
@@ -111,11 +138,9 @@ func (p *dropAssistant) bundleProcessedByWriter(pa *plashAssistant, indices []le
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	positions, err := pa._updateMerkle(p.dropID, indices, digests)
-	if err != nil {
-		return err
-	}
+	positions := pa._updateMerkle(indices, digests)
 	p._updateMerkle(positions, indices, digests)
+
 	return nil
 }
 

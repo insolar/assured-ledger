@@ -272,7 +272,7 @@ func (p *slotContext) _newChild(fn CreateFunc, postInitFn PostInitFunc, defValue
 }
 
 func (p *slotContext) Log() Logger {
-	p.ensureAtLeast(updCtxSubrStart)
+	p.ensureAtLeast(updCtxFinalize)
 	return p._newLogger()
 }
 
@@ -459,16 +459,6 @@ func (p *slotContext) Release(link SyncLink) bool {
 	return p.release(link.controller)
 }
 
-func (p *slotContext) releaseAll() bool {
-	if p.s.dependency == nil {
-		return false
-	}
-
-	released := p.s._releaseAllDependency()
-	p.s.machine.activateDependantByDetachable(released, p.s.NewLink(), p.w)
-	return true
-}
-
 func (p *slotContext) release(controller DependencyController) bool {
 	dep := p.s.dependency
 	if dep == nil {
@@ -486,19 +476,32 @@ func (p *slotContext) release(controller DependencyController) bool {
 
 func (p *slotContext) ReleaseAll() bool {
 	p.ensureValid()
-	return p.releaseAll()
+	return p.s.contextReleaseAll(p.w)
 }
 
 func (p *slotContext) ApplyAdjustment(adj SyncAdjustment) bool {
 	p.ensureValid()
+	return p.s.contextApplyAdjustment(adj, p.w)
+}
 
+func (s *Slot) contextReleaseAll(worker DetachableSlotWorker) bool {
+	if s.dependency == nil {
+		return false
+	}
+
+	released := s._releaseAllDependency()
+	s.machine.activateDependantByDetachable(released, s.NewLink(), worker)
+	return true
+}
+
+func (s *Slot) contextApplyAdjustment(adj SyncAdjustment, worker DetachableSlotWorker) bool {
 	if adj.controller == nil {
 		panic(throw.IllegalValue())
 	}
 
 	released, activate := adj.controller.AdjustLimit(adj.adjustment, adj.isAbsolute)
 	if activate {
-		return p.s.machine.activateDependantByDetachable(released, p.s.NewLink(), p.w)
+		return s.machine.activateDependantByDetachable(released, s.NewLink(), worker)
 	}
 
 	// actually, we MUST NOT stop a slot from outside
