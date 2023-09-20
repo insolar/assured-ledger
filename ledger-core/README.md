@@ -182,4 +182,4 @@ Our social media:
 
 ## License
 
-This project is licensed under the terms of the [Insolar License 1.0](LICENSE.md).
+This project is licensed under the terms of the [MIT License](LICENSE.md).
